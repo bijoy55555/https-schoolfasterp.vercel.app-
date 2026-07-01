@@ -1,0 +1,14 @@
+{
+  "name": "school-erp-functions",
+  "description": "স্কুল ERP-এর সার্ভার সাইড ফাংশন — পেমেন্ট, SMS, ব্যাকআপ",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.0",
+    "axios": "^1.7.2"
+  },
+  "private": true
+}
