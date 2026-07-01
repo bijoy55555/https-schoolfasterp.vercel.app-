@@ -2,9 +2,14 @@ rules_version = '2';
 
 // ===================================================================
 // Firestore সিকিউরিটি রুলস — মাল্টি-স্কুল (মাল্টি-টেন্যান্ট) ভার্সন
-// প্রতিটা ইউজারের লগইন টোকেনে schoolId + role বসানো থাকে (Cloud
-// Functions/createSchool ও addSchoolUser এটা সেট করে)। এই রুলগুলো
-// নিশ্চিত করে একটা স্কুল কখনোই আরেকটা স্কুলের ডেটা দেখতে/লিখতে পারবে না।
+//
+// ⚠️ পরিবর্তন: superAdmin এখন custom claim (Cloud Functions লাগে) দিয়ে না,
+// বরং superAdmins/{uid} নামের একটা Firestore ডকুমেন্টের অস্তিত্ব দিয়ে
+// যাচাই হয়। এই ডকুমেন্ট Firebase Console থেকে সরাসরি ম্যানুয়ালি বানানো
+// যায় — কোনো Cloud Function ডিপ্লয় বা বিলিং লাগবে না।
+//
+// schoolId/role এখনো custom claim দিয়েই চেক হচ্ছে — এগুলো পরে
+// Cloud Functions ডিপ্লয় হলে কাজ করবে (নতুন স্কুল/ইউজার তৈরির সময়)।
 // ===================================================================
 
 service cloud.firestore {
@@ -17,7 +22,8 @@ service cloud.firestore {
       return request.auth.token.schoolId;
     }
     function isSuperAdmin() {
-      return signedIn() && request.auth.token.superAdmin == true;
+      return signedIn() &&
+        exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
     function belongsToSchool(schoolId) {
       return signedIn() && mySchoolId() == schoolId;
@@ -26,34 +32,31 @@ service cloud.firestore {
       return belongsToSchool(schoolId) && request.auth.token.role == 'admin';
     }
 
+    // ===== superAdmins/{uid} — শুধু Firebase Console থেকে ম্যানুয়ালি
+    // লেখা হবে, ক্লায়েন্ট থেকে কখনো লেখা/পড়া যাবে না =====
+    match /superAdmins/{uid} {
+      allow read, write: if false;
+    }
+
     // ===== schools/{schoolId} — স্কুলের প্রোফাইল, প্যাকেজ, মেয়াদ =====
-    // নিজের স্কুলের সবাই পড়তে পারবে (মেয়াদ/স্ট্যাটাস দেখার জন্য দরকার),
-    // কিন্তু শুধু সুপার-অ্যাডমিন (আপনি, প্ল্যাটফর্ম মালিক) এটা লিখতে/বদলাতে পারবেন।
     match /schools/{schoolId} {
       allow read: if belongsToSchool(schoolId) || isSuperAdmin();
       allow write: if isSuperAdmin();
 
-      // ===== schools/{schoolId}/users/{uid} — স্কুলের ইউজার তালিকা =====
       match /users/{uid} {
         allow read: if belongsToSchool(schoolId) || isSuperAdmin();
         allow write: if isSchoolAdmin(schoolId) || isSuperAdmin();
       }
 
-      // ===== schools/{schoolId}/data/{docId} — ছাত্র/ফি/হাজিরা ইত্যাদি সব ডেটা =====
-      // (students, fees, attendance, results, notices, ... সব একই স্কুলের
-      // অধীনে থাকবে, নিজের স্কুলের ইউজার ছাড়া কেউ ছুঁতে পারবে না)
       match /data/{docId} {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
     }
 
     // ===== পুরনো টপ-লেভেল কালেকশন (payments, sms_logs, attendance) =====
-    // যেগুলো ইতিমধ্যেই Cloud Functions ব্যবহার করছে — অ্যাডমিন SDK
-    // দিয়ে ফাংশনগুলো এগুলো লেখে বলে ক্লায়েন্ট থেকে সরাসরি লেখা বন্ধ,
-    // শুধু লগইন করা ইউজার পড়তে পারবে।
     match /payments/{paymentId} {
       allow read: if signedIn();
-      allow write: if false; // শুধু Cloud Functions (Admin SDK) লিখবে
+      allow write: if false;
     }
     match /sms_logs/{logId} {
       allow read: if signedIn();

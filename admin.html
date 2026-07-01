@@ -20,11 +20,14 @@
   .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
   .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
   .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .msg.info { background:#eaf2fb; color:#1a5276; display:block; }
   table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
   th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
   .status-active { color:#1e7e46; font-weight:600; }
   .status-expired { color:#b03030; font-weight:600; }
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .hint { font-size:12px; color:#777; margin-top:8px; line-height:1.5; }
+  code { background:#f1f1f1; padding:1px 5px; border-radius:4px; font-size:12px; }
 </style>
 </head>
 <body>
@@ -32,7 +35,7 @@
   <h1>🛠️ সুপার-অ্যাডমিন প্যানেল</h1>
   <div class="sub">এখান থেকে নতুন স্কুল (টেন্যান্ট) যোগ করুন ও সাবস্ক্রিপশন দেখুন। শুধু আপনার (প্ল্যাটফর্ম মালিক) ব্যবহারের জন্য — এই লিংক কারো সাথে শেয়ার করবেন না।</div>
 
-  <!-- ধাপ ০: নিজে লগইন করুন -->
+  <!-- ধাপ ১: লগইন -->
   <div class="card">
     <h2>ধাপ ১ — সুপার-অ্যাডমিন হিসেবে লগইন</h2>
     <label>ইমেইল</label>
@@ -41,23 +44,18 @@
     <input id="sa-pass" type="password">
     <button onclick="saLogin()">লগইন করুন</button>
     <div class="msg" id="sa-login-msg"></div>
-  </div>
-
-  <!-- ধাপ ০.৫: প্রথমবার নিজেকে সুপার-অ্যাডমিন বানানো -->
-  <div class="card">
-    <h2>প্রথমবার সেটআপ — নিজেকে সুপার-অ্যাডমিন বানান (একবারই দরকার)</h2>
-    <div class="sub" style="margin-bottom:10px">
-      আগে উপরের ইমেইল/পাসওয়ার্ড দিয়ে লগইন করুন। তারপর Firebase Console-এ
-      <code>firebase functions:secrets:set SUPERADMIN_SETUP_KEY</code> কমান্ড দিয়ে একটা গোপন কী সেট করুন,
-      সেই একই কী নিচে বসিয়ে বাটনে চাপুন। কাজ হয়ে গেলে আবার লগইন করুন (sign out/in)।
+    <div class="hint">
+      এই একাউন্টটা সুপার-অ্যাডমিন হিসেবে যাচাই হয় Firestore-এর
+      <code>superAdmins/{আপনার UID}</code> ডকুমেন্ট দিয়ে — এটা Firebase Console
+      → Firestore Database থেকে একবার ম্যানুয়ালি বানাতে হয় (কোনো Cloud
+      Function বা বিলিং লাগে না)। এখনো না বানিয়ে থাকলে, Authentication ট্যাব
+      থেকে আপনার UID কপি করে, Firestore-এ <code>superAdmins</code> নামে একটা
+      কালেকশন বানিয়ে, সেই UID-কে ডকুমেন্ট আইডি দিয়ে (ভেতরে যেকোনো একটা ফিল্ড,
+      যেমন <code>isSuperAdmin: true</code>) সেভ করুন।
     </div>
-    <label>সিক্রেট কী (SUPERADMIN_SETUP_KEY)</label>
-    <input id="sa-secret" type="password" placeholder="আপনার সেট করা সিক্রেট কী">
-    <button onclick="saBootstrap()">নিজেকে সুপার-অ্যাডমিন বানান</button>
-    <div class="msg" id="sa-bootstrap-msg"></div>
   </div>
 
-  <!-- ধাপ ১: নতুন স্কুল যোগ করুন -->
+  <!-- ধাপ ২: নতুন স্কুল যোগ করুন -->
   <div class="card">
     <h2>ধাপ ২ — নতুন স্কুল যোগ করুন</h2>
     <label>স্কুলের নাম</label>
@@ -100,6 +98,14 @@
     <input id="ns-price" type="number" value="1000">
     <button onclick="createSchool()" id="create-btn">স্কুল তৈরি করুন</button>
     <div class="msg" id="ns-msg"></div>
+    <div class="hint">
+      ⚠️ এই বাটনটা এখনো সার্ভার-সাইড Cloud Function (<code>createSchool</code>)
+      ব্যবহার করে, যেটা এখনো ডিপ্লয় করা হয়নি (Firebase Blaze প্ল্যান +
+      কম্পিউটার লাগবে)। এটা ডিপ্লয় না হওয়া পর্যন্ত এই বাটনে চাপলে এরর
+      আসবে — ততক্ষণ নতুন স্কুল Firebase Console থেকে ম্যানুয়ালি
+      (Authentication-এ ইউজার + Firestore-এ <code>schools</code> ডকুমেন্ট)
+      যোগ করা যাবে।
+    </div>
   </div>
 
   <!-- ধাপ ৩: সব স্কুলের তালিকা ও ম্যানেজমেন্ট -->
@@ -137,9 +143,9 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
   const firebaseConfig = {
@@ -157,10 +163,12 @@
   const functions = getFunctions(app);
   const db = getFirestore(app);
 
-  function showMsg(id, text, ok) {
+  let isSuperAdminVerified = false;
+
+  function showMsg(id, text, type) {
     const el = document.getElementById(id);
     el.textContent = text;
-    el.className = 'msg ' + (ok ? 'ok' : 'err');
+    el.className = 'msg ' + (type || 'err');
   }
 
   window.saLogin = async function() {
@@ -168,31 +176,26 @@
     const pass = document.getElementById('sa-pass').value;
     try {
       const cred = await signInWithEmailAndPassword(auth, email, pass);
-      const tok = await getIdTokenResult(cred.user, true);
-      if (tok.claims.superAdmin) {
-        showMsg('sa-login-msg', '✅ লগইন সফল — আপনি সুপার-অ্যাডমিন হিসেবে যাচাইকৃত।', true);
+      // superAdmin স্ট্যাটাস এখন Firestore ডকুমেন্ট দিয়ে চেক হয়, custom claim দিয়ে না
+      const snap = await getDoc(doc(db, 'superAdmins', cred.user.uid));
+      if (snap.exists()) {
+        isSuperAdminVerified = true;
+        showMsg('sa-login-msg', '✅ লগইন সফল — আপনি সুপার-অ্যাডমিন হিসেবে যাচাইকৃত।', 'ok');
       } else {
-        showMsg('sa-login-msg', '⚠️ লগইন সফল, কিন্তু এই একাউন্ট এখনো সুপার-অ্যাডমিন নয়। নিচের "প্রথমবার সেটআপ" অংশ ব্যবহার করুন।', false);
+        isSuperAdminVerified = false;
+        showMsg('sa-login-msg',
+          '⚠️ লগইন সফল, কিন্তু এই UID (' + cred.user.uid + ') এখনো superAdmins কালেকশনে যোগ করা হয়নি। ' +
+          'Firebase Console → Firestore Database → superAdmins কালেকশনে এই UID দিয়ে একটা ডকুমেন্ট বানান।',
+          'err');
       }
     } catch (e) {
-      showMsg('sa-login-msg', '❌ লগইন ব্যর্থ: ' + e.message, false);
-    }
-  };
-
-  window.saBootstrap = async function() {
-    if (!auth.currentUser) { showMsg('sa-bootstrap-msg', 'আগে লগইন করুন।', false); return; }
-    const secretKey = document.getElementById('sa-secret').value;
-    try {
-      const fn = httpsCallable(functions, 'bootstrapSuperAdmin');
-      const res = await fn({ secretKey });
-      showMsg('sa-bootstrap-msg', '✅ ' + res.data.message, true);
-    } catch (e) {
-      showMsg('sa-bootstrap-msg', '❌ ব্যর্থ: ' + e.message, false);
+      isSuperAdminVerified = false;
+      showMsg('sa-login-msg', '❌ লগইন ব্যর্থ: ' + e.message, 'err');
     }
   };
 
   window.createSchool = async function() {
-    if (!auth.currentUser) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', false); return; }
+    if (!auth.currentUser) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', 'err'); return; }
     const btn = document.getElementById('create-btn');
     btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...';
     try {
@@ -207,10 +210,10 @@
         price: Number(document.getElementById('ns-price').value) || 0,
         durationDays: Number(document.getElementById('ns-days').value) || 30
       });
-      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${res.data.schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, true);
+      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${res.data.schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, 'ok');
       loadSchools();
     } catch (e) {
-      showMsg('ns-msg', '❌ ব্যর্থ: ' + e.message, false);
+      showMsg('ns-msg', '❌ ব্যর্থ (সম্ভবত Cloud Function এখনো ডিপ্লয় করা হয়নি): ' + e.message, 'err');
     } finally {
       btn.disabled = false; btn.textContent = 'স্কুল তৈরি করুন';
     }
@@ -237,15 +240,15 @@
   }
 
   window.loadSchools = async function() {
-    if (!auth.currentUser) { showMsg('sc-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', false); return; }
+    if (!auth.currentUser) { showMsg('sc-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', 'err'); return; }
     document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#999">লোড হচ্ছে...</td></tr>';
     try {
       const snap = await getDocs(collection(db, 'schools'));
       allSchools = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderSchoolTable();
-      showMsg('sc-msg', '', false); document.getElementById('sc-msg').style.display = 'none';
+      document.getElementById('sc-msg').style.display = 'none';
     } catch (e) {
-      showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, false);
+      showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
       document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#b03030">লোড ব্যর্থ</td></tr>';
     }
   };
@@ -286,17 +289,17 @@
       const school = allSchools.find(s => s.id === schoolId);
       const base = toDate(school.expiryDate);
       const now = new Date();
-      const startFrom = (base && base.getTime() > now.getTime()) ? base : now; // মেয়াদ শেষ হয়ে থাকলে আজ থেকে গোনা হবে
+      const startFrom = (base && base.getTime() > now.getTime()) ? base : now;
       const newExpiry = new Date(startFrom.getTime() + days * 86400000);
       await updateDoc(doc(db, 'schools', schoolId), {
         expiryDate: Timestamp.fromDate(newExpiry),
         status: 'active',
         reminderSent: false
       });
-      showMsg('sc-msg', `✅ মেয়াদ ${days} দিন বাড়ানো হয়েছে।`, true);
+      showMsg('sc-msg', `✅ মেয়াদ ${days} দিন বাড়ানো হয়েছে।`, 'ok');
       loadSchools();
     } catch (e) {
-      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, false);
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, 'err');
     }
   };
 
@@ -304,10 +307,10 @@
     try {
       const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
       await updateDoc(doc(db, 'schools', schoolId), { status: newStatus });
-      showMsg('sc-msg', newStatus === 'suspended' ? '⏸️ স্কুল সাসপেন্ড করা হয়েছে — এখন লগইন ব্লক থাকবে।' : '✅ স্কুল আবার সক্রিয় করা হয়েছে।', true);
+      showMsg('sc-msg', newStatus === 'suspended' ? '⏸️ স্কুল সাসপেন্ড করা হয়েছে — এখন লগইন ব্লক থাকবে।' : '✅ স্কুল আবার সক্রিয় করা হয়েছে।', 'ok');
       loadSchools();
     } catch (e) {
-      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, false);
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, 'err');
     }
   };
 
