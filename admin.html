@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>সুপার-অ্যাডমিন — স্কুল ম্যানেজমেন্ট</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { color:#fff; font-size:22px; margin-bottom:4px; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card h2 { font-size:16px; margin:0 0 14px; color:#1a5276; }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input, select { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  button { margin-top:16px; background:#1a5276; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:hover { background:#154160; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
+  .status-active { color:#1e7e46; font-weight:600; }
+  .status-expired { color:#b03030; font-weight:600; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🛠️ সুপার-অ্যাডমিন প্যানেল</h1>
+  <div class="sub">এখান থেকে নতুন স্কুল (টেন্যান্ট) যোগ করুন ও সাবস্ক্রিপশন দেখুন। শুধু আপনার (প্ল্যাটফর্ম মালিক) ব্যবহারের জন্য — এই লিংক কারো সাথে শেয়ার করবেন না।</div>
+
+  <!-- ধাপ ০: নিজে লগইন করুন -->
+  <div class="card">
+    <h2>ধাপ ১ — সুপার-অ্যাডমিন হিসেবে লগইন</h2>
+    <label>ইমেইল</label>
+    <input id="sa-email" placeholder="you@example.com">
+    <label>পাসওয়ার্ড</label>
+    <input id="sa-pass" type="password">
+    <button onclick="saLogin()">লগইন করুন</button>
+    <div class="msg" id="sa-login-msg"></div>
+  </div>
+
+  <!-- ধাপ ০.৫: প্রথমবার নিজেকে সুপার-অ্যাডমিন বানানো -->
+  <div class="card">
+    <h2>প্রথমবার সেটআপ — নিজেকে সুপার-অ্যাডমিন বানান (একবারই দরকার)</h2>
+    <div class="sub" style="margin-bottom:10px">
+      আগে উপরের ইমেইল/পাসওয়ার্ড দিয়ে লগইন করুন। তারপর Firebase Console-এ
+      <code>firebase functions:secrets:set SUPERADMIN_SETUP_KEY</code> কমান্ড দিয়ে একটা গোপন কী সেট করুন,
+      সেই একই কী নিচে বসিয়ে বাটনে চাপুন। কাজ হয়ে গেলে আবার লগইন করুন (sign out/in)।
+    </div>
+    <label>সিক্রেট কী (SUPERADMIN_SETUP_KEY)</label>
+    <input id="sa-secret" type="password" placeholder="আপনার সেট করা সিক্রেট কী">
+    <button onclick="saBootstrap()">নিজেকে সুপার-অ্যাডমিন বানান</button>
+    <div class="msg" id="sa-bootstrap-msg"></div>
+  </div>
+
+  <!-- ধাপ ১: নতুন স্কুল যোগ করুন -->
+  <div class="card">
+    <h2>ধাপ ২ — নতুন স্কুল যোগ করুন</h2>
+    <label>স্কুলের নাম</label>
+    <input id="ns-name" placeholder="যেমন: আদর্শ উচ্চ বিদ্যালয়">
+    <div class="row2">
+      <div>
+        <label>অ্যাডমিন ইমেইল (স্কুলের লগইন)</label>
+        <input id="ns-email" placeholder="admin@school.com">
+      </div>
+      <div>
+        <label>অ্যাডমিন পাসওয়ার্ড</label>
+        <input id="ns-pass" type="password" placeholder="কমপক্ষে ৬ অক্ষর">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>অ্যাডমিনের নাম</label>
+        <input id="ns-admin-name" placeholder="যেমন: মোঃ করিম">
+      </div>
+      <div>
+        <label>মালিকের ফোন নম্বর (SMS রিমাইন্ডারের জন্য)</label>
+        <input id="ns-phone" placeholder="01XXXXXXXXX">
+      </div>
+    </div>
+    <div class="row2">
+      <div>
+        <label>প্যাকেজ</label>
+        <select id="ns-package">
+          <option value="Basic">Basic — ৫০০৳/মাস</option>
+          <option value="Standard" selected>Standard — ১০০০৳/মাস</option>
+          <option value="Premium">Premium — ২০০০৳/মাস</option>
+        </select>
+      </div>
+      <div>
+        <label>মেয়াদ (দিন)</label>
+        <input id="ns-days" type="number" value="30">
+      </div>
+    </div>
+    <label>মূল্য (৳)</label>
+    <input id="ns-price" type="number" value="1000">
+    <button onclick="createSchool()" id="create-btn">স্কুল তৈরি করুন</button>
+    <div class="msg" id="ns-msg"></div>
+  </div>
+
+  <!-- ধাপ ৩: সব স্কুলের তালিকা ও ম্যানেজমেন্ট -->
+  <div class="card">
+    <h2>ধাপ ৩ — সব স্কুল (অ্যাডমিন প্যানেল)</h2>
+    <div class="row2" style="margin-bottom:6px">
+      <div>
+        <label>খুঁজুন</label>
+        <input id="sc-search" placeholder="স্কুলের নাম দিয়ে খুঁজুন..." oninput="renderSchoolTable()">
+      </div>
+      <div>
+        <label>অবস্থা</label>
+        <select id="sc-filter" onchange="renderSchoolTable()">
+          <option value="all">সব</option>
+          <option value="active">✅ সক্রিয়</option>
+          <option value="expiring">🟠 শীঘ্রই মেয়াদ শেষ (৭ দিন)</option>
+          <option value="expired">⛔ মেয়াদ শেষ</option>
+          <option value="suspended">⏸️ সাসপেন্ড</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="loadSchools()">🔄 তালিকা রিফ্রেশ করুন</button>
+    <span id="sc-summary" style="margin-left:12px;font-size:13px;color:#555"></span>
+    <div style="overflow-x:auto">
+      <table id="sc-table">
+        <thead>
+          <tr><th>স্কুল</th><th>প্যাকেজ</th><th>মূল্য</th><th>মেয়াদ শেষ</th><th>অবস্থা</th><th>কাজ</th></tr>
+        </thead>
+        <tbody id="sc-tbody"><tr><td colspan="6" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
+      </table>
+    </div>
+    <div class="msg" id="sc-msg"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, getIdTokenResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
+    authDomain: "school-erp-bd.firebaseapp.com",
+    projectId: "school-erp-bd",
+    storageBucket: "school-erp-bd.firebasestorage.app",
+    messagingSenderId: "951924242207",
+    appId: "1:951924242207:web:c5bd862a9e00ae9d9b622a",
+    measurementId: "G-9E9LHG9HWS"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const functions = getFunctions(app);
+  const db = getFirestore(app);
+
+  function showMsg(id, text, ok) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+
+  window.saLogin = async function() {
+    const email = document.getElementById('sa-email').value.trim();
+    const pass = document.getElementById('sa-pass').value;
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      const tok = await getIdTokenResult(cred.user, true);
+      if (tok.claims.superAdmin) {
+        showMsg('sa-login-msg', '✅ লগইন সফল — আপনি সুপার-অ্যাডমিন হিসেবে যাচাইকৃত।', true);
+      } else {
+        showMsg('sa-login-msg', '⚠️ লগইন সফল, কিন্তু এই একাউন্ট এখনো সুপার-অ্যাডমিন নয়। নিচের "প্রথমবার সেটআপ" অংশ ব্যবহার করুন।', false);
+      }
+    } catch (e) {
+      showMsg('sa-login-msg', '❌ লগইন ব্যর্থ: ' + e.message, false);
+    }
+  };
+
+  window.saBootstrap = async function() {
+    if (!auth.currentUser) { showMsg('sa-bootstrap-msg', 'আগে লগইন করুন।', false); return; }
+    const secretKey = document.getElementById('sa-secret').value;
+    try {
+      const fn = httpsCallable(functions, 'bootstrapSuperAdmin');
+      const res = await fn({ secretKey });
+      showMsg('sa-bootstrap-msg', '✅ ' + res.data.message, true);
+    } catch (e) {
+      showMsg('sa-bootstrap-msg', '❌ ব্যর্থ: ' + e.message, false);
+    }
+  };
+
+  window.createSchool = async function() {
+    if (!auth.currentUser) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', false); return; }
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...';
+    try {
+      const fn = httpsCallable(functions, 'createSchool');
+      const res = await fn({
+        schoolName: document.getElementById('ns-name').value.trim(),
+        adminEmail: document.getElementById('ns-email').value.trim(),
+        adminPassword: document.getElementById('ns-pass').value,
+        adminName: document.getElementById('ns-admin-name').value.trim(),
+        ownerPhone: document.getElementById('ns-phone').value.trim(),
+        packageName: document.getElementById('ns-package').value,
+        price: Number(document.getElementById('ns-price').value) || 0,
+        durationDays: Number(document.getElementById('ns-days').value) || 30
+      });
+      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${res.data.schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, true);
+      loadSchools();
+    } catch (e) {
+      showMsg('ns-msg', '❌ ব্যর্থ: ' + e.message, false);
+    } finally {
+      btn.disabled = false; btn.textContent = 'স্কুল তৈরি করুন';
+    }
+  };
+
+  // ===== ধাপ ৩: সব স্কুলের তালিকা ও ম্যানেজমেন্ট =====
+  let allSchools = [];
+
+  function toDate(v) {
+    if (!v) return null;
+    return v.toDate ? v.toDate() : new Date(v);
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return d.toLocaleDateString('bn-BD', { year:'numeric', month:'short', day:'numeric' });
+  }
+  function statusBadge(school) {
+    const expiry = toDate(school.expiryDate);
+    const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
+    if (school.status === 'suspended') return { label:'⏸️ সাসপেন্ড', cls:'status-expired', key:'suspended' };
+    if (school.status === 'expired' || (daysLeft !== null && daysLeft < 0)) return { label:'⛔ মেয়াদ শেষ', cls:'status-expired', key:'expired' };
+    if (daysLeft !== null && daysLeft <= 7) return { label:`🟠 ${daysLeft} দিন বাকি`, cls:'status-expired', key:'expiring' };
+    return { label:'✅ সক্রিয়', cls:'status-active', key:'active' };
+  }
+
+  window.loadSchools = async function() {
+    if (!auth.currentUser) { showMsg('sc-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', false); return; }
+    document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#999">লোড হচ্ছে...</td></tr>';
+    try {
+      const snap = await getDocs(collection(db, 'schools'));
+      allSchools = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderSchoolTable();
+      showMsg('sc-msg', '', false); document.getElementById('sc-msg').style.display = 'none';
+    } catch (e) {
+      showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, false);
+      document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+    }
+  };
+
+  window.renderSchoolTable = function() {
+    const search = (document.getElementById('sc-search').value || '').trim().toLowerCase();
+    const filter = document.getElementById('sc-filter').value;
+    const tbody = document.getElementById('sc-tbody');
+
+    let rows = allSchools.map(s => ({ s, badge: statusBadge(s) }));
+    if (search) rows = rows.filter(r => (r.s.name || '').toLowerCase().includes(search));
+    if (filter !== 'all') rows = rows.filter(r => r.badge.key === filter);
+
+    document.getElementById('sc-summary').textContent = `মোট ${allSchools.length}টি স্কুল, দেখানো হচ্ছে ${rows.length}টি`;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(({s, badge}) => `
+      <tr>
+        <td><b>${s.name || '—'}</b><br><span style="color:#888;font-size:11px">${s.ownerEmail || ''}</span></td>
+        <td>${s.package || '—'}</td>
+        <td>৳${s.price ?? 0}</td>
+        <td>${fmtDate(toDate(s.expiryDate))}</td>
+        <td class="${badge.cls}">${badge.label}</td>
+        <td>
+          <button style="margin:2px;padding:5px 9px;font-size:12px" onclick="extendSchool('${s.id}',30)">+৩০ দিন</button>
+          <button style="margin:2px;padding:5px 9px;font-size:12px;background:${s.status==='suspended'?'#1e7e46':'#b03030'}" onclick="toggleSuspend('${s.id}','${s.status}')">${s.status==='suspended' ? 'সক্রিয় করুন' : 'সাসপেন্ড'}</button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  window.extendSchool = async function(schoolId, days) {
+    try {
+      const school = allSchools.find(s => s.id === schoolId);
+      const base = toDate(school.expiryDate);
+      const now = new Date();
+      const startFrom = (base && base.getTime() > now.getTime()) ? base : now; // মেয়াদ শেষ হয়ে থাকলে আজ থেকে গোনা হবে
+      const newExpiry = new Date(startFrom.getTime() + days * 86400000);
+      await updateDoc(doc(db, 'schools', schoolId), {
+        expiryDate: Timestamp.fromDate(newExpiry),
+        status: 'active',
+        reminderSent: false
+      });
+      showMsg('sc-msg', `✅ মেয়াদ ${days} দিন বাড়ানো হয়েছে।`, true);
+      loadSchools();
+    } catch (e) {
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, false);
+    }
+  };
+
+  window.toggleSuspend = async function(schoolId, currentStatus) {
+    try {
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      await updateDoc(doc(db, 'schools', schoolId), { status: newStatus });
+      showMsg('sc-msg', newStatus === 'suspended' ? '⏸️ স্কুল সাসপেন্ড করা হয়েছে — এখন লগইন ব্লক থাকবে।' : '✅ স্কুল আবার সক্রিয় করা হয়েছে।', true);
+      loadSchools();
+    } catch (e) {
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, false);
+    }
+  };
+
+</script>
+</body>
+</html>
