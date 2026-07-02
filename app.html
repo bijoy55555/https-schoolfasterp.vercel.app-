@@ -705,7 +705,10 @@
     </div>
     <div class="topbar-right">
       <div class="topbar-date" id="topbar-date"></div>
-      <div class="user-chip" id="user-chip"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
+      <div id="sub-badge" onclick="location.href='pay.html'" style="display:none;align-items:center;gap:6px;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
+        <span id="sub-badge-text">—</span>
+      </div>
+      <div class="user-chip" id="user-chip" onclick="openMyProfile()" style="cursor:pointer"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
       <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="doLogout()">🔓 লগআউট</button>
     </div>
   </div>
@@ -2773,6 +2776,30 @@
 </div>
 
 <!-- ===== TEACHER PROFILE OVERLAY ===== -->
+<div class="profile-overlay" id="my-profile-overlay">
+  <div class="profile-box" style="max-width:520px">
+    <div class="profile-hero">
+      <button class="profile-close" onclick="closeMyProfile()">×</button>
+      <div class="profile-avatar-big" id="my-profile-avatar"></div>
+      <div>
+        <div class="profile-hero-name" id="my-profile-name">—</div>
+        <div class="profile-hero-sub" id="my-profile-sub">—</div>
+        <div class="profile-hero-badges" id="my-profile-badges"></div>
+      </div>
+    </div>
+    <div class="profile-body">
+      <div class="profile-section-title">👤 আমার তথ্য</div>
+      <div class="profile-grid" id="my-profile-grid"></div>
+      <div class="profile-section-title">💳 সাবস্ক্রিপশন / মেয়াদ</div>
+      <div id="my-profile-sub-box"></div>
+    </div>
+    <div class="profile-action-bar">
+      <a class="btn btn-primary" href="pay.html" target="_blank">💳 কিনুন / নবায়ন করুন</a>
+      <button class="btn btn-outline" onclick="closeMyProfile()">বন্ধ করুন</button>
+    </div>
+  </div>
+</div>
+
 <div class="profile-overlay" id="teacher-profile-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;padding:16px">
   <div class="profile-box" style="background:#fff;border-radius:20px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,0.3)">
     <div id="teacher-profile-hero" style="background:linear-gradient(135deg,#0d2137,#1a5276);color:#fff;padding:28px 28px 24px;border-radius:20px 20px 0 0;position:relative">
@@ -6681,6 +6708,7 @@ function finishLoginUI(u, uid) {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('user-name-label').textContent = u.name;
   document.getElementById('user-avatar').textContent = u.avatar;
+  updateSubscriptionBadge();
 
   // role-based nav visibility
   const allNavItems = document.querySelectorAll('.nav-item');
@@ -6707,6 +6735,76 @@ function finishLoginUI(u, uid) {
   }
   showToast(`স্বাগতম, ${u.name}!`);
   logAudit('লগইন করেছেন');
+}
+
+// ✅ টপবারে সাবস্ক্রিপশন/ট্রায়ালের মেয়াদ কতদিন বাকি তা ব্যাজ আকারে দেখায়।
+// আসল (Firebase) লগইনে window.currentSchool থেকে expiry পড়া হয়। ডেমো/অফলাইন
+// লগইনে কোনো আসল স্কুল ডকুমেন্ট থাকে না, তাই ব্যাজটা লুকানো থাকে।
+function updateSubscriptionBadge() {
+  const badge = document.getElementById('sub-badge');
+  const textEl = document.getElementById('sub-badge-text');
+  if (!badge || !textEl) return;
+
+  const school = window.currentSchool;
+  if (!school || !school.expiry) { badge.style.display = 'none'; return; }
+
+  const msLeft = school.expiry.getTime() - Date.now();
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+
+  badge.style.display = 'flex';
+  if (daysLeft <= 0) {
+    badge.style.background = '#fdeaea'; badge.style.border = '1px solid #f0a0a0'; badge.style.color = '#b03030';
+    textEl.textContent = '⛔ মেয়াদ শেষ — নবায়ন করুন';
+  } else if (daysLeft <= 7) {
+    badge.style.background = '#fef3e2'; badge.style.border = '1px solid #f5cd8a'; badge.style.color = '#b8600a';
+    textEl.textContent = `⏳ মাত্র ${toBnNum(daysLeft)} দিন বাকি — নবায়ন করুন`;
+  } else {
+    badge.style.background = '#e8f8ef'; badge.style.border = '1px solid #a8e0bd'; badge.style.color = '#1e7e46';
+    textEl.textContent = `✅ ${toBnNum(daysLeft)} দিন বাকি`;
+  }
+}
+
+// ✅ টপবারে ইউজার চিপে ক্লিক করলে নিজের প্রোফাইল/সাবস্ক্রিপশন তথ্যের মডাল খোলে
+function openMyProfile() {
+  const u = currentUser || {};
+  const school = window.currentSchool;
+
+  const roleLabel = { admin: 'অ্যাডমিন / প্রধান শিক্ষক', teacher: 'শিক্ষক', parent: 'অভিভাবক', student: 'শিক্ষার্থী' }[u.role] || (u.role || '—');
+
+  document.getElementById('my-profile-avatar').textContent = u.avatar || (u.name || '?').charAt(0);
+  document.getElementById('my-profile-name').textContent = u.name || '—';
+  document.getElementById('my-profile-sub').textContent = (school && school.name) ? school.name : roleLabel;
+  document.getElementById('my-profile-badges').innerHTML = `<span class="profile-hero-badge">${roleLabel}</span>` + (school ? `<span class="profile-hero-badge">${school.name || 'স্কুল'}</span>` : '');
+
+  const fields = [
+    ['নাম', u.name || '—'],
+    ['ভূমিকা (Role)', roleLabel],
+    ['ইমেইল', u.email || '—'],
+  ];
+  document.getElementById('my-profile-grid').innerHTML = fields.map(([label,val])=>`
+    <div class="profile-field"><div class="profile-field-label">${label}</div><div class="profile-field-val">${val}</div></div>
+  `).join('');
+
+  const subBox = document.getElementById('my-profile-sub-box');
+  if (school && school.expiry) {
+    const daysLeft = Math.ceil((school.expiry.getTime() - Date.now()) / (1000*60*60*24));
+    const expiryStr = school.expiry.toLocaleDateString('bn-BD', { year:'numeric', month:'long', day:'numeric' });
+    const statusColor = daysLeft <= 0 ? '#b03030' : (daysLeft <= 7 ? '#b8600a' : '#1e7e46');
+    const statusText = daysLeft <= 0 ? 'মেয়াদ শেষ হয়ে গেছে' : `${toBnNum(daysLeft)} দিন বাকি আছে`;
+    subBox.innerHTML = `
+      <div class="profile-grid">
+        <div class="profile-field"><div class="profile-field-label">স্কুলের নাম</div><div class="profile-field-val">${school.name || '—'}</div></div>
+        <div class="profile-field"><div class="profile-field-label">মেয়াদ শেষ হবে</div><div class="profile-field-val">${expiryStr}</div></div>
+        <div class="profile-field"><div class="profile-field-label">অবস্থা</div><div class="profile-field-val" style="color:${statusColor}">${statusText}</div></div>
+      </div>`;
+  } else {
+    subBox.innerHTML = `<div class="profile-field"><div class="profile-field-label">সাবস্ক্রিপশন</div><div class="profile-field-val">ডেমো/অফলাইন মোড — কোনো লাইভ সাবস্ক্রিপশন যুক্ত নেই</div></div>`;
+  }
+
+  document.getElementById('my-profile-overlay').classList.add('open');
+}
+function closeMyProfile() {
+  document.getElementById('my-profile-overlay').classList.remove('open');
 }
 
 async function doLogin() {
@@ -6783,10 +6881,12 @@ async function loginWithAuthUser(authUser, errEl) {
   } catch(e) { /* profile doc optional */ }
 
   window.currentSchoolId = schoolId;
+  window.currentSchool = { ...school, id: schoolId, expiry, email: authUser.email };
   const uObj = {
     role: idx.role || 'admin',
     name: displayName,
-    avatar: (displayName || '?').trim().charAt(0)
+    avatar: (displayName || '?').trim().charAt(0),
+    email: authUser.email
   };
 
   await loadTenantData(schoolId);
