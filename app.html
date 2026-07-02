@@ -6805,11 +6805,24 @@ function showExpiredScreen(school) {
 // ✅ ল্যান্ডিং পেজে Google দিয়ে সাইন-ইন/ট্রায়াল বানানোর পর এখানে
 // (app.html) এলে যেন পাসওয়ার্ড ছাড়াই সরাসরি লগইন হয়ে যায় — পেজ লোড
 // হলেই বিদ্যমান Firebase Auth সেশন (Google) থাকলে অটো-লগইন চেষ্টা করে।
-window.fb.onAuthStateChanged(window.auth, async (authUser) => {
-  if (!authUser || window.currentSchoolId || (currentUser && currentUser.uid)) return;
-  const errEl = document.getElementById('login-err');
-  try { await loginWithAuthUser(authUser, errEl); } catch (e) { console.error('অটো-লগইন এরর:', e); }
-});
+//
+// ⚠️ বাগ-ফিক্স: window.fb/window.auth একটা `type="module"` স্ক্রিপ্ট
+// থেকে সেট হয়, যেটা সবসময় HTML পার্স হওয়ার পরে (deferred) চলে। কিন্তু
+// এই ব্লকটা একটা সাধারণ (non-module) <script>-এর ভেতরে, যেটা পার্সার
+// যখনই এই লাইনে পৌঁছায় তখনই সাথে সাথে চলে — অর্থাৎ module স্ক্রিপ্টটা
+// রেডি হওয়ার আগেই। ফলে window.fb তখনো undefined থাকে, listener-টাই
+// রেজিস্টার হয় না (নিঃশব্দ ব্যর্থতা, কোনো এরর দেখা যায় না ইউজারকে)।
+// তাই window.fb রেডি না হওয়া পর্যন্ত অল্প অল্প করে অপেক্ষা করা হচ্ছে।
+(function registerAutoLogin() {
+  if (!window.fb || !window.fb.onAuthStateChanged || !window.auth) {
+    return setTimeout(registerAutoLogin, 50);
+  }
+  window.fb.onAuthStateChanged(window.auth, async (authUser) => {
+    if (!authUser || window.currentSchoolId || (currentUser && currentUser.uid)) return;
+    const errEl = document.getElementById('login-err');
+    try { await loginWithAuthUser(authUser, errEl); } catch (e) { console.error('অটো-লগইন এরর:', e); }
+  });
+})();
 
 // ===== মাল্টি-টেন্যান্ট ডেটা সিঙ্ক (Firestore) =====
 // একটা স্কুলের সব মডিউলের ডেটা schools/{schoolId}/data/main — একটাই ডকুমেন্টে
