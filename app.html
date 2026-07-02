@@ -7404,6 +7404,7 @@ function renderSubscriptionBadge(school){
   const el = document.getElementById('subscription-badge');
   if(!el) return;
   if(!school || !school.expiryDate){ el.style.display = 'none'; return; }
+  window._schoolDoc = school; // ✅ প্যাকেজ কেনার পেজে ফোন নম্বর প্রি-ফিল করার জন্য সংরক্ষণ
   const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
   const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
   const pkg = school.package || 'Standard';
@@ -7420,7 +7421,23 @@ function renderSubscriptionBadge(school){
   el.style.background = bg;
   el.style.color = color;
   el.style.display = '';
+  el.style.cursor = 'pointer';
+  el.title = 'ক্লিক করে প্যাকেজ কিনুন / নবায়ন করুন';
+  el.onclick = openPackagePurchasePage;
 }
+
+// ✅ ব্যাজে ক্লিক করলে প্যাকেজ কেনার পেজ (pay.html) নতুন ট্যাবে খোলে,
+// সম্ভব হলে স্কুলের রেজিস্টার্ড ফোন নম্বর আগে থেকেই বসানো থাকে
+function openPackagePurchasePage(){
+  const phone = (window._schoolDoc && window._schoolDoc.ownerPhone) || document.getElementById('s-phone-no')?.value || '';
+  const schoolName = (window._schoolDoc && window._schoolDoc.name) || document.getElementById('s-school-name')?.value || '';
+  const params = new URLSearchParams();
+  if(phone) params.set('phone', phone);
+  if(schoolName) params.set('school', schoolName);
+  const qs = params.toString();
+  window.open('pay.html' + (qs ? ('?' + qs) : ''), '_blank');
+}
+
 
 function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
