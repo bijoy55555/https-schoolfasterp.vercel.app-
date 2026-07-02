@@ -99,12 +99,10 @@
     <button onclick="createSchool()" id="create-btn">স্কুল তৈরি করুন</button>
     <div class="msg" id="ns-msg"></div>
     <div class="hint">
-      ⚠️ এই বাটনটা এখনো সার্ভার-সাইড Cloud Function (<code>createSchool</code>)
-      ব্যবহার করে, যেটা এখনো ডিপ্লয় করা হয়নি (Firebase Blaze প্ল্যান +
-      কম্পিউটার লাগবে)। এটা ডিপ্লয় না হওয়া পর্যন্ত এই বাটনে চাপলে এরর
-      আসবে — ততক্ষণ নতুন স্কুল Firebase Console থেকে ম্যানুয়ালি
-      (Authentication-এ ইউজার + Firestore-এ <code>schools</code> ডকুমেন্ট)
-      যোগ করা যাবে।
+      ✅ এখন এই বাটনটা সম্পূর্ণভাবে ব্রাউজার থেকেই কাজ করে — কোনো Cloud
+      Function বা Firebase Blaze (পেইড) প্ল্যান লাগে না। একটা লুকানো
+      দ্বিতীয় Firebase সেশন দিয়ে নতুন অ্যাডমিন একাউন্ট বানানো হয়, তাই
+      আপনার নিজের সুপার-অ্যাডমিন লগইন সেশন প্রভাবিত হবে না।
     </div>
   </div>
 
@@ -142,10 +140,9 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
   const firebaseConfig = {
@@ -160,7 +157,6 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const functions = getFunctions(app);
   const db = getFirestore(app);
 
   let isSuperAdminVerified = false;
@@ -195,26 +191,88 @@
   };
 
   window.createSchool = async function() {
-    if (!auth.currentUser) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', 'err'); return; }
+    if (!auth.currentUser || !isSuperAdminVerified) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন (ধাপ ১)।', 'err'); return; }
+
+    const schoolName = document.getElementById('ns-name').value.trim();
+    const adminEmail = document.getElementById('ns-email').value.trim();
+    const adminPassword = document.getElementById('ns-pass').value;
+    const adminName = document.getElementById('ns-admin-name').value.trim();
+    const ownerPhone = document.getElementById('ns-phone').value.trim();
+    const packageName = document.getElementById('ns-package').value;
+    const price = Number(document.getElementById('ns-price').value) || 0;
+    const durationDays = Number(document.getElementById('ns-days').value) || 30;
+
+    if (!schoolName || !adminEmail || !adminPassword) {
+      showMsg('ns-msg', 'স্কুলের নাম, অ্যাডমিন ইমেইল ও পাসওয়ার্ড আবশ্যক।', 'err'); return;
+    }
+    if (adminPassword.length < 6) {
+      showMsg('ns-msg', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।', 'err'); return;
+    }
+
     const btn = document.getElementById('create-btn');
     btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...';
+
+    // একটা আলাদা ("সেকেন্ডারি") Firebase অ্যাপ ইনস্ট্যান্স দিয়ে নতুন
+    // অ্যাডমিন ইউজার বানানো হয়, যাতে createUserWithEmailAndPassword
+    // আপনার (সুপার-অ্যাডমিনের) মূল লগইন সেশনকে সাইন-আউট/প্রতিস্থাপন
+    // না করে দেয়। এটা কোনো সার্ভার/Cloud Function ছাড়াই কাজ করে।
+    const secondaryApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
+    const secondaryAuth = getAuth(secondaryApp);
+
+    let newUid = null;
+    let schoolRef = null;
     try {
-      const fn = httpsCallable(functions, 'createSchool');
-      const res = await fn({
-        schoolName: document.getElementById('ns-name').value.trim(),
-        adminEmail: document.getElementById('ns-email').value.trim(),
-        adminPassword: document.getElementById('ns-pass').value,
-        adminName: document.getElementById('ns-admin-name').value.trim(),
-        ownerPhone: document.getElementById('ns-phone').value.trim(),
-        packageName: document.getElementById('ns-package').value,
-        price: Number(document.getElementById('ns-price').value) || 0,
-        durationDays: Number(document.getElementById('ns-days').value) || 30
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, adminEmail, adminPassword);
+      newUid = cred.user.uid;
+      await signOut(secondaryAuth);
+
+      const days = durationDays || 30;
+      const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      schoolRef = doc(collection(db, 'schools'));
+      const schoolId = schoolRef.id;
+
+      await setDoc(schoolRef, {
+        name: schoolName,
+        ownerEmail: adminEmail,
+        ownerPhone: ownerPhone || '',
+        package: packageName || 'Standard',
+        price: price || 0,
+        expiryDate: Timestamp.fromDate(expiryDate),
+        status: 'active',
+        createdAt: serverTimestamp()
       });
-      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${res.data.schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, 'ok');
+
+      await setDoc(doc(db, 'schools', schoolId, 'users', newUid), {
+        name: adminName || 'Admin',
+        email: adminEmail,
+        role: 'admin',
+        createdAt: serverTimestamp()
+      });
+
+      // schoolId/role লুকআপ — কাস্টম ক্লেইমের বিকল্প, index.html লগইনের
+      // সময় এটা পড়েই বুঝবে ইউজারটা কোন স্কুলের এবং কী রোল
+      await setDoc(doc(db, 'userIndex', newUid), {
+        schoolId,
+        role: 'admin',
+        email: adminEmail
+      });
+
+      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, 'ok');
+      document.getElementById('ns-name').value = '';
+      document.getElementById('ns-email').value = '';
+      document.getElementById('ns-pass').value = '';
+      document.getElementById('ns-admin-name').value = '';
+      document.getElementById('ns-phone').value = '';
       loadSchools();
     } catch (e) {
-      showMsg('ns-msg', '❌ ব্যর্থ (সম্ভবত Cloud Function এখনো ডিপ্লয় করা হয়নি): ' + e.message, 'err');
+      // Firestore ধাপে ব্যর্থ হলে, ইতিমধ্যে তৈরি হওয়া auth ইউজার/school
+      // ডকুমেন্ট এতিম হয়ে থাকতে পারে — সম্ভব হলে school ডকুমেন্ট মুছে
+      // পরিষ্কার রাখা হলো (auth ইউজারটা Firebase Console থেকে মুছতে হবে)
+      if (schoolRef) { try { await deleteDoc(schoolRef); } catch (e2) {} }
+      showMsg('ns-msg', '❌ ব্যর্থ: ' + e.message, 'err');
     } finally {
+      try { await deleteApp(secondaryApp); } catch (e3) {}
       btn.disabled = false; btn.textContent = 'স্কুল তৈরি করুন';
     }
   };

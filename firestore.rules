@@ -2,14 +2,16 @@ rules_version = '2';
 
 // ===================================================================
 // Firestore সিকিউরিটি রুলস — মাল্টি-স্কুল (মাল্টি-টেন্যান্ট) ভার্সন
+// ✅ সম্পূর্ণভাবে Cloud Function ছাড়াই কাজ করে (Spark/ফ্রি প্ল্যান)
 //
-// ⚠️ পরিবর্তন: superAdmin এখন custom claim (Cloud Functions লাগে) দিয়ে না,
-// বরং superAdmins/{uid} নামের একটা Firestore ডকুমেন্টের অস্তিত্ব দিয়ে
-// যাচাই হয়। এই ডকুমেন্ট Firebase Console থেকে সরাসরি ম্যানুয়ালি বানানো
-// যায় — কোনো Cloud Function ডিপ্লয় বা বিলিং লাগবে না।
+// superAdmin → superAdmins/{uid} ডকুমেন্টের অস্তিত্ব দিয়ে যাচাই হয়
+//   (Firebase Console থেকে ম্যানুয়ালি বানাতে হয়, একবারই)।
 //
-// schoolId/role এখনো custom claim দিয়েই চেক হচ্ছে — এগুলো পরে
-// Cloud Functions ডিপ্লয় হলে কাজ করবে (নতুন স্কুল/ইউজার তৈরির সময়)।
+// schoolId/role → আগে custom claim দিয়ে চেক হতো (Cloud Function লাগত)।
+// এখন এর বদলে userIndex/{uid} নামের একটা ছোট লুকআপ ডকুমেন্ট ব্যবহার হয়:
+//   userIndex/{uid} = { schoolId: "...", role: "admin" }
+// এই ডকুমেন্ট সুপার-অ্যাডমিন প্যানেল (admin.html) থেকে নতুন স্কুল তৈরির
+// সময় ক্লায়েন্ট থেকেই লেখা হয় — কোনো সার্ভার/Cloud Function লাগে না।
 // ===================================================================
 
 service cloud.firestore {
@@ -18,18 +20,22 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
-    function mySchoolId() {
-      return request.auth.token.schoolId;
-    }
     function isSuperAdmin() {
       return signedIn() &&
         exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid));
     }
+    function hasIndex() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/userIndex/$(request.auth.uid));
+    }
+    function myIndex() {
+      return get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data;
+    }
     function belongsToSchool(schoolId) {
-      return signedIn() && mySchoolId() == schoolId;
+      return hasIndex() && myIndex().schoolId == schoolId;
     }
     function isSchoolAdmin(schoolId) {
-      return belongsToSchool(schoolId) && request.auth.token.role == 'admin';
+      return belongsToSchool(schoolId) && myIndex().role == 'admin';
     }
 
     // ===== superAdmins/{uid} — শুধু Firebase Console থেকে ম্যানুয়ালি
@@ -38,10 +44,23 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ===== userIndex/{uid} — কোন ইউজার কোন স্কুলের, কী রোল — এই লুকআপ
+    // দিয়েই বাকি সব রুলস schoolId/role বের করে। নিজের ডকুমেন্ট নিজে পড়তে
+    // পারবে (লগইনের সময় দরকার); সুপার-অ্যাডমিন যেকোনো এন্ট্রি লিখতে পারবে
+    // (নতুন স্কুল/অ্যাডমিন তৈরির সময়), স্কুল-অ্যাডমিনও নিজের স্কুলের জন্য
+    // নতুন এন্ট্রি বানাতে পারবে (শিক্ষক/অভিভাবক যোগ করার সময়) =====
+    match /userIndex/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
+      allow create: if isSuperAdmin() ||
+        (hasIndex() && isSchoolAdmin(request.resource.data.schoolId));
+      allow update, delete: if isSuperAdmin();
+    }
+
     // ===== schools/{schoolId} — স্কুলের প্রোফাইল, প্যাকেজ, মেয়াদ =====
     match /schools/{schoolId} {
       allow read: if belongsToSchool(schoolId) || isSuperAdmin();
-      allow write: if isSuperAdmin();
+      allow create: if isSuperAdmin();
+      allow update, delete: if isSuperAdmin();
 
       match /users/{uid} {
         allow read: if belongsToSchool(schoolId) || isSuperAdmin();

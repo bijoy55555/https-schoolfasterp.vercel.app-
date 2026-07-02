@@ -6745,17 +6745,21 @@ async function doRealLogin(email, pw, errEl) {
   if(btn) { btn.disabled = true; btn.textContent = 'যাচাই করা হচ্ছে...'; }
   try {
     const cred = await window.fb.signInWithEmailAndPassword(window.auth, email, pw);
-    const tokenResult = await window.fb.getIdTokenResult(cred.user, true); // forceRefresh claims
-    const claims = tokenResult.claims;
 
-    if (!claims.schoolId) {
+    // schoolId/role এখন Firestore-এর userIndex/{uid} ডকুমেন্ট থেকে
+    // পড়া হয় (আগে Firebase custom claim থেকে পড়া হতো, যেটার জন্য
+    // Cloud Functions ডিপ্লয় ও Blaze প্ল্যান লাগত)
+    const indexSnap = await window.fb.getDoc(window.fb.doc(window.db, 'userIndex', cred.user.uid));
+    if (!indexSnap.exists() || !indexSnap.data().schoolId) {
       errEl.textContent = 'এই একাউন্টের সাথে কোনো স্কুল যুক্ত নেই। অ্যাডমিনের সাথে যোগাযোগ করুন।';
       await window.fb.signOut(window.auth);
       return;
     }
+    const idx = indexSnap.data();
+    const schoolId = idx.schoolId;
 
     // সাবস্ক্রিপশন/মেয়াদ যাচাই
-    const schoolSnap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', claims.schoolId));
+    const schoolSnap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', schoolId));
     if (!schoolSnap.exists()) {
       errEl.textContent = 'স্কুলের তথ্য খুঁজে পাওয়া যায়নি।';
       await window.fb.signOut(window.auth);
@@ -6772,18 +6776,18 @@ async function doRealLogin(email, pw, errEl) {
     // ইউজার প্রোফাইল লোড
     let displayName = cred.user.displayName || email;
     try {
-      const userSnap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', claims.schoolId, 'users', cred.user.uid));
+      const userSnap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', schoolId, 'users', cred.user.uid));
       if (userSnap.exists()) displayName = userSnap.data().name || displayName;
     } catch(e) { /* profile doc optional */ }
 
-    window.currentSchoolId = claims.schoolId;
+    window.currentSchoolId = schoolId;
     const uObj = {
-      role: claims.role || 'admin',
+      role: idx.role || 'admin',
       name: displayName,
       avatar: (displayName || '?').trim().charAt(0)
     };
 
-    await loadTenantData(claims.schoolId);
+    await loadTenantData(schoolId);
     finishLoginUI(uObj, cred.user.uid);
     startAutoSave();
   } catch (error) {
