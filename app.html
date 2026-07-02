@@ -704,6 +704,7 @@
       <div class="topbar-title" id="page-title">ড্যাশবোর্ড</div>
     </div>
     <div class="topbar-right">
+      <div id="subscription-badge" style="display:none;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px"></div>
       <div class="topbar-date" id="topbar-date"></div>
       <div class="user-chip" id="user-chip"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
       <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="doLogout()">🔓 লগআউট</button>
@@ -6880,11 +6881,36 @@ function applyNavPermissions() {
 // এই স্কুলের schoolId — লগইনের পর সেট হয়। ডেমো/অফলাইন মোডে এটা null থাকে।
 window.currentSchoolId = null;
 
+// ✅ ট্রায়াল/প্যাকেজের মেয়াদ কতদিন বাকি — টপবারে সবসময় দেখা যাবে এমন একটা
+// ব্যাজ (school ডকুমেন্ট থেকে package/expiryDate পড়ে দেখানো হয়)
+function renderSubscriptionBadge(school){
+  const el = document.getElementById('subscription-badge');
+  if(!el) return;
+  if(!school || !school.expiryDate){ el.style.display = 'none'; return; }
+  const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
+  const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
+  const pkg = school.package || 'Standard';
+  let bg, color, text;
+  if(pkg === 'Trial'){
+    if(daysLeft > 3){ bg='#eaf2fb'; color='#1a5276'; text = `🎁 ফ্রি ট্রায়াল — ${toBnNum(daysLeft)} দিন বাকি`; }
+    else if(daysLeft > 0){ bg='#fdebd0'; color='#7d5a14'; text = `⚠️ ট্রায়াল — ${toBnNum(daysLeft)} দিন বাকি, দ্রুত প্যাকেজ কিনুন`; }
+    else { bg='#fdeaea'; color='#b03030'; text = `⛔ ফ্রি ট্রায়াল শেষ — প্যাকেজ কিনুন`; }
+  } else {
+    if(daysLeft <= 7){ bg='#fdebd0'; color='#7d5a14'; text = `⚠️ ${pkg} — ${toBnNum(daysLeft)} দিন বাকি`; }
+    else { bg='#e8f8ef'; color='#1e7e46'; text = `✅ ${pkg} প্যাকেজ সক্রিয়`; }
+  }
+  el.textContent = text;
+  el.style.background = bg;
+  el.style.color = color;
+  el.style.display = '';
+}
+
 function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('user-name-label').textContent = u.name;
   document.getElementById('user-avatar').textContent = u.avatar;
+  renderSubscriptionBadge(null); // ডেমো/অফলাইন লগইনে ট্রায়াল ব্যাজ দেখানো হবে না; আসল স্কুল লগইনে নিচে আলাদাভাবে আপডেট হয়
 
   // role-based nav visibility
   const allNavItems = document.querySelectorAll('.nav-item');
@@ -6995,6 +7021,7 @@ async function loginWithAuthUser(authUser, errEl) {
 
   await loadTenantData(schoolId);
   finishLoginUI(uObj, authUser.uid);
+  renderSubscriptionBadge(school); // ✅ ট্রায়াল/প্যাকেজের মেয়াদ ব্যাজ (finishLoginUI-এর পরে, কারণ finishLoginUI ডিফল্টভাবে এটা লুকিয়ে দেয়)
   startAutoSave();
   return true;
 }
