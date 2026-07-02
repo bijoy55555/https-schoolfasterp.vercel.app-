@@ -7414,8 +7414,8 @@ function renderSubscriptionBadge(school){
     else if(daysLeft > 0){ bg='#fdebd0'; color='#7d5a14'; text = `⚠️ ট্রায়াল — ${toBnNum(daysLeft)} দিন বাকি, দ্রুত প্যাকেজ কিনুন`; }
     else { bg='#fdeaea'; color='#b03030'; text = `⛔ ফ্রি ট্রায়াল শেষ — প্যাকেজ কিনুন`; }
   } else {
-    if(daysLeft <= 7){ bg='#fdebd0'; color='#7d5a14'; text = `⚠️ ${pkg} — ${toBnNum(daysLeft)} দিন বাকি`; }
-    else { bg='#e8f8ef'; color='#1e7e46'; text = `✅ ${pkg} প্যাকেজ সক্রিয়`; }
+    if(daysLeft <= 7){ bg='#fdebd0'; color='#7d5a14'; text = `⚠️ সাবস্ক্রিপশন (${pkg}) — ${toBnNum(daysLeft)} দিন বাকি, নবায়ন করুন`; }
+    else { bg='#e8f8ef'; color='#1e7e46'; text = `✅ সাবস্ক্রিপশন সক্রিয় (${pkg}) — মেয়াদ শেষ: ${expiry.toLocaleDateString('bn-BD')}`; }
   }
   el.textContent = text;
   el.style.background = bg;

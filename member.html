@@ -196,6 +196,7 @@
       await updateDoc(doc(db, 'schools', matchedSchool.id), {
         expiryDate: Timestamp.fromDate(newExpiry),
         status: 'active',
+        package: 'Standard', // ✅ ট্রায়াল থেকে পেইড প্যাকেজে বদলে যায়, তাই আর "ফ্রি ট্রায়াল" দেখাবে না
         reminderSent: false
       });
 
