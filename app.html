@@ -16,9 +16,10 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
   .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
+  .sidebar.collapsed { transform:translateX(-100%); }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
   .sidebar-overlay.active { display:block; }
-  @media(max-width:768px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)} .main{margin-left:0!important} }
+  @media(max-width:900px) { .sidebar:not(.open){transform:translateX(-100%)} .main{margin-left:0!important} }
   .sidebar-logo { padding:22px 20px 18px; border-bottom:1px solid rgba(255,255,255,0.08); }
   .sidebar-logo .school-name { font-size:15px; font-weight:700; color:#fff; line-height:1.3; }
   .sidebar-logo .school-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; }
@@ -29,10 +30,11 @@
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:rgba(46,134,193,0.18); color:#fff; border-left-color:var(--accent); font-weight:600; }
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
-  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; transition:margin-left 0.28s cubic-bezier(.4,0,.2,1); }
+  .main.full { margin-left:0; }
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
-  .hamburger { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
-  @media(max-width:768px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
+  .hamburger { display:flex; align-items:center; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
+  @media(max-width:900px) { .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
   .topbar-date { font-size:12px; color:var(--text-muted); }
@@ -3700,11 +3702,26 @@ function toBnNum(n) {
 }
 
 // ============ SIDEBAR / NAV ============
+// ✅ ৯০০px-এর বেশি চওড়া স্ক্রিন হলে ডেস্কটপ মোড ধরা হয় — সেখানে হ্যামবার্গার
+// সাইডবারটাকে সংকুচিত/প্রশস্ত (collapse/expand) করে, কনটেন্ট জায়গা রিক্লেইম করে।
+// ছোট স্ক্রিনে (মোবাইল) সাইডবার একটা ওভারলে হিসেবে খোলে/বন্ধ হয়।
+function isMobileView() { return window.innerWidth <= 900; }
+
 function toggleSidebar() {
-  document.querySelector('.sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('active');
+  const sidebar = document.querySelector('.sidebar');
+  const main = document.querySelector('.main');
+  if (isMobileView()) {
+    sidebar.classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('active');
+  } else {
+    sidebar.classList.toggle('collapsed');
+    main.classList.toggle('full', sidebar.classList.contains('collapsed'));
+  }
 }
 function closeSidebar() {
+  // এটা প্রতিটা পেজ নেভিগেশনের পর কল হয় — শুধু মোবাইলের ওভারলে বন্ধ করে,
+  // ডেস্কটপে ইউজার নিজে হ্যামবার্গার দিয়ে যে collapsed/expanded অবস্থা বেছে
+  // নিয়েছে সেটা পাল্টায় না (নাহলে প্রতি ক্লিকেই আবার খুলে যেত)।
   document.querySelector('.sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('active');
 }
@@ -8757,6 +8774,10 @@ window.addEventListener('load', ()=>{
   document.getElementById('topbar-date').textContent = todayBn();
   loadSchoolConfig(); // ✅ load saved school settings
   renderDashboard(); // pre-render for after login
+  closeSidebar(); // ✅ মোবাইলে শুরুতে হামবার্গার মেনু যেন খোলা/মেলা অবস্থায় না থাকে
+});
+window.addEventListener('resize', ()=>{
+  if (window.innerWidth > 900) closeSidebar(); // ✅ বড় স্ক্রিনে গেলে মোবাইল ওভারলে বন্ধ করে দেয়
 });
 
 </script>
