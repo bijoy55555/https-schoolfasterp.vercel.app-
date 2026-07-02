@@ -26,7 +26,12 @@
   .hint { font-size:12px; color:#777; margin-top:10px; line-height:1.6; }
   .bkash-box { background:#fef3e2; border:1px solid #f5cd8a; border-radius:10px; padding:12px; font-size:13px; margin-bottom:14px; line-height:1.7; }
   .bkash-box b { color:#b8600a; }
+  .tier-note { font-size:12.5px; color:#1e7e46; background:#f0f9f3; border:1px dashed #b7e2c5; border-radius:8px; padding:8px 10px; margin-top:6px; line-height:1.6; display:none; }
+  .tier-note.show { display:block; }
+  .pkg.suggested { border-color:#1e7e46; box-shadow:0 0 0 2px rgba(30,126,70,.15); }
+  .pkg.suggested::after { content:"✨ প্রস্তাবিত"; display:block; font-size:10px; color:#1e7e46; margin-top:3px; font-weight:700; }
 </style>
+
 </head>
 <body>
 <div class="wrap">
@@ -46,9 +51,12 @@
     <label>দোকান/স্কুলের নাম (ঐচ্ছিক)</label>
     <input id="p-shop" placeholder="যেমন: আদর্শ উচ্চ বিদ্যালয়">
 
+    <label>স্কুলে মোট ছাত্র-সংখ্যা (ঐচ্ছিক — আপনার জন্য সেরা প্যাকেজ সাজেস্ট করব)</label>
+    <input id="p-students" type="number" placeholder="যেমন: 200" min="0">
+    <div class="tier-note" id="tier-note"></div>
+
     <label>প্যাকেজ বাছাই করুন</label>
     <div class="pkgs" id="pkg-list">
-      <div class="pkg" data-amount="50" data-days="30"><b>৳50</b>১ মাস</div>
       <div class="pkg" data-amount="500" data-days="30"><b>৳500</b>১ মাস</div>
       <div class="pkg" data-amount="1000" data-days="30"><b>৳1000</b>১ মাস</div>
       <div class="pkg" data-amount="11000" data-days="365"><b>৳11000</b>১ বছর</div>
@@ -103,6 +111,39 @@
       document.getElementById('p-amount').value = el.dataset.amount;
       document.getElementById('p-days').value = el.dataset.days;
     });
+  });
+
+  // ===== ছাত্র-সংখ্যা অনুযায়ী অটো প্যাকেজ সাজেশন =====
+  function tierFor(count) {
+    if (count < 150) return { amount: 500, days: 30, note: 'ছোট স্কুলের (< ১৫০ ছাত্র) জন্য মাসিক ৳500 প্যাকেজটি প্রস্তাবিত।' };
+    if (count <= 500) return { amount: 1000, days: 30, note: 'মাঝারি স্কুলের (১৫০-৫০০ ছাত্র) জন্য মাসিক ৳1000 প্যাকেজটি প্রস্তাবিত।' };
+    return { amount: 11000, days: 365, note: 'বড় স্কুলের (৫০০+ ছাত্র) জন্য বাৎসরিক ৳11000 প্যাকেজটি সবচেয়ে সাশ্রয়ী। আরও বড় প্রতিষ্ঠানের জন্য কাস্টম মূল্যে সরাসরি WhatsApp করুন: 01858293479' };
+  }
+
+  const studentsInput = document.getElementById('p-students');
+  const tierNote = document.getElementById('tier-note');
+
+  studentsInput.addEventListener('input', () => {
+    const count = Number(studentsInput.value);
+    document.querySelectorAll('.pkg').forEach(p => p.classList.remove('suggested'));
+
+    if (!count || count <= 0) {
+      tierNote.classList.remove('show');
+      return;
+    }
+
+    const tier = tierFor(count);
+    tierNote.textContent = '✨ ' + tier.note;
+    tierNote.classList.add('show');
+
+    const matchEl = document.querySelector(`.pkg[data-amount="${tier.amount}"][data-days="${tier.days}"]`);
+    if (matchEl) {
+      matchEl.classList.add('suggested');
+      document.querySelectorAll('.pkg').forEach(p => p.classList.remove('sel'));
+      matchEl.classList.add('sel');
+      document.getElementById('p-amount').value = tier.amount;
+      document.getElementById('p-days').value = tier.days;
+    }
   });
 
   window.submitPayment = async function () {
