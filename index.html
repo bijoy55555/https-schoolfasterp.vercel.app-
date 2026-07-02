@@ -608,19 +608,8 @@
       <div class="login-school" id="login-school-name">স্কুল ইআরপি সিস্টেম</div>
       <div class="login-sub">একাধিক স্কুলের ডিজিটাল ব্যবস্থাপনা প্ল্যাটফর্ম</div>
     </div>
-    <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center">আপনার ভূমিকা বেছে নিন</div>
-    <div class="role-tabs" style="grid-template-columns:repeat(5,1fr)">
-      <div class="role-tab selected" id="role-admin" onclick="selectRole('admin')"><span class="role-icon">👑</span>অ্যাডমিন</div>
-      <div class="role-tab" id="role-principal" onclick="selectRole('principal')"><span class="role-icon">🏫</span>প্রধান শিক্ষক</div>
-      <div class="role-tab" id="role-teacher" onclick="selectRole('teacher')"><span class="role-icon">👨‍🏫</span>শিক্ষক</div>
-      <div class="role-tab" id="role-parent" onclick="selectRole('parent')"><span class="role-icon">👨‍👩‍👧</span>অভিভাবক</div>
-      <div class="role-tab" id="role-student" onclick="selectRole('student')"><span class="role-icon">👨‍🎓</span>ছাত্র</div>
-    </div>
-    <div class="login-hint" id="login-hint">
-      ব্যবহারকারী: <b>admin</b> &nbsp;|&nbsp; পাসওয়ার্ড: <b>1234</b>
-    </div>
     <div class="form-group" style="margin-bottom:12px">
-      <label class="form-label">ইউজার আইডি</label>
+      <label class="form-label">ইমেইল</label>
       <input class="form-input" id="login-user" placeholder="যেমন: admin@school1.com">
     </div>
     <div class="form-group">
@@ -6733,7 +6722,7 @@ async function doLogin() {
   }
 
   const u = users[idInput];
-  if(!u||u.pass!==pw||u.role!==currentRole) {
+  if(!u||u.pass!==pw) {
     errEl.textContent='ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
     return;
   }
