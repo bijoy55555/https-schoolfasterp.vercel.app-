@@ -52,14 +52,26 @@ service cloud.firestore {
     match /userIndex/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isSuperAdmin());
       allow create: if isSuperAdmin() ||
-        (hasIndex() && isSchoolAdmin(request.resource.data.schoolId));
+        (hasIndex() && isSchoolAdmin(request.resource.data.schoolId)) ||
+        // স্ব-সাইনআপ (Google দিয়ে) — নিজের uid-কেই schoolId হিসেবে, role admin
+        // দিয়ে একবারই নিজের userIndex এন্ট্রি বানানো যাবে (ফ্রি ট্রায়াল)
+        (signedIn() && request.auth.uid == uid &&
+          request.resource.data.schoolId == uid &&
+          request.resource.data.role == 'admin');
       allow update, delete: if isSuperAdmin();
     }
 
     // ===== schools/{schoolId} — স্কুলের প্রোফাইল, প্যাকেজ, মেয়াদ =====
     match /schools/{schoolId} {
       allow read: if belongsToSchool(schoolId) || isSuperAdmin();
-      allow create: if isSuperAdmin();
+      allow create: if isSuperAdmin() ||
+        // স্ব-সাইনআপ ট্রায়াল — নিজের uid-কেই schoolId হিসেবে ব্যবহার করে
+        // শুধু package='Trial', status='active' দিয়েই বানানো যাবে (একবারই,
+        // কারণ 'create' rule শুধু ডকুমেন্ট আগে না থাকলেই চলে)
+        (signedIn() && schoolId == request.auth.uid &&
+          request.resource.data.package == 'Trial' &&
+          request.resource.data.status == 'active' &&
+          request.resource.data.expiryDate is timestamp);
       allow update, delete: if isSuperAdmin();
 
       match /users/{uid} {
@@ -70,6 +82,24 @@ service cloud.firestore {
       match /data/{docId} {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
+    }
+
+    // ===== paymentRequests/{trxId} — bKash/Manual পেমেন্ট → WhatsApp
+    // অ্যাপ্রুভাল ফ্লো। trxId-ই ডকুমেন্ট আইডি, তাই একই TrxID দিয়ে দুইবার
+    // রিকোয়েস্ট তৈরি করা যাবে না (রিপ্লে-প্রোটেকশন, সম্পূর্ণ পাবলিক/লগইন
+    // ছাড়াই সাবমিট করা যায় — pay.html থেকে)। শুধু সুপার-অ্যাডমিন পড়তে/
+    // অ্যাপ্রুভ করতে পারবেন (member.html থেকে), আর অ্যাপ্রুভ একবারই সম্ভব
+    // কারণ আপডেটের শর্ত resource.data.status == 'pending' বাধ্যতামূলক। =====
+    match /paymentRequests/{trxId} {
+      allow create: if request.resource.data.status == 'pending'
+        && request.resource.data.phone is string
+        && request.resource.data.days is number
+        && request.resource.data.amount is number;
+      allow read: if isSuperAdmin();
+      allow update: if isSuperAdmin()
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['approved', 'rejected'];
+      allow delete: if false;
     }
 
     // ===== পুরনো টপ-লেভেল কালেকশন (payments, sms_logs, attendance) =====

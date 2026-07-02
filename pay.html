@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>সাবস্ক্রিপশন পেমেন্ট — স্কুল ERP</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; min-height:100vh; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { color:#fff; font-size:20px; margin-bottom:4px; text-align:center; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; text-align:center; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input, select { width:100%; padding:11px 10px; border:1px solid #ddd; border-radius:8px; font-size:15px; }
+  .pkgs { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px; }
+  .pkg { border:2px solid #ddd; border-radius:10px; padding:10px; text-align:center; cursor:pointer; font-size:13px; }
+  .pkg.sel { border-color:#1e7e46; background:#e8f8ef; }
+  .pkg b { display:block; font-size:16px; color:#1a5276; }
+  button { margin-top:18px; width:100%; background:#1e7e46; color:#fff; border:none; padding:13px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+  button:hover { background:#166636; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .hint { font-size:12px; color:#777; margin-top:10px; line-height:1.6; }
+  .bkash-box { background:#fef3e2; border:1px solid #f5cd8a; border-radius:10px; padding:12px; font-size:13px; margin-bottom:14px; line-height:1.7; }
+  .bkash-box b { color:#b8600a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>💳 সাবস্ক্রিপশন নবায়ন / কেনা</h1>
+  <div class="sub">bKash-এ পেমেন্ট করে TrxID দিন, আমরা যাচাই করে সাথে সাথে চালু করে দেব</div>
+
+  <div class="card">
+    <div class="bkash-box">
+      ১) নিচের bKash নম্বরে <b>Send Money / Payment</b> করুন: <b id="bkash-number">01858293479</b><br>
+      ২) পেমেন্ট হয়ে গেলে যে TrxID পাবেন সেটা নিচে দিন<br>
+      ৩) সাবমিট দিলে আমাদের কাছে WhatsApp-এ নোটিফিকেশন যাবে, অ্যাপ্রুভ হলেই সাবস্ক্রিপশন চালু হয়ে যাবে
+    </div>
+
+    <label>আপনার স্কুলের রেজিস্টার্ড ফোন নম্বর</label>
+    <input id="p-phone" placeholder="01XXXXXXXXX" maxlength="11">
+
+    <label>দোকান/স্কুলের নাম (ঐচ্ছিক)</label>
+    <input id="p-shop" placeholder="যেমন: আদর্শ উচ্চ বিদ্যালয়">
+
+    <label>প্যাকেজ বাছাই করুন</label>
+    <div class="pkgs" id="pkg-list">
+      <div class="pkg" data-amount="50" data-days="30"><b>৳50</b>১ মাস</div>
+      <div class="pkg" data-amount="500" data-days="30"><b>৳500</b>১ মাস</div>
+      <div class="pkg" data-amount="1000" data-days="30"><b>৳1000</b>১ মাস</div>
+      <div class="pkg" data-amount="11000" data-days="365"><b>৳11000</b>১ বছর</div>
+    </div>
+
+    <label>পরিমাণ (৳)</label>
+    <input id="p-amount" type="number" placeholder="পরিমাণ লিখুন">
+
+    <label>দিন</label>
+    <input id="p-days" type="number" placeholder="কত দিনের জন্য">
+
+    <label>bKash TrxID</label>
+    <input id="p-trx" placeholder="যেমন: CJCJUXKCJ" style="text-transform:uppercase">
+
+    <button id="submit-btn" onclick="submitPayment()">✅ পেমেন্ট রিকোয়েস্ট পাঠান</button>
+    <div class="msg" id="p-msg"></div>
+    <div class="hint">অ্যাপ্রুভ হতে সাধারণত কিছুক্ষণ সময় লাগতে পারে (ম্যানুয়াল যাচাই)। জরুরি হলে সরাসরি WhatsApp/কল করুন: <b>01858293479</b></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
+    authDomain: "school-erp-bd.firebaseapp.com",
+    projectId: "school-erp-bd",
+    storageBucket: "school-erp-bd.firebasestorage.app",
+    messagingSenderId: "951924242207",
+    appId: "1:951924242207:web:c5bd862a9e00ae9d9b622a",
+    measurementId: "G-9E9LHG9HWS"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== আপনার (অ্যাডমিন) WhatsApp নম্বর — যেখানে অ্যাপ্রুভাল লিংক যাবে =====
+  const ADMIN_WHATSAPP = "8801858293479"; // আন্তর্জাতিক ফরম্যাট (880 + নম্বর, শুরুর 0 বাদ)
+
+  function showMsg(text, type) {
+    const el = document.getElementById('p-msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  // প্যাকেজ বাটন সিলেকশন
+  document.querySelectorAll('.pkg').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelectorAll('.pkg').forEach(p => p.classList.remove('sel'));
+      el.classList.add('sel');
+      document.getElementById('p-amount').value = el.dataset.amount;
+      document.getElementById('p-days').value = el.dataset.days;
+    });
+  });
+
+  window.submitPayment = async function () {
+    const phone = document.getElementById('p-phone').value.trim();
+    const shop = document.getElementById('p-shop').value.trim();
+    const amount = Number(document.getElementById('p-amount').value);
+    const days = Number(document.getElementById('p-days').value);
+    const trx = document.getElementById('p-trx').value.trim().toUpperCase();
+
+    if (!/^01[0-9]{9}$/.test(phone)) return showMsg('❌ সঠিক ১১ ডিজিটের ফোন নম্বর দিন।', 'err');
+    if (!amount || amount <= 0) return showMsg('❌ সঠিক পরিমাণ দিন।', 'err');
+    if (!days || days <= 0) return showMsg('❌ সঠিক দিনসংখ্যা দিন।', 'err');
+    if (!trx || trx.length < 5) return showMsg('❌ সঠিক TrxID দিন (bKash SMS-এ পাবেন)।', 'err');
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true; btn.textContent = 'পাঠানো হচ্ছে...';
+
+    try {
+      // trxId-ই ডকুমেন্ট আইডি — একই TrxID দিয়ে দ্বিতীয়বার সাবমিট করা যাবে না
+      // (Firestore rules এটা আটকে দেয়, ডুপ্লিকেট/জালিয়াতি ঠেকাতে)
+      await setDoc(doc(db, 'paymentRequests', trx), {
+        phone, shop: shop || '', amount, days,
+        status: 'pending',
+        requestedAt: serverTimestamp()
+      });
+
+      const approveLink = `${location.origin}${location.pathname.replace('pay.html','member.html')}?phone=${encodeURIComponent(phone)}&days=${days}&amount=${amount}&trx=${encodeURIComponent(trx)}&shop=${encodeURIComponent(shop)}`;
+
+      const waText =
+`🔔 *নতুন পেমেন্ট রিকোয়েস্ট!*
+
+🏪 দোকান: ${shop || 'N/A'}
+📞 ফোন: ${phone}
+🧾 TrxID: ${trx}
+💰 পরিমাণ: ৳${amount}
+📅 দিন: ${days} দিন
+
+✅ Approve করতে নিচের লিংকে যান:
+${approveLink}`;
+
+      showMsg('✅ রিকোয়েস্ট পাঠানো হয়েছে! WhatsApp খুলছে...', 'ok');
+      setTimeout(() => {
+        window.open(`https://wa.me/${ADMIN_WHATSAPP}?text=${encodeURIComponent(waText)}`, '_blank');
+      }, 400);
+
+    } catch (e) {
+      if (e.code === 'permission-denied') {
+        showMsg('❌ এই TrxID দিয়ে আগেই একটা রিকোয়েস্ট পাঠানো হয়েছে। নতুন পেমেন্ট হলে নতুন TrxID দিন।', 'err');
+      } else {
+        showMsg('❌ ব্যর্থ: ' + e.message, 'err');
+      }
+    } finally {
+      btn.disabled = false; btn.textContent = '✅ পেমেন্ট রিকোয়েস্ট পাঠান';
+    }
+  };
+</script>
+</body>
+</html>

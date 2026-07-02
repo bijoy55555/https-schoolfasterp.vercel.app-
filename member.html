@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>পেমেন্ট অ্যাপ্রুভ — সুপার-অ্যাডমিন</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; min-height:100vh; }
+  .wrap { max-width: 480px; margin: 0 auto; }
+  h1 { color:#fff; font-size:20px; margin-bottom:4px; text-align:center; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; text-align:center; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input { width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  button { margin-top:16px; width:100%; background:#1a5276; color:#fff; border:none; padding:12px; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; }
+  button:hover { background:#154160; }
+  button.approve { background:#1e7e46; }
+  button.approve:hover { background:#166636; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .msg.info { background:#eaf2fb; color:#1a5276; display:block; }
+  .detail { font-size:14px; line-height:2; }
+  .detail b { color:#1a5276; }
+  .badge { display:inline-block; padding:3px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .badge.pending { background:#fef3e2; color:#b8600a; }
+  .badge.approved { background:#e8f8ef; color:#1e7e46; }
+  .badge.rejected { background:#fdeaea; color:#b03030; }
+  .hidden { display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>✅ পেমেন্ট অ্যাপ্রুভ</h1>
+  <div class="sub">এই লিংক শুধু আপনার (সুপার-অ্যাডমিন) জন্য — কারো সাথে শেয়ার করবেন না</div>
+
+  <!-- লগইন কার্ড -->
+  <div class="card" id="login-card">
+    <h2 style="font-size:15px;margin:0 0 12px;color:#1a5276">সুপার-অ্যাডমিন লগইন</h2>
+    <label>ইমেইল</label>
+    <input id="sa-email">
+    <label>পাসওয়ার্ড</label>
+    <input id="sa-pass" type="password">
+    <button onclick="saLogin()">লগইন করুন</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <!-- রিকোয়েস্ট ডিটেইলস কার্ড -->
+  <div class="card hidden" id="detail-card">
+    <h2 style="font-size:15px;margin:0 0 12px;color:#1a5276">পেমেন্ট রিকোয়েস্টের বিবরণ</h2>
+    <div class="detail" id="detail-box"></div>
+    <div id="school-box" style="margin-top:10px"></div>
+    <button class="approve" id="approve-btn" onclick="approvePayment()">✅ Approve করুন — মেয়াদ বাড়িয়ে দিন</button>
+    <button id="reject-btn" style="background:#b03030" onclick="rejectPayment()">❌ Reject করুন</button>
+    <div class="msg" id="action-msg"></div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, Timestamp, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
+    authDomain: "school-erp-bd.firebaseapp.com",
+    projectId: "school-erp-bd",
+    storageBucket: "school-erp-bd.firebasestorage.app",
+    messagingSenderId: "951924242207",
+    appId: "1:951924242207:web:c5bd862a9e00ae9d9b622a",
+    measurementId: "G-9E9LHG9HWS"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  const params = new URLSearchParams(location.search);
+  const P = {
+    phone: params.get('phone') || '',
+    days: Number(params.get('days')) || 0,
+    amount: Number(params.get('amount')) || 0,
+    trx: (params.get('trx') || '').toUpperCase(),
+    shop: params.get('shop') || ''
+  };
+
+  let matchedSchool = null; // { id, ...data }
+  let requestData = null;
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  function toDate(v) { return v ? (v.toDate ? v.toDate() : new Date(v)) : null; }
+  function fmtDate(d) { return d ? d.toLocaleDateString('bn-BD', { year:'numeric', month:'short', day:'numeric' }) : '—'; }
+
+  window.saLogin = async function () {
+    const email = document.getElementById('sa-email').value.trim();
+    const pass = document.getElementById('sa-pass').value;
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (e) {
+      showMsg('login-msg', '❌ লগইন ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) { return; }
+    // সুপার-অ্যাডমিন যাচাই
+    const saSnap = await getDoc(doc(db, 'superAdmins', user.uid));
+    if (!saSnap.exists()) {
+      showMsg('login-msg', '❌ এই একাউন্ট সুপার-অ্যাডমিন না।', 'err');
+      return;
+    }
+    document.getElementById('login-card').classList.add('hidden');
+    document.getElementById('detail-card').classList.remove('hidden');
+    await loadRequest();
+  });
+
+  async function loadRequest() {
+    if (!P.trx || !P.phone) {
+      document.getElementById('detail-box').innerHTML = '❌ লিংকে প্রয়োজনীয় তথ্য (phone/trx) নেই।';
+      document.getElementById('approve-btn').disabled = true;
+      return;
+    }
+
+    // TrxID দিয়ে paymentRequests ডকুমেন্ট পড়া
+    const reqSnap = await getDoc(doc(db, 'paymentRequests', P.trx));
+    if (!reqSnap.exists()) {
+      document.getElementById('detail-box').innerHTML = '❌ এই TrxID দিয়ে কোনো রিকোয়েস্ট খুঁজে পাওয়া যায়নি।';
+      document.getElementById('approve-btn').disabled = true;
+      return;
+    }
+    requestData = reqSnap.data();
+
+    const badgeClass = requestData.status === 'pending' ? 'pending' : (requestData.status === 'approved' ? 'approved' : 'rejected');
+    const badgeText = requestData.status === 'pending' ? '⏳ পেন্ডিং' : (requestData.status === 'approved' ? '✅ অ্যাপ্রুভড' : '❌ রিজেক্টেড');
+
+    document.getElementById('detail-box').innerHTML = `
+      🏪 দোকান: <b>${requestData.shop || P.shop || '—'}</b><br>
+      📞 ফোন: <b>${requestData.phone}</b><br>
+      🧾 TrxID: <b>${P.trx}</b><br>
+      💰 পরিমাণ: <b>৳${requestData.amount}</b><br>
+      📅 দিন: <b>${requestData.days} দিন</b><br>
+      স্ট্যাটাস: <span class="badge ${badgeClass}">${badgeText}</span>
+    `;
+
+    if (requestData.status !== 'pending') {
+      document.getElementById('approve-btn').disabled = true;
+      document.getElementById('reject-btn').disabled = true;
+      showMsg('action-msg', 'এই রিকোয়েস্ট আগেই প্রসেস করা হয়ে গেছে।', 'info');
+      return;
+    }
+
+    // এই ফোন নম্বর দিয়ে স্কুল খোঁজা
+    const q = query(collection(db, 'schools'), where('ownerPhone', '==', requestData.phone));
+    const snap = await getDocs(q);
+    const schoolBox = document.getElementById('school-box');
+
+    if (snap.empty) {
+      schoolBox.innerHTML = `<div class="msg err" style="display:block">⚠️ এই ফোন নম্বরের সাথে যুক্ত কোনো স্কুল খুঁজে পাওয়া যায়নি। Approve করার আগে admin.html থেকে স্কুল তৈরি করুন অথবা ownerPhone আপডেট করুন।</div>`;
+      document.getElementById('approve-btn').disabled = true;
+      return;
+    }
+
+    matchedSchool = { id: snap.docs[0].id, ...snap.docs[0].data() };
+    const curExpiry = toDate(matchedSchool.expiryDate);
+    const now = new Date();
+    const startFrom = (curExpiry && curExpiry.getTime() > now.getTime()) ? curExpiry : now;
+    const newExpiry = new Date(startFrom.getTime() + requestData.days * 86400000);
+
+    schoolBox.innerHTML = `
+      <div class="msg info" style="display:block">
+        🏫 স্কুল মিলেছে: <b>${matchedSchool.name || '—'}</b><br>
+        বর্তমান মেয়াদ শেষ: ${fmtDate(curExpiry)}<br>
+        Approve করলে নতুন মেয়াদ শেষ: <b>${fmtDate(newExpiry)}</b>
+      </div>
+    `;
+  }
+
+  window.approvePayment = async function () {
+    if (!matchedSchool || !requestData) return;
+    const btn = document.getElementById('approve-btn');
+    btn.disabled = true; btn.textContent = 'প্রসেস হচ্ছে...';
+
+    try {
+      const curExpiry = toDate(matchedSchool.expiryDate);
+      const now = new Date();
+      const startFrom = (curExpiry && curExpiry.getTime() > now.getTime()) ? curExpiry : now;
+      const newExpiry = new Date(startFrom.getTime() + requestData.days * 86400000);
+
+      await updateDoc(doc(db, 'schools', matchedSchool.id), {
+        expiryDate: Timestamp.fromDate(newExpiry),
+        status: 'active',
+        reminderSent: false
+      });
+
+      await updateDoc(doc(db, 'paymentRequests', P.trx), {
+        status: 'approved',
+        approvedAt: serverTimestamp(),
+        schoolId: matchedSchool.id
+      });
+
+      // রেকর্ড রাখার জন্য স্কুলের নিজের payments সাব-কালেকশনেও একটা কপি
+      await setDoc(doc(db, 'schools', matchedSchool.id, 'payments', P.trx), {
+        amount: requestData.amount,
+        days: requestData.days,
+        method: 'bKash',
+        approvedAt: serverTimestamp()
+      });
+
+      showMsg('action-msg', `✅ অ্যাপ্রুভ সম্পন্ন! মেয়াদ বাড়ানো হয়েছে — নতুন মেয়াদ শেষ: ${fmtDate(newExpiry)}`, 'ok');
+      btn.textContent = '✅ Approved';
+    } catch (e) {
+      showMsg('action-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+      btn.disabled = false; btn.textContent = '✅ Approve করুন — মেয়াদ বাড়িয়ে দিন';
+    }
+  };
+
+  window.rejectPayment = async function () {
+    if (!requestData) return;
+    if (!confirm('আপনি কি নিশ্চিত এই পেমেন্ট রিকোয়েস্ট Reject করতে চান?')) return;
+    try {
+      await updateDoc(doc(db, 'paymentRequests', P.trx), {
+        status: 'rejected',
+        approvedAt: serverTimestamp()
+      });
+      showMsg('action-msg', '❌ রিকোয়েস্ট Reject করা হয়েছে।', 'info');
+      document.getElementById('approve-btn').disabled = true;
+    } catch (e) {
+      showMsg('action-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+</script>
+</body>
+</html>
