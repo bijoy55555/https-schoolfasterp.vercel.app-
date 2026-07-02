@@ -7431,9 +7431,11 @@ function renderSubscriptionBadge(school){
 function openPackagePurchasePage(){
   const phone = (window._schoolDoc && window._schoolDoc.ownerPhone) || document.getElementById('s-phone-no')?.value || '';
   const schoolName = (window._schoolDoc && window._schoolDoc.name) || document.getElementById('s-school-name')?.value || '';
+  const activeStudents = (typeof students!=='undefined') ? students.filter(s=>s.status==='সক্রিয়').length : 0;
   const params = new URLSearchParams();
   if(phone) params.set('phone', phone);
   if(schoolName) params.set('school', schoolName);
+  if(activeStudents) params.set('students', activeStudents);
   const qs = params.toString();
   window.open('pay.html' + (qs ? ('?' + qs) : ''), '_blank');
 }

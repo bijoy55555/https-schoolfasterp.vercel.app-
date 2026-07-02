@@ -46,19 +46,25 @@
     <label>দোকান/স্কুলের নাম (ঐচ্ছিক)</label>
     <input id="p-shop" placeholder="যেমন: আদর্শ উচ্চ বিদ্যালয়">
 
-    <label>প্যাকেজ বাছাই করুন</label>
-    <div class="pkgs" id="pkg-list">
-      <div class="pkg" data-amount="50" data-days="30"><b>৳50</b>১ মাস</div>
-      <div class="pkg" data-amount="500" data-days="30"><b>৳500</b>১ মাস</div>
-      <div class="pkg" data-amount="1000" data-days="30"><b>৳1000</b>১ মাস</div>
-      <div class="pkg" data-amount="11000" data-days="365"><b>৳11000</b>১ বছর</div>
+    <label>আপনার স্কুলে মোট ছাত্র সংখ্যা</label>
+    <input id="p-students" type="number" placeholder="যেমন: ২৭০" min="1">
+
+    <label>মেয়াদ বাছাই করুন</label>
+    <div class="pkgs" id="duration-list">
+      <div class="pkg sel" data-months="1">১ মাস</div>
+      <div class="pkg" data-months="12">১ বছর <span style="color:#1e7e46;font-weight:700">(২ মাস ফ্রি)</span></div>
+    </div>
+
+    <div id="price-box" style="display:none;background:#eaf2fb;border:1px solid #b8d4ec;border-radius:10px;padding:12px;margin-top:12px;font-size:13px;line-height:1.7;color:#1a5276"></div>
+    <div id="price-contact-box" style="display:none;background:#fdeaea;border:1px solid #f2b8b8;border-radius:10px;padding:12px;margin-top:12px;font-size:13px;line-height:1.7;color:#b03030">
+      ১,০০০+ ছাত্রের স্কুলের জন্য আলাদা মূল্য নির্ধারিত হয়। দয়া করে সরাসরি WhatsApp/কল করুন: <b>01858293479</b>
     </div>
 
     <label>পরিমাণ (৳)</label>
-    <input id="p-amount" type="number" placeholder="পরিমাণ লিখুন">
+    <input id="p-amount" type="number" placeholder="উপরে ছাত্রসংখ্যা দিলে অটো বসে যাবে" readonly>
 
     <label>দিন</label>
-    <input id="p-days" type="number" placeholder="কত দিনের জন্য">
+    <input id="p-days" type="number" placeholder="উপরে ছাত্রসংখ্যা দিলে অটো বসে যাবে" readonly>
 
     <label>bKash TrxID</label>
     <input id="p-trx" placeholder="যেমন: CJCJUXKCJ" style="text-transform:uppercase">
@@ -66,6 +72,19 @@
     <button id="submit-btn" onclick="submitPayment()">✅ পেমেন্ট রিকোয়েস্ট পাঠান</button>
     <div class="msg" id="p-msg"></div>
     <div class="hint">অ্যাপ্রুভ হতে সাধারণত কিছুক্ষণ সময় লাগতে পারে (ম্যানুয়াল যাচাই)। জরুরি হলে সরাসরি WhatsApp/কল করুন: <b>01858293479</b></div>
+  </div>
+
+  <div class="card" style="padding:16px 20px">
+    <div style="font-weight:700;font-size:13.5px;margin-bottom:8px;color:#1a5276">💡 মূল্য তালিকা (ছাত্রসংখ্যা অনুযায়ী)</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12.5px">
+      <thead><tr style="text-align:left;color:#777"><th style="padding:4px 0">ছাত্রসংখ্যা</th><th>১ মাস</th><th>১ বছর</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:4px 0">১ – ২৭০ জন</td><td>৳৫০০</td><td>৳৫,০০০</td></tr>
+        <tr><td style="padding:4px 0">২৭১ – ৫০০ জন</td><td>৳১,০০০</td><td>৳১০,০০০</td></tr>
+        <tr><td style="padding:4px 0">৫০১ – ১,০০০ জন</td><td>৳১,৫০০</td><td>৳১৫,০০০</td></tr>
+        <tr><td style="padding:4px 0">১,০০০+ জন</td><td colspan="2">যোগাযোগ করুন</td></tr>
+      </tbody>
+    </table>
   </div>
 </div>
 
@@ -95,24 +114,77 @@
     el.className = 'msg ' + type;
   }
 
-  // প্যাকেজ বাটন সিলেকশন
-  document.querySelectorAll('.pkg').forEach(el => {
+  // ===== ছাত্রসংখ্যা অনুযায়ী মূল্য নির্ধারণ =====
+  let selectedMonths = 1;
+
+  function calcMonthlyRate(students) {
+    if (students <= 0) return null;
+    if (students <= 270) return 500;
+    if (students <= 500) return 1000;
+    if (students <= 1000) return 1500;
+    return null; // ১০০০+ — কাস্টম, সরাসরি যোগাযোগ
+  }
+
+  function recalcPrice() {
+    const students = Number(document.getElementById('p-students').value);
+    const priceBox = document.getElementById('price-box');
+    const contactBox = document.getElementById('price-contact-box');
+    const amountEl = document.getElementById('p-amount');
+    const daysEl = document.getElementById('p-days');
+
+    if (!students || students <= 0) {
+      priceBox.style.display = 'none';
+      contactBox.style.display = 'none';
+      amountEl.value = ''; daysEl.value = '';
+      amountEl.readOnly = true; daysEl.readOnly = true;
+      return;
+    }
+
+    const monthly = calcMonthlyRate(students);
+    if (monthly === null) {
+      priceBox.style.display = 'none';
+      contactBox.style.display = 'block';
+      amountEl.value = ''; daysEl.value = '';
+      amountEl.readOnly = false; daysEl.readOnly = false; // কাস্টম মূল্য হলে ম্যানুয়ালি লেখা যাবে
+      return;
+    }
+
+    contactBox.style.display = 'none';
+    amountEl.readOnly = true; daysEl.readOnly = true;
+
+    if (selectedMonths === 12) {
+      const yearly = monthly * 10; // ১০ মাসের দামে ১২ মাস (২ মাস ফ্রি)
+      amountEl.value = yearly; daysEl.value = 365;
+      priceBox.style.display = 'block';
+      priceBox.innerHTML = `👨‍🎓 ছাত্রসংখ্যা: <b>${students}</b> জন — মাসিক হার ৳${monthly}<br>📅 ১ বছর: <b>৳${yearly}</b> (২ মাস ফ্রি, নিয়মিত হলে ৳${monthly*12} হতো)`;
+    } else {
+      amountEl.value = monthly; daysEl.value = 30;
+      priceBox.style.display = 'block';
+      priceBox.innerHTML = `👨‍🎓 ছাত্রসংখ্যা: <b>${students}</b> জন — ১ মাসের জন্য: <b>৳${monthly}</b>`;
+    }
+  }
+
+  document.getElementById('p-students').addEventListener('input', recalcPrice);
+
+  document.querySelectorAll('#duration-list .pkg').forEach(el => {
     el.addEventListener('click', () => {
-      document.querySelectorAll('.pkg').forEach(p => p.classList.remove('sel'));
+      document.querySelectorAll('#duration-list .pkg').forEach(p => p.classList.remove('sel'));
       el.classList.add('sel');
-      document.getElementById('p-amount').value = el.dataset.amount;
-      document.getElementById('p-days').value = el.dataset.days;
+      selectedMonths = Number(el.dataset.months);
+      recalcPrice();
     });
   });
 
   window.submitPayment = async function () {
     const phone = document.getElementById('p-phone').value.trim();
     const shop = document.getElementById('p-shop').value.trim();
+    const students = Number(document.getElementById('p-students').value);
     const amount = Number(document.getElementById('p-amount').value);
     const days = Number(document.getElementById('p-days').value);
     const trx = document.getElementById('p-trx').value.trim().toUpperCase();
 
     if (!/^01[0-9]{9}$/.test(phone)) return showMsg('❌ সঠিক ১১ ডিজিটের ফোন নম্বর দিন।', 'err');
+    if (!students || students <= 0) return showMsg('❌ ছাত্রসংখ্যা দিন।', 'err');
     if (!amount || amount <= 0) return showMsg('❌ সঠিক পরিমাণ দিন।', 'err');
     if (!days || days <= 0) return showMsg('❌ সঠিক দিনসংখ্যা দিন।', 'err');
     if (!trx || trx.length < 5) return showMsg('❌ সঠিক TrxID দিন (bKash SMS-এ পাবেন)।', 'err');
@@ -124,7 +196,7 @@
       // trxId-ই ডকুমেন্ট আইডি — একই TrxID দিয়ে দ্বিতীয়বার সাবমিট করা যাবে না
       // (Firestore rules এটা আটকে দেয়, ডুপ্লিকেট/জালিয়াতি ঠেকাতে)
       await setDoc(doc(db, 'paymentRequests', trx), {
-        phone, shop: shop || '', amount, days,
+        phone, shop: shop || '', students, amount, days,
         status: 'pending',
         requestedAt: serverTimestamp()
       });
@@ -136,6 +208,7 @@
 
 🏪 দোকান: ${shop || 'N/A'}
 📞 ফোন: ${phone}
+👨‍🎓 ছাত্রসংখ্যা: ${students}
 🧾 TrxID: ${trx}
 💰 পরিমাণ: ৳${amount}
 📅 দিন: ${days} দিন
@@ -160,13 +233,19 @@ ${approveLink}`;
   };
 
   // ✅ অ্যাপের ভিতর থেকে (ট্রায়াল/প্যাকেজ ব্যাজে ক্লিক করে) এই পেজে এলে
-  // ?phone=...&school=... থাকলে ফোন ও স্কুলের নাম আগে থেকেই বসিয়ে দেয়
+  // ?phone=...&school=...&students=... থাকলে ফোন, স্কুলের নাম ও ছাত্রসংখ্যা
+  // আগে থেকেই বসিয়ে দেয় এবং দাম হিসাব করে দেখায়
   (function prefillFromQuery(){
     const q = new URLSearchParams(location.search);
     const phone = q.get('phone');
     const school = q.get('school');
+    const studentsQ = q.get('students');
     if(phone) document.getElementById('p-phone').value = phone.replace(/[^0-9]/g,'').slice(0,11);
     if(school) document.getElementById('p-shop').value = school;
+    if(studentsQ) {
+      document.getElementById('p-students').value = studentsQ;
+      recalcPrice();
+    }
   })();
 </script>
 </body>
