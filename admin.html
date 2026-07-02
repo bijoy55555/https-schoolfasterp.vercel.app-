@@ -3,185 +3,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>অ্যাডমিন প্যানেল</title>
+<title>সুপার-অ্যাডমিন — স্কুল ম্যানেজমেন্ট</title>
 <style>
   * { box-sizing: border-box; }
-  body {
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background:#0b1220; color:#e7edf5; margin:0; padding:0 0 40px;
-  }
-  header {
-    display:flex; align-items:center; justify-content:space-between;
-    background:#111a2b; padding:14px 18px; border-bottom:1px solid #1e2a40;
-    position:sticky; top:0; z-index:10;
-  }
-  .brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:700; }
-  .brand .icon { font-size:26px; }
-  .badge-admin { background:#2f6bff; color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; margin-left:8px; }
-  .btn-logout, .btn-link { background:transparent; border:1px solid #2c3a52; color:#cdd8ea; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; }
-  .btn-logout:hover, .btn-link:hover { background:#182238; }
-
-  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
-
-  /* ---- Login screen ---- */
-  .login-wrap { max-width:420px; margin:60px auto; padding:0 16px; }
-  .login-card { background:#111a2b; border:1px solid #1e2a40; border-radius:16px; padding:24px; }
-  .login-card h2 { margin:0 0 16px; font-size:18px; }
-  .field { margin-bottom:14px; }
-  .field label { display:block; font-size:13px; color:#9fb0c8; margin-bottom:6px; }
-  .field input {
-    width:100%; background:#0b1220; border:1px solid #26334c; color:#e7edf5;
-    padding:11px 12px; border-radius:9px; font-size:14px;
-  }
-  .btn-primary {
-    width:100%; background:#2f6bff; border:none; color:#fff; padding:12px; border-radius:10px;
-    font-size:14px; font-weight:700; cursor:pointer; margin-top:4px;
-  }
-  .btn-primary:hover { background:#1f57e0; }
-  .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
-  .msg { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:8px; line-height:1.5; }
-  .msg.ok { background:#0e2a1c; color:#3ddc84; border:1px solid #1c4a30; }
-  .msg.err { background:#2a1414; color:#ff8a8a; border:1px solid #4a1c1c; }
-  .msg.hidden { display:none; }
-
-  .banner {
-    display:flex; gap:12px; align-items:flex-start;
-    background:#0e2a1c; border:1px solid #1c4a30; border-radius:14px; padding:16px; margin-bottom:18px;
-  }
-  .banner.warn { background:#2a220e; border-color:#4a3d1c; }
-  .banner .chk { font-size:20px; }
-  .banner h3 { margin:0 0 4px; font-size:15px; color:#3ddc84; }
-  .banner.warn h3 { color:#ffcf4d; }
-  .banner p { margin:0; font-size:13px; color:#a9b6c8; line-height:1.5; }
-
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
-  .stat-card { background:#111a2b; border:1px solid #1e2a40; border-radius:14px; padding:16px; }
-  .stat-card .label { font-size:13px; color:#9fb0c8; display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-  .stat-card .value { font-size:26px; font-weight:700; color:#3ddc84; margin-bottom:6px; }
-  .bar-bg { background:#1c2740; border-radius:6px; height:6px; overflow:hidden; margin-bottom:6px; }
-  .bar-fill { background:#3ddc84; height:100%; border-radius:6px; }
-  .stat-card .meta { font-size:11.5px; color:#7c8aa3; }
-
-  .section-title { font-size:17px; font-weight:700; margin:26px 0 12px; }
-
-  .userstat-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:22px; }
-  .userstat-card { background:#111a2b; border:1px solid #1e2a40; border-radius:14px; padding:16px; }
-  .userstat-card .num { font-size:28px; font-weight:800; margin-bottom:4px; }
-  .userstat-card .lbl { font-size:13px; color:#9fb0c8; }
-  .num.blue{color:#5b8dff;} .num.orange{color:#ffb648;} .num.green{color:#3ddc84;} .num.red{color:#ff5c5c;}
-
-  .panel { background:#111a2b; border:1px solid #1e2a40; border-radius:16px; padding:16px; margin-bottom:16px; }
-  .panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
-  .panel-head h2 { font-size:16px; margin:0; display:flex; align-items:center; gap:8px; }
-  .btn-refresh { background:#2f6bff; border:none; color:#fff; padding:9px 14px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
-  .btn-refresh:hover { background:#1f57e0; }
-  .btn-refresh:disabled { opacity:.6; cursor:not-allowed; }
-
-  .user-row { display:flex; align-items:center; gap:12px; padding:14px 4px; border-bottom:1px solid #1b263b; }
-  .user-row:last-child { border-bottom:none; }
-  .avatar {
-    width:42px; height:42px; min-width:42px; border-radius:50%; background:#4d7bff;
-    display:flex; align-items:center; justify-content:center; font-weight:700; font-size:17px; color:#fff;
-  }
-  .u-main { flex:1; min-width:0; }
-  .u-name { font-weight:700; font-size:15px; margin-bottom:2px; }
-  .u-phone { font-size:13px; color:#8b98ae; margin-bottom:4px; word-break:break-all; }
-  .u-line2 { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; }
-  .tag { padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
-  .tag.warn { background:#3a2412; color:#ffb648; }
-  .tag.premium { background:#3a2b06; color:#ffcc55; }
-  .tag.trial { background:#0e2a1c; color:#3ddc84; }
-  .u-right { text-align:right; font-size:11.5px; color:#8b98ae; display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:78px; }
-  .btn-del { background:transparent; border:1px solid #4a2020; color:#ff6b6b; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:14px; }
-  .btn-del:hover { background:#241012; }
-  .empty, .loading { text-align:center; color:#7c8aa3; padding:30px 10px; font-size:13px; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { color:#fff; font-size:22px; margin-bottom:4px; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card h2 { font-size:16px; margin:0 0 14px; color:#1a5276; }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input, select { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  button { margin-top:16px; background:#1a5276; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:hover { background:#154160; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .msg.info { background:#eaf2fb; color:#1a5276; display:block; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
+  .status-active { color:#1e7e46; font-weight:600; }
+  .status-expired { color:#b03030; font-weight:600; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .hint { font-size:12px; color:#777; margin-top:8px; line-height:1.5; }
+  code { background:#f1f1f1; padding:1px 5px; border-radius:4px; font-size:12px; }
 </style>
 </head>
 <body>
+<div class="wrap">
+  <h1>🛠️ সুপার-অ্যাডমিন প্যানেল</h1>
+  <div class="sub">এখান থেকে নতুন স্কুল (টেন্যান্ট) যোগ করুন ও সাবস্ক্রিপশন দেখুন। শুধু আপনার (প্ল্যাটফর্ম মালিক) ব্যবহারের জন্য — এই লিংক কারো সাথে শেয়ার করবেন না।</div>
 
-<!-- ===== লগইন স্ক্রিন ===== -->
-<div id="login-screen" class="login-wrap">
-  <div class="login-card">
-    <h2>🔒 সুপার-অ্যাডমিন লগইন</h2>
-    <div class="field">
-      <label>ইমেইল</label>
-      <input id="sa-email" type="email" placeholder="you@example.com">
+  <!-- ধাপ ১: লগইন -->
+  <div class="card">
+    <h2>ধাপ ১ — সুপার-অ্যাডমিন হিসেবে লগইন</h2>
+    <label>ইমেইল</label>
+    <input id="sa-email" placeholder="you@example.com">
+    <label>পাসওয়ার্ড</label>
+    <input id="sa-pass" type="password">
+    <button onclick="saLogin()">লগইন করুন</button>
+    <div class="msg" id="sa-login-msg"></div>
+    <div class="hint">
+      এই একাউন্টটা সুপার-অ্যাডমিন হিসেবে যাচাই হয় Firestore-এর
+      <code>superAdmins/{আপনার UID}</code> ডকুমেন্ট দিয়ে — এটা Firebase Console
+      → Firestore Database থেকে একবার ম্যানুয়ালি বানাতে হয় (কোনো Cloud
+      Function বা বিলিং লাগে না)। এখনো না বানিয়ে থাকলে, Authentication ট্যাব
+      থেকে আপনার UID কপি করে, Firestore-এ <code>superAdmins</code> নামে একটা
+      কালেকশন বানিয়ে, সেই UID-কে ডকুমেন্ট আইডি দিয়ে (ভেতরে যেকোনো একটা ফিল্ড,
+      যেমন <code>isSuperAdmin: true</code>) সেভ করুন।
     </div>
-    <div class="field">
-      <label>পাসওয়ার্ড</label>
-      <input id="sa-pass" type="password" placeholder="••••••••">
-    </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">লগইন করুন</button>
-    <div id="login-msg" class="msg hidden"></div>
   </div>
-</div>
 
-<!-- ===== ড্যাশবোর্ড (লগইনের পর দেখাবে) ===== -->
-<div id="dashboard" style="display:none;">
-  <header>
-    <div class="brand"><span class="icon">📓</span> অ্যাডমিন প্যানেল <span class="badge-admin">ADMIN</span></div>
-    <div style="display:flex; gap:8px;">
-      <a href="school-admin.html" class="btn-link">🏫 স্কুল ম্যানেজমেন্ট</a>
-      <button class="btn-logout" onclick="logout()">লগআউট</button>
-    </div>
-  </header>
-
-  <div class="wrap">
-    <div id="banner" class="banner">
-      <div class="chk">✅</div>
-      <div><h3 id="banner-title">লোড হচ্ছে...</h3><p id="banner-sub"></p></div>
-    </div>
-
-    <div class="grid2">
-      <div class="stat-card">
-        <div class="label">📖 Read</div>
-        <div class="value" id="q-read">0</div>
-        <div class="bar-bg"><div class="bar-fill" id="q-read-bar" style="width:0%"></div></div>
-        <div class="meta" id="q-read-meta">0% · লিমিট: ৫০,০০০</div>
+  <!-- ধাপ ২: নতুন স্কুল যোগ করুন -->
+  <div class="card">
+    <h2>ধাপ ২ — নতুন স্কুল যোগ করুন</h2>
+    <label>স্কুলের নাম</label>
+    <input id="ns-name" placeholder="যেমন: আদর্শ উচ্চ বিদ্যালয়">
+    <div class="row2">
+      <div>
+        <label>অ্যাডমিন ইমেইল (স্কুলের লগইন)</label>
+        <input id="ns-email" placeholder="admin@school.com">
       </div>
-      <div class="stat-card">
-        <div class="label">✏️ Write</div>
-        <div class="value" id="q-write">0</div>
-        <div class="bar-bg"><div class="bar-fill" id="q-write-bar" style="width:0%"></div></div>
-        <div class="meta" id="q-write-meta">0% · লিমিট: ২০,০০০</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">💾 Storage</div>
-        <div class="value" id="q-storage">0 MB</div>
-        <div class="bar-bg"><div class="bar-fill" id="q-storage-bar" style="width:0%"></div></div>
-        <div class="meta" id="q-storage-meta">0% · লিমিট: ১ GB</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">🗑️ Delete</div>
-        <div class="value" id="q-delete">0</div>
-        <div class="bar-bg"><div class="bar-fill" id="q-delete-bar" style="width:0%"></div></div>
-        <div class="meta" id="q-delete-meta">0% · লিমিট: ২০,০০০</div>
+      <div>
+        <label>অ্যাডমিন পাসওয়ার্ড</label>
+        <input id="ns-pass" type="password" placeholder="কমপক্ষে ৬ অক্ষর">
       </div>
     </div>
-
-    <div class="section-title">👥 স্কুল পরিসংখ্যান</div>
-    <div class="userstat-grid">
-      <div class="userstat-card"><div class="num blue" id="s-total">0</div><div class="lbl">মোট স্কুল</div></div>
-      <div class="userstat-card"><div class="num orange" id="s-premium">0</div><div class="lbl">পেইড প্যাকেজ</div></div>
-      <div class="userstat-card"><div class="num green" id="s-trial">0</div><div class="lbl">ফ্রি ট্রায়াল</div></div>
-      <div class="userstat-card"><div class="num red" id="s-expired">0</div><div class="lbl">মেয়াদ শেষ</div></div>
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <h2>📋 সাম্প্রতিক স্কুল</h2>
-        <button class="btn-refresh" id="refresh-btn" onclick="loadSchools()">🔄 রিফ্রেশ</button>
+    <div class="row2">
+      <div>
+        <label>অ্যাডমিনের নাম</label>
+        <input id="ns-admin-name" placeholder="যেমন: মোঃ করিম">
       </div>
-      <div id="user-list"><div class="loading">লোড হচ্ছে...</div></div>
+      <div>
+        <label>মালিকের ফোন নম্বর (SMS রিমাইন্ডারের জন্য)</label>
+        <input id="ns-phone" placeholder="01XXXXXXXXX">
+      </div>
     </div>
+    <div class="row2">
+      <div>
+        <label>প্যাকেজ</label>
+        <select id="ns-package">
+          <option value="Basic">Basic — ৫০০৳/মাস</option>
+          <option value="Standard" selected>Standard — ১০০০৳/মাস</option>
+          <option value="Premium">Premium — ২০০০৳/মাস</option>
+        </select>
+      </div>
+      <div>
+        <label>মেয়াদ (দিন)</label>
+        <input id="ns-days" type="number" value="30">
+      </div>
+    </div>
+    <label>মূল্য (৳)</label>
+    <input id="ns-price" type="number" value="1000">
+    <button onclick="createSchool()" id="create-btn">স্কুল তৈরি করুন</button>
+    <div class="msg" id="ns-msg"></div>
+    <div class="hint">
+      ✅ এখন এই বাটনটা সম্পূর্ণভাবে ব্রাউজার থেকেই কাজ করে — কোনো Cloud
+      Function বা Firebase Blaze (পেইড) প্ল্যান লাগে না। একটা লুকানো
+      দ্বিতীয় Firebase সেশন দিয়ে নতুন অ্যাডমিন একাউন্ট বানানো হয়, তাই
+      আপনার নিজের সুপার-অ্যাডমিন লগইন সেশন প্রভাবিত হবে না।
+    </div>
+  </div>
+
+  <!-- ধাপ ৩: সব স্কুলের তালিকা ও ম্যানেজমেন্ট -->
+  <div class="card">
+    <h2>ধাপ ৩ — সব স্কুল (অ্যাডমিন প্যানেল)</h2>
+    <div class="row2" style="margin-bottom:6px">
+      <div>
+        <label>খুঁজুন</label>
+        <input id="sc-search" placeholder="স্কুলের নাম দিয়ে খুঁজুন..." oninput="renderSchoolTable()">
+      </div>
+      <div>
+        <label>অবস্থা</label>
+        <select id="sc-filter" onchange="renderSchoolTable()">
+          <option value="all">সব</option>
+          <option value="active">✅ সক্রিয়</option>
+          <option value="expiring">🟠 শীঘ্রই মেয়াদ শেষ (৭ দিন)</option>
+          <option value="expired">⛔ মেয়াদ শেষ</option>
+          <option value="suspended">⏸️ সাসপেন্ড</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="loadSchools()">🔄 তালিকা রিফ্রেশ করুন</button>
+    <span id="sc-summary" style="margin-left:12px;font-size:13px;color:#555"></span>
+    <div style="overflow-x:auto">
+      <table id="sc-table">
+        <thead>
+          <tr><th>স্কুল</th><th>প্যাকেজ</th><th>মূল্য</th><th>মেয়াদ শেষ</th><th>অবস্থা</th><th>কাজ</th></tr>
+        </thead>
+        <tbody id="sc-tbody"><tr><td colspan="6" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
+      </table>
+    </div>
+    <div class="msg" id="sc-msg"></div>
+  </div>
+
+  <!-- ধাপ ৪: ব্যাকআপ মনিটরিং -->
+  <div class="card">
+    <h2>ধাপ ৪ — 🛡️ ব্যাকআপ মনিটরিং (সব স্কুল)</h2>
+    <div class="hint" style="margin-top:0">প্রতিটা স্কুলের সর্বশেষ ব্যাকআপের সময় ও ধরন এখানে দেখা যাবে। "তালিকা রিফ্রেশ করুন" চাপলে এটাও আপডেট হয়। কোনো স্কুলের নাম ধরে বাটনে চাপলে সেই স্কুলের সর্বশেষ ৩০টা ব্যাকআপের বিস্তারিত ইতিহাস দেখা যাবে।</div>
+    <div style="overflow-x:auto">
+      <table id="bk-table">
+        <thead>
+          <tr><th>স্কুল</th><th>সর্বশেষ ব্যাকআপ</th><th>ধরন</th><th>কাজ</th></tr>
+        </thead>
+        <tbody id="bk-tbody"><tr><td colspan="4" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
+      </table>
+    </div>
+    <div id="bk-history-wrap" style="display:none;margin-top:16px">
+      <h2 id="bk-history-title" style="margin-bottom:6px"></h2>
+      <div style="overflow-x:auto">
+        <table id="bk-history-table">
+          <thead><tr><th>সময়</th><th>ধরন</th><th>সাইজ</th><th>কাজ</th></tr></thead>
+          <tbody id="bk-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="msg" id="bk-msg"></div>
   </div>
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+  // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
   const firebaseConfig = {
     apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
     authDomain: "school-erp-bd.firebaseapp.com",
@@ -192,184 +179,305 @@
     measurementId: "G-9E9LHG9HWS"
   };
 
-  const LIMITS = { read: 50000, write: 20000, storageMB: 1024, del: 20000 };
-
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  function showMsg(text, type) {
-    const el = document.getElementById('login-msg');
+  let isSuperAdminVerified = false;
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
     el.textContent = text;
-    el.className = 'msg ' + type;
+    el.className = 'msg ' + (type || 'err');
   }
 
-  window.doLogin = async function () {
+  window.saLogin = async function() {
     const email = document.getElementById('sa-email').value.trim();
     const pass = document.getElementById('sa-pass').value;
-    const btn = document.getElementById('login-btn');
-    if (!email || !pass) { showMsg('ইমেইল ও পাসওয়ার্ড দিন।', 'err'); return; }
-    btn.disabled = true; btn.textContent = 'লগইন হচ্ছে...';
     try {
       const cred = await signInWithEmailAndPassword(auth, email, pass);
+      // superAdmin স্ট্যাটাস এখন Firestore ডকুমেন্ট দিয়ে চেক হয়, custom claim দিয়ে না
       const snap = await getDoc(doc(db, 'superAdmins', cred.user.uid));
-      if (!snap.exists()) {
-        await signOut(auth);
-        showMsg('⚠️ এই ইউজার সুপার-অ্যাডমিন হিসেবে যাচাইকৃত নয়। Firebase Console → Firestore → superAdmins কালেকশনে UID (' + cred.user.uid + ') যোগ করুন।', 'err');
-        return;
+      if (snap.exists()) {
+        isSuperAdminVerified = true;
+        showMsg('sa-login-msg', '✅ লগইন সফল — আপনি সুপার-অ্যাডমিন হিসেবে যাচাইকৃত।', 'ok');
+      } else {
+        isSuperAdminVerified = false;
+        showMsg('sa-login-msg',
+          '⚠️ লগইন সফল, কিন্তু এই UID (' + cred.user.uid + ') এখনো superAdmins কালেকশনে যোগ করা হয়নি। ' +
+          'Firebase Console → Firestore Database → superAdmins কালেকশনে এই UID দিয়ে একটা ডকুমেন্ট বানান।',
+          'err');
       }
     } catch (e) {
-      showMsg('❌ লগইন ব্যর্থ: ' + e.message, 'err');
-    } finally {
-      btn.disabled = false; btn.textContent = 'লগইন করুন';
+      isSuperAdminVerified = false;
+      showMsg('sa-login-msg', '❌ লগইন ব্যর্থ: ' + e.message, 'err');
     }
   };
 
-  window.logout = function () { signOut(auth); };
+  window.createSchool = async function() {
+    if (!auth.currentUser || !isSuperAdminVerified) { showMsg('ns-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন (ধাপ ১)।', 'err'); return; }
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      document.getElementById('login-screen').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-      return;
+    const schoolName = document.getElementById('ns-name').value.trim();
+    const adminEmail = document.getElementById('ns-email').value.trim();
+    const adminPassword = document.getElementById('ns-pass').value;
+    const adminName = document.getElementById('ns-admin-name').value.trim();
+    const ownerPhone = document.getElementById('ns-phone').value.trim();
+    const packageName = document.getElementById('ns-package').value;
+    const price = Number(document.getElementById('ns-price').value) || 0;
+    const durationDays = Number(document.getElementById('ns-days').value) || 30;
+
+    if (!schoolName || !adminEmail || !adminPassword) {
+      showMsg('ns-msg', 'স্কুলের নাম, অ্যাডমিন ইমেইল ও পাসওয়ার্ড আবশ্যক।', 'err'); return;
     }
-    const snap = await getDoc(doc(db, 'superAdmins', user.uid));
-    if (!snap.exists()) {
-      document.getElementById('login-screen').style.display = 'block';
-      document.getElementById('dashboard').style.display = 'none';
-      return;
+    if (adminPassword.length < 6) {
+      showMsg('ns-msg', 'পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।', 'err'); return;
     }
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('dashboard').style.display = 'block';
-    loadSchools();
-  });
 
-  function fmtDate(v) {
-    if (!v) return "—";
-    const d = v.toDate ? v.toDate() : new Date(v);
-    if (isNaN(d)) return "—";
-    return d.toLocaleDateString('bn-BD', { day:'2-digit', month:'2-digit', year:'numeric' });
-  }
-  function initials(name) {
-    if (!name || name === "—") return "-";
-    return name.trim().charAt(0).toUpperCase();
-  }
+    const btn = document.getElementById('create-btn');
+    btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...';
 
-  window.deleteSchool = async function (id, name) {
-    if (!confirm(`"${name}" স্কুলটি মুছে ফেলতে চান?\n\nদ্রষ্টব্য: এটা শুধু schools/{id} ডকুমেন্ট মুছবে। স্কুলের Auth অ্যাকাউন্ট ও users সাব-কালেকশন Firebase Console থেকে আলাদাভাবে মুছতে হবে।`)) return;
+    // একটা আলাদা ("সেকেন্ডারি") Firebase অ্যাপ ইনস্ট্যান্স দিয়ে নতুন
+    // অ্যাডমিন ইউজার বানানো হয়, যাতে createUserWithEmailAndPassword
+    // আপনার (সুপার-অ্যাডমিনের) মূল লগইন সেশনকে সাইন-আউট/প্রতিস্থাপন
+    // না করে দেয়। এটা কোনো সার্ভার/Cloud Function ছাড়াই কাজ করে।
+    const secondaryApp = initializeApp(firebaseConfig, 'secondary-' + Date.now());
+    const secondaryAuth = getAuth(secondaryApp);
+
+    let newUid = null;
+    let schoolRef = null;
     try {
-      await deleteDoc(doc(db, 'schools', id));
+      const cred = await createUserWithEmailAndPassword(secondaryAuth, adminEmail, adminPassword);
+      newUid = cred.user.uid;
+      await signOut(secondaryAuth);
+
+      const days = durationDays || 30;
+      const expiryDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      schoolRef = doc(collection(db, 'schools'));
+      const schoolId = schoolRef.id;
+
+      await setDoc(schoolRef, {
+        name: schoolName,
+        ownerEmail: adminEmail,
+        ownerPhone: ownerPhone || '',
+        package: packageName || 'Standard',
+        price: price || 0,
+        expiryDate: Timestamp.fromDate(expiryDate),
+        status: 'active',
+        createdAt: serverTimestamp()
+      });
+
+      await setDoc(doc(db, 'schools', schoolId, 'users', newUid), {
+        name: adminName || 'Admin',
+        email: adminEmail,
+        role: 'admin',
+        createdAt: serverTimestamp()
+      });
+
+      // schoolId/role লুকআপ — কাস্টম ক্লেইমের বিকল্প, index.html লগইনের
+      // সময় এটা পড়েই বুঝবে ইউজারটা কোন স্কুলের এবং কী রোল
+      await setDoc(doc(db, 'userIndex', newUid), {
+        schoolId,
+        role: 'admin',
+        email: adminEmail
+      });
+
+      showMsg('ns-msg', `✅ স্কুল তৈরি হয়েছে! স্কুল আইডি: ${schoolId} — এখন এই ইমেইল/পাসওয়ার্ড দিয়ে মূল ERP-তে (index.html) লগইন করা যাবে।`, 'ok');
+      document.getElementById('ns-name').value = '';
+      document.getElementById('ns-email').value = '';
+      document.getElementById('ns-pass').value = '';
+      document.getElementById('ns-admin-name').value = '';
+      document.getElementById('ns-phone').value = '';
       loadSchools();
     } catch (e) {
-      alert("মুছতে সমস্যা হয়েছে: " + e.message);
+      // Firestore ধাপে ব্যর্থ হলে, ইতিমধ্যে তৈরি হওয়া auth ইউজার/school
+      // ডকুমেন্ট এতিম হয়ে থাকতে পারে — সম্ভব হলে school ডকুমেন্ট মুছে
+      // পরিষ্কার রাখা হলো (auth ইউজারটা Firebase Console থেকে মুছতে হবে)
+      if (schoolRef) { try { await deleteDoc(schoolRef); } catch (e2) {} }
+      showMsg('ns-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+    } finally {
+      try { await deleteApp(secondaryApp); } catch (e3) {}
+      btn.disabled = false; btn.textContent = 'স্কুল তৈরি করুন';
     }
   };
 
-  function setQuota(totalSchools) {
-    const reads = totalSchools * 30;
-    const writes = totalSchools * 10;
-    const deletes = totalSchools;
-    const storageMB = +(totalSchools * 0.0045).toFixed(2);
+  // ===== ধাপ ৩: সব স্কুলের তালিকা ও ম্যানেজমেন্ট =====
+  let allSchools = [];
 
-    const setCard = (key, value, limit, unit) => {
-      const pct = Math.min(100, (value / limit) * 100);
-      document.getElementById(`q-${key}`).textContent = unit ? `${value} ${unit}` : value.toLocaleString('bn-BD');
-      document.getElementById(`q-${key}-bar`).style.width = pct.toFixed(1) + '%';
-      document.getElementById(`q-${key}-meta`).textContent =
-        `${pct.toFixed(1)}% · লিমিট: ${limit.toLocaleString('bn-BD')}${unit ? ' ' + unit : ''}`;
-    };
-    setCard('read', reads, LIMITS.read);
-    setCard('write', writes, LIMITS.write);
-    setCard('delete', deletes, LIMITS.del);
-
-    document.getElementById('q-storage').textContent = storageMB + ' MB';
-    const spct = Math.min(100, (storageMB / LIMITS.storageMB) * 100);
-    document.getElementById('q-storage-bar').style.width = spct.toFixed(1) + '%';
-    document.getElementById('q-storage-meta').textContent = `${spct.toFixed(1)}% · লিমিট: ১ GB`;
-
-    const overallPct = Math.max(reads/LIMITS.read, writes/LIMITS.write, deletes/LIMITS.del) * 100;
-    const banner = document.getElementById('banner');
-    if (overallPct < 80) {
-      banner.classList.remove('warn');
-      document.getElementById('banner-title').textContent = 'সব ঠিক আছে — ফ্রি প্ল্যানে চলছে';
-    } else {
-      banner.classList.add('warn');
-      document.getElementById('banner-title').textContent = 'কোটা প্রায় শেষ — আপগ্রেড বিবেচনা করুন';
-    }
-    const remaining = Math.max(0, Math.floor((LIMITS.write - writes) / 10));
-    document.getElementById('banner-sub').textContent =
-      `বর্তমানে ${totalSchools} টি স্কুল, কোটার ${overallPct.toFixed(0)}% ব্যবহার হচ্ছে। আরো ~${remaining} টি স্কুল ফ্রিতে নিতে পারবেন।`;
+  function toDate(v) {
+    if (!v) return null;
+    return v.toDate ? v.toDate() : new Date(v);
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return d.toLocaleDateString('bn-BD', { year:'numeric', month:'short', day:'numeric' });
+  }
+  function statusBadge(school) {
+    const expiry = toDate(school.expiryDate);
+    const daysLeft = expiry ? Math.ceil((expiry.getTime() - Date.now()) / 86400000) : null;
+    if (school.status === 'suspended') return { label:'⏸️ সাসপেন্ড', cls:'status-expired', key:'suspended' };
+    if (school.status === 'expired' || (daysLeft !== null && daysLeft < 0)) return { label:'⛔ মেয়াদ শেষ', cls:'status-expired', key:'expired' };
+    if (daysLeft !== null && daysLeft <= 7) return { label:`🟠 ${daysLeft} দিন বাকি`, cls:'status-expired', key:'expiring' };
+    return { label:'✅ সক্রিয়', cls:'status-active', key:'active' };
   }
 
-  window.loadSchools = async function () {
-    const btn = document.getElementById('refresh-btn');
-    const listEl = document.getElementById('user-list');
-    btn.disabled = true;
-    listEl.innerHTML = '<div class="loading">লোড হচ্ছে...</div>';
+  window.loadSchools = async function() {
+    if (!auth.currentUser) { showMsg('sc-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', 'err'); return; }
+    document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#999">লোড হচ্ছে...</td></tr>';
     try {
       const snap = await getDocs(collection(db, 'schools'));
-      const schools = [];
-      snap.forEach(d => schools.push({ id: d.id, ...d.data() }));
-
-      const now = new Date();
-      let paid = 0, trial = 0, expired = 0;
-      schools.forEach(s => {
-        const expiry = s.expiryDate?.toDate ? s.expiryDate.toDate() : (s.expiryDate ? new Date(s.expiryDate) : null);
-        const isExpired = expiry && expiry < now;
-        if (isExpired) expired++;
-        else if ((s.package || '').toLowerCase() === 'trial') trial++;
-        else paid++;
-      });
-      document.getElementById('s-total').textContent = schools.length;
-      document.getElementById('s-premium').textContent = paid;
-      document.getElementById('s-trial').textContent = trial;
-      document.getElementById('s-expired').textContent = expired;
-      setQuota(schools.length);
-
-      if (schools.length === 0) {
-        listEl.innerHTML = '<div class="empty">কোনো স্কুল পাওয়া যায়নি</div>';
-        return;
-      }
-
-      schools.sort((a, b) => {
-        const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-        const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-        return tb - ta;
-      });
-
-      listEl.innerHTML = schools.map(s => {
-        const name = s.name || '—';
-        const phone = s.ownerPhone || s.ownerEmail || '—';
-        const expiry = s.expiryDate?.toDate ? s.expiryDate.toDate() : (s.expiryDate ? new Date(s.expiryDate) : null);
-        const isExpired = expiry && expiry < now;
-        const pkg = s.package || 'Standard';
-
-        let tag = '';
-        if (isExpired) tag = `<span class="tag warn">⚠️ মেয়াদ শেষ</span>`;
-        else if (pkg.toLowerCase() === 'trial') tag = `<span class="tag trial">🆓 ট্রায়াল</span>`;
-        else tag = `<span class="tag premium">⭐ ${pkg}</span>`;
-
-        return `
-          <div class="user-row">
-            <div class="avatar">${initials(name)}</div>
-            <div class="u-main">
-              <div class="u-name">${name}</div>
-              <div class="u-phone">${phone}</div>
-              <div class="u-line2">${tag}</div>
-            </div>
-            <div class="u-right">
-              <div>মেয়াদ:<br>${fmtDate(s.expiryDate)}</div>
-              <button class="btn-del" onclick="deleteSchool('${s.id}', '${name.replace(/'/g, "\\'")}')">🗑️</button>
-            </div>
-          </div>`;
-      }).join('');
-
+      allSchools = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderSchoolTable();
+      document.getElementById('sc-msg').style.display = 'none';
+      renderBackupMonitor();
     } catch (e) {
-      listEl.innerHTML = `<div class="empty">ডেটা লোড করতে সমস্যা হয়েছে: ${e.message}</div>`;
-    } finally {
-      btn.disabled = false;
+      showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
+      document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#b03030">লোড ব্যর্থ</td></tr>';
     }
   };
+
+  // ===== ধাপ ৪: সুপার-অ্যাডমিন ব্যাকআপ মনিটরিং =====
+  // প্রতিটা স্কুলের schools/{schoolId}/backups/_meta ডকুমেন্ট থেকে সর্বশেষ
+  // ব্যাকআপের সময়/ধরন পড়া হয় (এই ডকুমেন্টটা app.html-এর ব্যাকআপ ফিচার থেকে
+  // অটো আপডেট হয়) — এখানে কোনো Cloud Function লাগে না, সরাসরি Firestore read।
+  const bkTypeLabel = { manual: '🖐️ ম্যানুয়াল', 'auto-before-restore': '♻️ অটো (রিস্টোরের আগে)' };
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('bn-BD'); } catch (e) { return iso; }
+  }
+
+  window.renderBackupMonitor = async function() {
+    if (!auth.currentUser) return;
+    const tbody = document.getElementById('bk-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    if (allSchools.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
+      return;
+    }
+    const rows = await Promise.all(allSchools.map(async (s) => {
+      let meta = null;
+      try {
+        const metaSnap = await getDoc(doc(db, 'schools', s.id, 'backups', '_meta'));
+        if (metaSnap.exists()) meta = metaSnap.data();
+      } catch (e) { /* পড়ার অনুমতি না থাকলে/এখনো কোনো ব্যাকআপ না নিলে খালি থাকবে */ }
+      return { school: s, meta };
+    }));
+
+    tbody.innerHTML = rows.map(({ school, meta }) => {
+      const daysAgo = meta && meta.lastBackupAt ? Math.floor((Date.now() - new Date(meta.lastBackupAt).getTime()) / 86400000) : null;
+      const staleWarning = daysAgo !== null && daysAgo > 3 ? ' ⚠️' : '';
+      return `
+        <tr>
+          <td><b>${school.name || '—'}</b></td>
+          <td>${meta ? fmtDateTime(meta.lastBackupAt) + staleWarning : '<span style="color:#b03030">কখনো ব্যাকআপ নেওয়া হয়নি</span>'}</td>
+          <td>${meta ? (bkTypeLabel[meta.lastBackupType] || meta.lastBackupType || '—') : '—'}</td>
+          <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick="viewBackupHistory('${school.id}','${(school.name||'').replace(/'/g,"")}')">🔍 ইতিহাস দেখুন</button></td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  window.viewBackupHistory = async function(schoolId, schoolName) {
+    const wrap = document.getElementById('bk-history-wrap');
+    const tbody = document.getElementById('bk-history-tbody');
+    document.getElementById('bk-history-title').textContent = `📜 "${schoolName}" — সর্বশেষ ৩০টি ব্যাকআপ`;
+    wrap.style.display = '';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    try {
+      const q = query(collection(db, 'schools', schoolId, 'backups'), orderBy('createdAt', 'desc'), limit(30));
+      const snap = await getDocs(q);
+      const list = snap.docs.filter(d => d.id !== '_meta').map(d => ({ id: d.id, ...d.data() }));
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#999">এই স্কুলের কোনো ক্লাউড ব্যাকআপ পাওয়া যায়নি</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td>${fmtDateTime(r.createdAt)}</td>
+          <td>${bkTypeLabel[r.type] || r.type || '—'}</td>
+          <td>${r.sizeKB || 0} KB</td>
+          <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick='downloadCloudBackup(${JSON.stringify(r.id)}, ${JSON.stringify(schoolId)}, ${JSON.stringify(schoolName)})'>⬇️ ডাউনলোড</button></td>
+        </tr>
+      `).join('');
+      window._bkHistoryCache = list;
+    } catch (e) {
+      showMsg('bk-msg', '❌ ব্যাকআপ ইতিহাস লোড করা যায়নি: ' + e.message, 'err');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+    }
+  };
+
+  window.downloadCloudBackup = function(backupId, schoolId, schoolName) {
+    const rec = (window._bkHistoryCache || []).find(r => r.id === backupId);
+    if (!rec || !rec.data) { showMsg('bk-msg', 'ব্যাকআপ ডেটা পাওয়া যায়নি', 'err'); return; }
+    const blob = new Blob([rec.data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${schoolName || schoolId}-${backupId}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  window.renderSchoolTable = function() {
+    const search = (document.getElementById('sc-search').value || '').trim().toLowerCase();
+    const filter = document.getElementById('sc-filter').value;
+    const tbody = document.getElementById('sc-tbody');
+
+    let rows = allSchools.map(s => ({ s, badge: statusBadge(s) }));
+    if (search) rows = rows.filter(r => (r.s.name || '').toLowerCase().includes(search));
+    if (filter !== 'all') rows = rows.filter(r => r.badge.key === filter);
+
+    document.getElementById('sc-summary').textContent = `মোট ${allSchools.length}টি স্কুল, দেখানো হচ্ছে ${rows.length}টি`;
+
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(({s, badge}) => `
+      <tr>
+        <td><b>${s.name || '—'}</b><br><span style="color:#888;font-size:11px">${s.ownerEmail || ''}</span></td>
+        <td>${s.package || '—'}</td>
+        <td>৳${s.price ?? 0}</td>
+        <td>${fmtDate(toDate(s.expiryDate))}</td>
+        <td class="${badge.cls}">${badge.label}</td>
+        <td>
+          <button style="margin:2px;padding:5px 9px;font-size:12px" onclick="extendSchool('${s.id}',30)">+৩০ দিন</button>
+          <button style="margin:2px;padding:5px 9px;font-size:12px;background:${s.status==='suspended'?'#1e7e46':'#b03030'}" onclick="toggleSuspend('${s.id}','${s.status}')">${s.status==='suspended' ? 'সক্রিয় করুন' : 'সাসপেন্ড'}</button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  window.extendSchool = async function(schoolId, days) {
+    try {
+      const school = allSchools.find(s => s.id === schoolId);
+      const base = toDate(school.expiryDate);
+      const now = new Date();
+      const startFrom = (base && base.getTime() > now.getTime()) ? base : now;
+      const newExpiry = new Date(startFrom.getTime() + days * 86400000);
+      await updateDoc(doc(db, 'schools', schoolId), {
+        expiryDate: Timestamp.fromDate(newExpiry),
+        status: 'active',
+        reminderSent: false
+      });
+      showMsg('sc-msg', `✅ মেয়াদ ${days} দিন বাড়ানো হয়েছে।`, 'ok');
+      loadSchools();
+    } catch (e) {
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+
+  window.toggleSuspend = async function(schoolId, currentStatus) {
+    try {
+      const newStatus = currentStatus === 'suspended' ? 'active' : 'suspended';
+      await updateDoc(doc(db, 'schools', schoolId), { status: newStatus });
+      showMsg('sc-msg', newStatus === 'suspended' ? '⏸️ স্কুল সাসপেন্ড করা হয়েছে — এখন লগইন ব্লক থাকবে।' : '✅ স্কুল আবার সক্রিয় করা হয়েছে।', 'ok');
+      loadSchools();
+    } catch (e) {
+      showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+
 </script>
 </body>
 </html>

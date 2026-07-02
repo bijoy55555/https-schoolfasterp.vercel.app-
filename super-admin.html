@@ -137,12 +137,36 @@
     </div>
     <div class="msg" id="sc-msg"></div>
   </div>
+
+  <!-- ধাপ ৪: ব্যাকআপ মনিটরিং -->
+  <div class="card">
+    <h2>ধাপ ৪ — 🛡️ ব্যাকআপ মনিটরিং (সব স্কুল)</h2>
+    <div class="hint" style="margin-top:0">প্রতিটা স্কুলের সর্বশেষ ব্যাকআপের সময় ও ধরন এখানে দেখা যাবে। "তালিকা রিফ্রেশ করুন" চাপলে এটাও আপডেট হয়। কোনো স্কুলের নাম ধরে বাটনে চাপলে সেই স্কুলের সর্বশেষ ৩০টা ব্যাকআপের বিস্তারিত ইতিহাস দেখা যাবে।</div>
+    <div style="overflow-x:auto">
+      <table id="bk-table">
+        <thead>
+          <tr><th>স্কুল</th><th>সর্বশেষ ব্যাকআপ</th><th>ধরন</th><th>কাজ</th></tr>
+        </thead>
+        <tbody id="bk-tbody"><tr><td colspan="4" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
+      </table>
+    </div>
+    <div id="bk-history-wrap" style="display:none;margin-top:16px">
+      <h2 id="bk-history-title" style="margin-bottom:6px"></h2>
+      <div style="overflow-x:auto">
+        <table id="bk-history-table">
+          <thead><tr><th>সময়</th><th>ধরন</th><th>সাইজ</th><th>কাজ</th></tr></thead>
+          <tbody id="bk-history-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="msg" id="bk-msg"></div>
+  </div>
 </div>
 
 <script type="module">
   import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
   const firebaseConfig = {
@@ -305,10 +329,92 @@
       allSchools = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderSchoolTable();
       document.getElementById('sc-msg').style.display = 'none';
+      renderBackupMonitor();
     } catch (e) {
       showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
       document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#b03030">লোড ব্যর্থ</td></tr>';
     }
+  };
+
+  // ===== ধাপ ৪: সুপার-অ্যাডমিন ব্যাকআপ মনিটরিং =====
+  // প্রতিটা স্কুলের schools/{schoolId}/backups/_meta ডকুমেন্ট থেকে সর্বশেষ
+  // ব্যাকআপের সময়/ধরন পড়া হয় (এই ডকুমেন্টটা app.html-এর ব্যাকআপ ফিচার থেকে
+  // অটো আপডেট হয়) — এখানে কোনো Cloud Function লাগে না, সরাসরি Firestore read।
+  const bkTypeLabel = { manual: '🖐️ ম্যানুয়াল', 'auto-before-restore': '♻️ অটো (রিস্টোরের আগে)' };
+  function fmtDateTime(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleString('bn-BD'); } catch (e) { return iso; }
+  }
+
+  window.renderBackupMonitor = async function() {
+    if (!auth.currentUser) return;
+    const tbody = document.getElementById('bk-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    if (allSchools.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
+      return;
+    }
+    const rows = await Promise.all(allSchools.map(async (s) => {
+      let meta = null;
+      try {
+        const metaSnap = await getDoc(doc(db, 'schools', s.id, 'backups', '_meta'));
+        if (metaSnap.exists()) meta = metaSnap.data();
+      } catch (e) { /* পড়ার অনুমতি না থাকলে/এখনো কোনো ব্যাকআপ না নিলে খালি থাকবে */ }
+      return { school: s, meta };
+    }));
+
+    tbody.innerHTML = rows.map(({ school, meta }) => {
+      const daysAgo = meta && meta.lastBackupAt ? Math.floor((Date.now() - new Date(meta.lastBackupAt).getTime()) / 86400000) : null;
+      const staleWarning = daysAgo !== null && daysAgo > 3 ? ' ⚠️' : '';
+      return `
+        <tr>
+          <td><b>${school.name || '—'}</b></td>
+          <td>${meta ? fmtDateTime(meta.lastBackupAt) + staleWarning : '<span style="color:#b03030">কখনো ব্যাকআপ নেওয়া হয়নি</span>'}</td>
+          <td>${meta ? (bkTypeLabel[meta.lastBackupType] || meta.lastBackupType || '—') : '—'}</td>
+          <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick="viewBackupHistory('${school.id}','${(school.name||'').replace(/'/g,"")}')">🔍 ইতিহাস দেখুন</button></td>
+        </tr>
+      `;
+    }).join('');
+  };
+
+  window.viewBackupHistory = async function(schoolId, schoolName) {
+    const wrap = document.getElementById('bk-history-wrap');
+    const tbody = document.getElementById('bk-history-tbody');
+    document.getElementById('bk-history-title').textContent = `📜 "${schoolName}" — সর্বশেষ ৩০টি ব্যাকআপ`;
+    wrap.style.display = '';
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    try {
+      const q = query(collection(db, 'schools', schoolId, 'backups'), orderBy('createdAt', 'desc'), limit(30));
+      const snap = await getDocs(q);
+      const list = snap.docs.filter(d => d.id !== '_meta').map(d => ({ id: d.id, ...d.data() }));
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#999">এই স্কুলের কোনো ক্লাউড ব্যাকআপ পাওয়া যায়নি</td></tr>';
+        return;
+      }
+      tbody.innerHTML = list.map(r => `
+        <tr>
+          <td>${fmtDateTime(r.createdAt)}</td>
+          <td>${bkTypeLabel[r.type] || r.type || '—'}</td>
+          <td>${r.sizeKB || 0} KB</td>
+          <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick='downloadCloudBackup(${JSON.stringify(r.id)}, ${JSON.stringify(schoolId)}, ${JSON.stringify(schoolName)})'>⬇️ ডাউনলোড</button></td>
+        </tr>
+      `).join('');
+      window._bkHistoryCache = list;
+    } catch (e) {
+      showMsg('bk-msg', '❌ ব্যাকআপ ইতিহাস লোড করা যায়নি: ' + e.message, 'err');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+    }
+  };
+
+  window.downloadCloudBackup = function(backupId, schoolId, schoolName) {
+    const rec = (window._bkHistoryCache || []).find(r => r.id === backupId);
+    if (!rec || !rec.data) { showMsg('bk-msg', 'ব্যাকআপ ডেটা পাওয়া যায়নি', 'err'); return; }
+    const blob = new Blob([rec.data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${schoolName || schoolId}-${backupId}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
   };
 
   window.renderSchoolTable = function() {

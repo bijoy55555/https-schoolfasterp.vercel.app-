@@ -16,10 +16,9 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
   .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
-  .sidebar.collapsed { transform:translateX(-100%); }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
   .sidebar-overlay.active { display:block; }
-  @media(max-width:900px) { .sidebar:not(.open){transform:translateX(-100%)} .main{margin-left:0!important} }
+  @media(max-width:768px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)} .main{margin-left:0!important} }
   .sidebar-logo { padding:22px 20px 18px; border-bottom:1px solid rgba(255,255,255,0.08); }
   .sidebar-logo .school-name { font-size:15px; font-weight:700; color:#fff; line-height:1.3; }
   .sidebar-logo .school-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; }
@@ -30,11 +29,10 @@
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:rgba(46,134,193,0.18); color:#fff; border-left-color:var(--accent); font-weight:600; }
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
-  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; transition:margin-left 0.28s cubic-bezier(.4,0,.2,1); }
-  .main.full { margin-left:0; }
+  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; }
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:50; }
-  .hamburger { display:flex; align-items:center; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
-  @media(max-width:900px) { .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
+  .hamburger { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
+  @media(max-width:768px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
   .topbar-date { font-size:12px; color:var(--text-muted); }
@@ -560,7 +558,7 @@
   <!-- ===== Firebase SDK (যোগ করা হয়েছে) ===== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
@@ -588,7 +586,7 @@
 
     // ✅ classic <script> ব্লক (নিচে, মডিউল না) থেকে ব্যবহারের জন্য এক্সপোজ করা হলো
     window.fb = {
-      doc, getDoc, setDoc,
+      doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit,
       signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged,
       httpsCallable
     };
@@ -707,10 +705,7 @@
     </div>
     <div class="topbar-right">
       <div class="topbar-date" id="topbar-date"></div>
-      <div id="sub-badge" onclick="location.href='pay.html'" style="display:none;align-items:center;gap:6px;border-radius:50px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">
-        <span id="sub-badge-text">—</span>
-      </div>
-      <div class="user-chip" id="user-chip" onclick="openMyProfile()" style="cursor:pointer"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
+      <div class="user-chip" id="user-chip"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
       <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="doLogout()">🔓 লগআউট</button>
     </div>
   </div>
@@ -1821,11 +1816,21 @@
             <div class="settings-section" style="margin-bottom:20px">
               <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">💾 ব্যাকআপ ও রিস্টোর</div>
               <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-                <div class="settings-sub">সকল মূল ডেটা (ছাত্র, শিক্ষক, ফি, লাইব্রেরি, পরিবহন, ইউজার, পার্মিশন ইত্যাদি) একটি ফাইলে এক্সপোর্ট/ইম্পোর্ট করুন।</div>
-                <button class="btn btn-primary" onclick="backupData()">⬇️ ব্যাকআপ ডাউনলোড করুন</button>
+                <div class="settings-sub">সকল মূল ডেটা (ছাত্র, শিক্ষক, ফি, লাইব্রেরি, পরিবহন, ইউজার, পার্মিশন ইত্যাদি) একটি ফাইলে এক্সপোর্ট/ইম্পোর্ট করুন। প্রতিটি ব্যাকআপ স্বয়ংক্রিয়ভাবে এই ডিভাইসে (অফলাইন) ও — লগইন করা থাকলে — ক্লাউডেও সংরক্ষিত হয়।</div>
+                <button class="btn btn-primary" onclick="backupData()">⬇️ ম্যানুয়াল ব্যাকআপ ডাউনলোড করুন</button>
                 <div class="form-group" style="margin-top:6px"><label class="form-label">রিস্টোর ফাইল নির্বাচন করুন</label><input class="form-input" type="file" id="restore-file" accept=".json"></div>
-                <button class="btn btn-outline" onclick="restoreData()">⬆️ রিস্টোর করুন</button>
+                <button class="btn btn-outline" onclick="restoreData()">⬆️ ফাইল থেকে রিস্টোর করুন</button>
                 <div class="form-error" id="backup-error"></div>
+              </div>
+            </div>
+
+            <div class="settings-section" style="margin-bottom:20px">
+              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center">
+                <span>🕓 ব্যাকআপ ইতিহাস (সর্বশেষ ৩০টি)</span>
+                <button class="btn btn-outline" style="padding:5px 10px;font-size:11.5px" onclick="renderBackupHistory()">🔄 রিফ্রেশ</button>
+              </div>
+              <div style="padding:0;max-height:360px;overflow-y:auto" id="backup-history-list">
+                <div style="padding:10px;color:#888;font-size:12px">লোড হচ্ছে...</div>
               </div>
             </div>
 
@@ -2778,30 +2783,6 @@
 </div>
 
 <!-- ===== TEACHER PROFILE OVERLAY ===== -->
-<div class="profile-overlay" id="my-profile-overlay">
-  <div class="profile-box" style="max-width:520px">
-    <div class="profile-hero">
-      <button class="profile-close" onclick="closeMyProfile()">×</button>
-      <div class="profile-avatar-big" id="my-profile-avatar"></div>
-      <div>
-        <div class="profile-hero-name" id="my-profile-name">—</div>
-        <div class="profile-hero-sub" id="my-profile-sub">—</div>
-        <div class="profile-hero-badges" id="my-profile-badges"></div>
-      </div>
-    </div>
-    <div class="profile-body">
-      <div class="profile-section-title">👤 আমার তথ্য</div>
-      <div class="profile-grid" id="my-profile-grid"></div>
-      <div class="profile-section-title">💳 সাবস্ক্রিপশন / মেয়াদ</div>
-      <div id="my-profile-sub-box"></div>
-    </div>
-    <div class="profile-action-bar">
-      <a class="btn btn-primary" href="pay.html" target="_blank">💳 কিনুন / নবায়ন করুন</a>
-      <button class="btn btn-outline" onclick="closeMyProfile()">বন্ধ করুন</button>
-    </div>
-  </div>
-</div>
-
 <div class="profile-overlay" id="teacher-profile-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:600;align-items:center;justify-content:center;padding:16px">
   <div class="profile-box" style="background:#fff;border-radius:20px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px rgba(0,0,0,0.3)">
     <div id="teacher-profile-hero" style="background:linear-gradient(135deg,#0d2137,#1a5276);color:#fff;padding:28px 28px 24px;border-radius:20px 20px 0 0;position:relative">
@@ -3702,26 +3683,11 @@ function toBnNum(n) {
 }
 
 // ============ SIDEBAR / NAV ============
-// ✅ ৯০০px-এর বেশি চওড়া স্ক্রিন হলে ডেস্কটপ মোড ধরা হয় — সেখানে হ্যামবার্গার
-// সাইডবারটাকে সংকুচিত/প্রশস্ত (collapse/expand) করে, কনটেন্ট জায়গা রিক্লেইম করে।
-// ছোট স্ক্রিনে (মোবাইল) সাইডবার একটা ওভারলে হিসেবে খোলে/বন্ধ হয়।
-function isMobileView() { return window.innerWidth <= 900; }
-
 function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const main = document.querySelector('.main');
-  if (isMobileView()) {
-    sidebar.classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('active');
-  } else {
-    sidebar.classList.toggle('collapsed');
-    main.classList.toggle('full', sidebar.classList.contains('collapsed'));
-  }
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('overlay').classList.toggle('active');
 }
 function closeSidebar() {
-  // এটা প্রতিটা পেজ নেভিগেশনের পর কল হয় — শুধু মোবাইলের ওভারলে বন্ধ করে,
-  // ডেস্কটপে ইউজার নিজে হ্যামবার্গার দিয়ে যে collapsed/expanded অবস্থা বেছে
-  // নিয়েছে সেটা পাল্টায় না (নাহলে প্রতি ক্লিকেই আবার খুলে যেত)।
   document.querySelector('.sidebar').classList.remove('open');
   document.getElementById('overlay').classList.remove('active');
 }
@@ -5740,64 +5706,258 @@ function savePushConfig(){
   showToast('পুশ নোটিফিকেশন সংযোগ তথ্য সংরক্ষণ হয়েছে! (বহিরাগত সিস্টেমে কার্যকর হবে)');
 }
 
-// ============ ADMIN: BACKUP / RESTORE ============
-function backupData(){
-  const payload = {
+// ============ ADMIN: BACKUP / RESTORE (ম্যানুয়াল + অটো + অফলাইন IndexedDB + ফায়ারবেস ক্লাউড) ============
+const BACKUP_DB_NAME = 'erp_backups_db';
+const BACKUP_STORE = 'backups';
+const BACKUP_MAX_HISTORY = 30;
+
+// ---- IndexedDB (অফলাইন) ব্যাকআপ স্টোর ----
+function openBackupDB(){
+  return new Promise((resolve, reject)=>{
+    if(!window.indexedDB){ reject(new Error('IndexedDB সাপোর্ট নেই')); return; }
+    const req = indexedDB.open(BACKUP_DB_NAME, 1);
+    req.onupgradeneeded = function(e){
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains(BACKUP_STORE)){
+        const store = db.createObjectStore(BACKUP_STORE, {keyPath:'id'});
+        store.createIndex('createdAt','createdAt',{unique:false});
+      }
+    };
+    req.onsuccess = ()=>resolve(req.result);
+    req.onerror = ()=>reject(req.error);
+  });
+}
+async function idbAddBackup(record){
+  try{
+    const db = await openBackupDB();
+    await new Promise((resolve,reject)=>{
+      const tx = db.transaction(BACKUP_STORE,'readwrite');
+      tx.objectStore(BACKUP_STORE).put(record);
+      tx.oncomplete = resolve; tx.onerror = ()=>reject(tx.error);
+    });
+    await idbTrimHistory();
+  }catch(e){ console.error('IndexedDB ব্যাকআপ সেভ এরর:', e); }
+}
+async function idbGetAllBackups(){
+  try{
+    const db = await openBackupDB();
+    return await new Promise((resolve,reject)=>{
+      const tx = db.transaction(BACKUP_STORE,'readonly');
+      const req = tx.objectStore(BACKUP_STORE).getAll();
+      req.onsuccess = ()=>resolve((req.result||[]).sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||'')));
+      req.onerror = ()=>reject(req.error);
+    });
+  }catch(e){ console.error('IndexedDB পড়া এরর:', e); return []; }
+}
+async function idbDeleteBackup(id){
+  try{
+    const db = await openBackupDB();
+    await new Promise((resolve,reject)=>{
+      const tx = db.transaction(BACKUP_STORE,'readwrite');
+      tx.objectStore(BACKUP_STORE).delete(id);
+      tx.oncomplete = resolve; tx.onerror = ()=>reject(tx.error);
+    });
+  }catch(e){ console.error('IndexedDB ডিলিট এরর:', e); }
+}
+async function idbTrimHistory(){
+  const all = await idbGetAllBackups();
+  if(all.length > BACKUP_MAX_HISTORY){
+    const extra = all.slice(BACKUP_MAX_HISTORY);
+    for(const rec of extra) await idbDeleteBackup(rec.id);
+  }
+}
+
+// ---- ক্লাউড (Firestore) ব্যাকআপ — শুধু আসল স্কুল লগইনে (schools/{schoolId}/backups/{id}) ----
+async function trimCloudBackups(){
+  if(!window.currentSchoolId || !window.fb || !window.fb.getDocs) return;
+  try{
+    const q = window.fb.query(
+      window.fb.collection(window.db, 'schools', window.currentSchoolId, 'backups'),
+      window.fb.orderBy('createdAt','desc')
+    );
+    const snap = await window.fb.getDocs(q);
+    const docs = snap.docs.filter(d=> d.id !== '_meta');
+    if(docs.length > BACKUP_MAX_HISTORY){
+      const extra = docs.slice(BACKUP_MAX_HISTORY);
+      for(const d of extra){ try{ await window.fb.deleteDoc(d.ref); }catch(e){} }
+    }
+  }catch(e){ console.error('ক্লাউড ব্যাকআপ ট্রিম এরর:', e); }
+}
+
+function buildBackupPayload(){
+  return {
     students, teachers, fees, results, notices, attendance,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
     lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, vouchers, expenses,
     users, permissions, exportedAt: new Date().toISOString()
   };
+}
+
+function downloadBackupFile(payload, label){
   const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `erp-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.href = url; a.download = `erp-backup-${label||'manual'}-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  logAudit('ডেটা ব্যাকআপ ডাউনলোড করেছেন');
-  showToast('ব্যাকআপ ফাইল ডাউনলোড হয়েছে!');
 }
+
+// ✅ একটা ব্যাকআপ পয়েন্ট তৈরি করে — IndexedDB (অফলাইন) + সম্ভব হলে Firebase
+// ক্লাউডে সংরক্ষণ করে, এবং সবসময় সর্বশেষ ৩০টা রাখে (পুরনোগুলো অটো মুছে যায়)
+async function createBackupPoint(type){
+  const payload = buildBackupPayload();
+  const json = JSON.stringify(payload);
+  const id = `bk_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+  const record = {
+    id, type, createdAt: new Date().toISOString(),
+    sizeKB: Math.round(json.length/1024),
+    schoolId: window.currentSchoolId || 'demo',
+    data: json
+  };
+  await idbAddBackup(record);
+
+  if(window.currentSchoolId && window.fb && window.db){
+    try{
+      await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', id), {
+        type, createdAt: record.createdAt, sizeKB: record.sizeKB, data: json
+      });
+      await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', '_meta'), {
+        lastBackupAt: record.createdAt, lastBackupType: type, lastBackupSizeKB: record.sizeKB
+      }, {merge:true});
+      await trimCloudBackups();
+    }catch(e){ console.error('ক্লাউড ব্যাকআপ এরর:', e); }
+  }
+  return record;
+}
+
+function backupData(){
+  const payload = buildBackupPayload();
+  downloadBackupFile(payload, 'manual');
+  createBackupPoint('manual').then(renderBackupHistory);
+  logAudit('ডেটা ব্যাকআপ ডাউনলোড করেছেন');
+  showToast('ব্যাকআপ ফাইল ডাউনলোড হয়েছে ও ইতিহাসে সংরক্ষিত হয়েছে!');
+}
+
+function applyRestoreData(data){
+  if(data.students) students = data.students;
+  if(data.teachers) teachers = data.teachers;
+  if(data.fees) fees = data.fees;
+  if(data.results) results = data.results;
+  if(data.notices) notices = data.notices;
+  if(data.attendance) attendance = data.attendance;
+  if(data.books) books = data.books;
+  if(data.bookIssues) bookIssues = data.bookIssues;
+  if(data.vehicles) vehicles = data.vehicles;
+  if(data.transportRoutes) transportRoutes = data.transportRoutes;
+  if(data.routines) routines = data.routines;
+  if(data.syllabuses) syllabuses = data.syllabuses;
+  if(data.homeworks) homeworks = data.homeworks;
+  if(data.sessions) sessions = data.sessions;
+  if(data.lessonPlans) lessonPlans = data.lessonPlans;
+  if(data.assignments) assignments = data.assignments;
+  if(data.onlineClasses) onlineClasses = data.onlineClasses;
+  if(data.academicEvents) academicEvents = data.academicEvents;
+  if(data.examSchedule) examSchedule = data.examSchedule;
+  if(data.vouchers) vouchers = data.vouchers;
+  if(data.expenses) expenses = data.expenses;
+  if(data.users) users = data.users;
+  if(data.permissions) permissions = data.permissions;
+}
+
 function restoreData(){
   const fileInput = document.getElementById('restore-file');
   const file = fileInput.files[0];
   if(!file){showErr('backup-error','একটি ব্যাকআপ ফাইল নির্বাচন করুন');return;}
   hideErr('backup-error');
+  if(!confirm('রিস্টোর করার আগে বর্তমান ডেটার একটা অটো-ব্যাকআপ নেওয়া হবে, যাতে ভুল ফাইল রিস্টোর হলেও আগের ডেটা ফেরত পাওয়া যায়। এগিয়ে যেতে চান?')) return;
   const reader = new FileReader();
-  reader.onload = function(e){
+  reader.onload = async function(e){
     try{
       const data = JSON.parse(e.target.result);
-      if(data.students) students = data.students;
-      if(data.teachers) teachers = data.teachers;
-      if(data.fees) fees = data.fees;
-      if(data.results) results = data.results;
-      if(data.notices) notices = data.notices;
-      if(data.attendance) attendance = data.attendance;
-      if(data.books) books = data.books;
-      if(data.bookIssues) bookIssues = data.bookIssues;
-      if(data.vehicles) vehicles = data.vehicles;
-      if(data.transportRoutes) transportRoutes = data.transportRoutes;
-      if(data.routines) routines = data.routines;
-      if(data.syllabuses) syllabuses = data.syllabuses;
-      if(data.homeworks) homeworks = data.homeworks;
-      if(data.sessions) sessions = data.sessions;
-      if(data.lessonPlans) lessonPlans = data.lessonPlans;
-      if(data.assignments) assignments = data.assignments;
-      if(data.onlineClasses) onlineClasses = data.onlineClasses;
-      if(data.academicEvents) academicEvents = data.academicEvents;
-      if(data.examSchedule) examSchedule = data.examSchedule;
-      if(data.vouchers) vouchers = data.vouchers;
-      if(data.expenses) expenses = data.expenses;
-      if(data.users) users = data.users;
-      if(data.permissions) permissions = data.permissions;
-      logAudit('ব্যাকআপ থেকে ডেটা রিস্টোর করেছেন');
+      await createBackupPoint('auto-before-restore'); // ✅ Auto Backup Before Restore
+      applyRestoreData(data);
+      logAudit('ব্যাকআপ ফাইল থেকে ডেটা রিস্টোর করেছেন');
       showToast('ডেটা সফলভাবে রিস্টোর হয়েছে! পেজ রিফ্রেশ করে দেখুন।');
       renderDashboard();
+      renderBackupHistory();
+      if(window.currentSchoolId) saveTenantData();
     }catch(err){
       showErr('backup-error','ফাইলটি সঠিক ব্যাকআপ ফাইল নয়');
     }
   };
   reader.readAsText(file);
+}
+
+// ---- ব্যাকআপ ইতিহাস (সর্বশেষ ৩০টি) — IndexedDB + ক্লাউড মার্জ করে দেখানো হয় ----
+let _backupHistoryCache = [];
+async function renderBackupHistory(){
+  const container = document.getElementById('backup-history-list');
+  if(!container) return;
+  container.innerHTML = '<div style="padding:10px;color:#888;font-size:12px">লোড হচ্ছে...</div>';
+  let list = await idbGetAllBackups();
+  if(window.currentSchoolId && window.fb && window.fb.getDocs){
+    try{
+      const q = window.fb.query(
+        window.fb.collection(window.db, 'schools', window.currentSchoolId, 'backups'),
+        window.fb.orderBy('createdAt','desc'), window.fb.limit(30)
+      );
+      const snap = await window.fb.getDocs(q);
+      const cloudList = snap.docs.filter(d=>d.id!=='_meta').map(d=>({id:d.id, ...d.data()}));
+      const localIds = new Set(list.map(r=>r.id));
+      cloudList.forEach(c=>{ if(!localIds.has(c.id)) list.push(c); });
+    }catch(e){ console.error('ক্লাউড ব্যাকআপ ইতিহাস লোড এরর:', e); }
+  }
+  list = list.filter(r=>r.id!=='_meta');
+  list.sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+  list = list.slice(0, BACKUP_MAX_HISTORY);
+  _backupHistoryCache = list;
+  if(list.length===0){ container.innerHTML = '<div style="padding:10px;color:#888;font-size:12px">এখনো কোনো ব্যাকআপ নেই।</div>'; return; }
+  const typeLabel = {manual:'🖐️ ম্যানুয়াল', 'auto-before-restore':'♻️ অটো (রিস্টোরের আগে)'};
+  container.innerHTML = list.map(r=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-size:12.5px">
+      <div>
+        <div style="font-weight:600">${typeLabel[r.type]||('☁️ '+r.type)} <span style="color:#999;font-weight:400">• ${r.sizeKB||0} KB</span></div>
+        <div style="color:#888">${new Date(r.createdAt).toLocaleString('bn-BD')}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-outline" style="padding:5px 9px;font-size:11.5px" onclick="downloadHistoryBackup('${r.id}')">⬇️</button>
+        <button class="btn btn-outline" style="padding:5px 9px;font-size:11.5px" onclick="restoreFromHistory('${r.id}')">রিস্টোর</button>
+        <button class="btn btn-outline" style="padding:5px 9px;font-size:11.5px;color:#b03030" onclick="deleteHistoryBackup('${r.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+function findHistoryRecord(id){ return _backupHistoryCache.find(r=>r.id===id); }
+function getHistoryPayload(id){
+  const rec = findHistoryRecord(id);
+  if(!rec || !rec.data) return null;
+  try{ return JSON.parse(rec.data); }catch(e){ return null; }
+}
+function downloadHistoryBackup(id){
+  const payload = getHistoryPayload(id);
+  if(!payload){ showToast('ব্যাকআপ ডেটা পাওয়া যায়নি', 'error'); return; }
+  downloadBackupFile(payload, id);
+}
+async function restoreFromHistory(id){
+  if(!confirm('এই ব্যাকআপ পয়েন্ট থেকে রিস্টোর করতে চান? বর্তমান ডেটার একটা অটো-ব্যাকআপ আগে নেওয়া হবে।')) return;
+  const payload = getHistoryPayload(id);
+  if(!payload){ showToast('ব্যাকআপ ডেটা পাওয়া যায়নি', 'error'); return; }
+  await createBackupPoint('auto-before-restore'); // ✅ Auto Backup Before Restore
+  applyRestoreData(payload);
+  logAudit('ব্যাকআপ ইতিহাস থেকে ডেটা রিস্টোর করেছেন');
+  showToast('ডেটা সফলভাবে রিস্টোর হয়েছে!');
+  renderDashboard();
+  renderBackupHistory();
+  if(window.currentSchoolId) saveTenantData();
+}
+async function deleteHistoryBackup(id){
+  if(!confirm('এই ব্যাকআপ পয়েন্টটা মুছে ফেলতে চান?')) return;
+  await idbDeleteBackup(id);
+  if(window.currentSchoolId && window.fb && window.fb.deleteDoc){
+    try{ await window.fb.deleteDoc(window.fb.doc(window.db,'schools',window.currentSchoolId,'backups',id)); }catch(e){}
+  }
+  renderBackupHistory();
 }
 
 // ============ ADMIN: LOGO / SIGNATURE ============
@@ -6725,7 +6885,6 @@ function finishLoginUI(u, uid) {
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('user-name-label').textContent = u.name;
   document.getElementById('user-avatar').textContent = u.avatar;
-  updateSubscriptionBadge();
 
   // role-based nav visibility
   const allNavItems = document.querySelectorAll('.nav-item');
@@ -6752,76 +6911,6 @@ function finishLoginUI(u, uid) {
   }
   showToast(`স্বাগতম, ${u.name}!`);
   logAudit('লগইন করেছেন');
-}
-
-// ✅ টপবারে সাবস্ক্রিপশন/ট্রায়ালের মেয়াদ কতদিন বাকি তা ব্যাজ আকারে দেখায়।
-// আসল (Firebase) লগইনে window.currentSchool থেকে expiry পড়া হয়। ডেমো/অফলাইন
-// লগইনে কোনো আসল স্কুল ডকুমেন্ট থাকে না, তাই ব্যাজটা লুকানো থাকে।
-function updateSubscriptionBadge() {
-  const badge = document.getElementById('sub-badge');
-  const textEl = document.getElementById('sub-badge-text');
-  if (!badge || !textEl) return;
-
-  const school = window.currentSchool;
-  if (!school || !school.expiry) { badge.style.display = 'none'; return; }
-
-  const msLeft = school.expiry.getTime() - Date.now();
-  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
-
-  badge.style.display = 'flex';
-  if (daysLeft <= 0) {
-    badge.style.background = '#fdeaea'; badge.style.border = '1px solid #f0a0a0'; badge.style.color = '#b03030';
-    textEl.textContent = '⛔ মেয়াদ শেষ — নবায়ন করুন';
-  } else if (daysLeft <= 7) {
-    badge.style.background = '#fef3e2'; badge.style.border = '1px solid #f5cd8a'; badge.style.color = '#b8600a';
-    textEl.textContent = `⏳ মাত্র ${toBnNum(daysLeft)} দিন বাকি — নবায়ন করুন`;
-  } else {
-    badge.style.background = '#e8f8ef'; badge.style.border = '1px solid #a8e0bd'; badge.style.color = '#1e7e46';
-    textEl.textContent = `✅ ${toBnNum(daysLeft)} দিন বাকি`;
-  }
-}
-
-// ✅ টপবারে ইউজার চিপে ক্লিক করলে নিজের প্রোফাইল/সাবস্ক্রিপশন তথ্যের মডাল খোলে
-function openMyProfile() {
-  const u = currentUser || {};
-  const school = window.currentSchool;
-
-  const roleLabel = { admin: 'অ্যাডমিন / প্রধান শিক্ষক', teacher: 'শিক্ষক', parent: 'অভিভাবক', student: 'শিক্ষার্থী' }[u.role] || (u.role || '—');
-
-  document.getElementById('my-profile-avatar').textContent = u.avatar || (u.name || '?').charAt(0);
-  document.getElementById('my-profile-name').textContent = u.name || '—';
-  document.getElementById('my-profile-sub').textContent = (school && school.name) ? school.name : roleLabel;
-  document.getElementById('my-profile-badges').innerHTML = `<span class="profile-hero-badge">${roleLabel}</span>` + (school ? `<span class="profile-hero-badge">${school.name || 'স্কুল'}</span>` : '');
-
-  const fields = [
-    ['নাম', u.name || '—'],
-    ['ভূমিকা (Role)', roleLabel],
-    ['ইমেইল', u.email || '—'],
-  ];
-  document.getElementById('my-profile-grid').innerHTML = fields.map(([label,val])=>`
-    <div class="profile-field"><div class="profile-field-label">${label}</div><div class="profile-field-val">${val}</div></div>
-  `).join('');
-
-  const subBox = document.getElementById('my-profile-sub-box');
-  if (school && school.expiry) {
-    const daysLeft = Math.ceil((school.expiry.getTime() - Date.now()) / (1000*60*60*24));
-    const expiryStr = school.expiry.toLocaleDateString('bn-BD', { year:'numeric', month:'long', day:'numeric' });
-    const statusColor = daysLeft <= 0 ? '#b03030' : (daysLeft <= 7 ? '#b8600a' : '#1e7e46');
-    const statusText = daysLeft <= 0 ? 'মেয়াদ শেষ হয়ে গেছে' : `${toBnNum(daysLeft)} দিন বাকি আছে`;
-    subBox.innerHTML = `
-      <div class="profile-grid">
-        <div class="profile-field"><div class="profile-field-label">স্কুলের নাম</div><div class="profile-field-val">${school.name || '—'}</div></div>
-        <div class="profile-field"><div class="profile-field-label">মেয়াদ শেষ হবে</div><div class="profile-field-val">${expiryStr}</div></div>
-        <div class="profile-field"><div class="profile-field-label">অবস্থা</div><div class="profile-field-val" style="color:${statusColor}">${statusText}</div></div>
-      </div>`;
-  } else {
-    subBox.innerHTML = `<div class="profile-field"><div class="profile-field-label">সাবস্ক্রিপশন</div><div class="profile-field-val">ডেমো/অফলাইন মোড — কোনো লাইভ সাবস্ক্রিপশন যুক্ত নেই</div></div>`;
-  }
-
-  document.getElementById('my-profile-overlay').classList.add('open');
-}
-function closeMyProfile() {
-  document.getElementById('my-profile-overlay').classList.remove('open');
 }
 
 async function doLogin() {
@@ -6898,12 +6987,10 @@ async function loginWithAuthUser(authUser, errEl) {
   } catch(e) { /* profile doc optional */ }
 
   window.currentSchoolId = schoolId;
-  window.currentSchool = { ...school, id: schoolId, expiry, email: authUser.email };
   const uObj = {
     role: idx.role || 'admin',
     name: displayName,
-    avatar: (displayName || '?').trim().charAt(0),
-    email: authUser.email
+    avatar: (displayName || '?').trim().charAt(0)
   };
 
   await loadTenantData(schoolId);
@@ -7047,7 +7134,7 @@ function switchSettingsTab(tab) {
   });
   if(tab==='users') { renderUserList(); renderPermRoleTabs(); renderPermMatrix(); }
   if(tab==='comm') { renderCommLog(); }
-  if(tab==='admin') { renderAuditLog(); }
+  if(tab==='admin') { renderAuditLog(); renderBackupHistory(); }
 }
 
 // ===== User list =====
@@ -8774,10 +8861,6 @@ window.addEventListener('load', ()=>{
   document.getElementById('topbar-date').textContent = todayBn();
   loadSchoolConfig(); // ✅ load saved school settings
   renderDashboard(); // pre-render for after login
-  closeSidebar(); // ✅ মোবাইলে শুরুতে হামবার্গার মেনু যেন খোলা/মেলা অবস্থায় না থাকে
-});
-window.addEventListener('resize', ()=>{
-  if (window.innerWidth > 900) closeSidebar(); // ✅ বড় স্ক্রিনে গেলে মোবাইল ওভারলে বন্ধ করে দেয়
 });
 
 </script>
