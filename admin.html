@@ -18,10 +18,31 @@
   .brand { display:flex; align-items:center; gap:10px; font-size:19px; font-weight:700; }
   .brand .icon { font-size:26px; }
   .badge-admin { background:#2f6bff; color:#fff; font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; margin-left:8px; }
-  .btn-logout { background:transparent; border:1px solid #2c3a52; color:#cdd8ea; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; }
-  .btn-logout:hover { background:#182238; }
+  .btn-logout, .btn-link { background:transparent; border:1px solid #2c3a52; color:#cdd8ea; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer; text-decoration:none; }
+  .btn-logout:hover, .btn-link:hover { background:#182238; }
 
   .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  /* ---- Login screen ---- */
+  .login-wrap { max-width:420px; margin:60px auto; padding:0 16px; }
+  .login-card { background:#111a2b; border:1px solid #1e2a40; border-radius:16px; padding:24px; }
+  .login-card h2 { margin:0 0 16px; font-size:18px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-size:13px; color:#9fb0c8; margin-bottom:6px; }
+  .field input {
+    width:100%; background:#0b1220; border:1px solid #26334c; color:#e7edf5;
+    padding:11px 12px; border-radius:9px; font-size:14px;
+  }
+  .btn-primary {
+    width:100%; background:#2f6bff; border:none; color:#fff; padding:12px; border-radius:10px;
+    font-size:14px; font-weight:700; cursor:pointer; margin-top:4px;
+  }
+  .btn-primary:hover { background:#1f57e0; }
+  .btn-primary:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { font-size:13px; margin-top:12px; padding:10px 12px; border-radius:8px; line-height:1.5; }
+  .msg.ok { background:#0e2a1c; color:#3ddc84; border:1px solid #1c4a30; }
+  .msg.err { background:#2a1414; color:#ff8a8a; border:1px solid #4a1c1c; }
+  .msg.hidden { display:none; }
 
   .banner {
     display:flex; gap:12px; align-items:flex-start;
@@ -34,9 +55,7 @@
   .banner p { margin:0; font-size:13px; color:#a9b6c8; line-height:1.5; }
 
   .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px; }
-  .stat-card {
-    background:#111a2b; border:1px solid #1e2a40; border-radius:14px; padding:16px;
-  }
+  .stat-card { background:#111a2b; border:1px solid #1e2a40; border-radius:14px; padding:16px; }
   .stat-card .label { font-size:13px; color:#9fb0c8; display:flex; align-items:center; gap:6px; margin-bottom:8px; }
   .stat-card .value { font-size:26px; font-weight:700; color:#3ddc84; margin-bottom:6px; }
   .bar-bg { background:#1c2740; border-radius:6px; height:6px; overflow:hidden; margin-bottom:6px; }
@@ -51,18 +70,14 @@
   .userstat-card .lbl { font-size:13px; color:#9fb0c8; }
   .num.blue{color:#5b8dff;} .num.orange{color:#ffb648;} .num.green{color:#3ddc84;} .num.red{color:#ff5c5c;}
 
-  .panel {
-    background:#111a2b; border:1px solid #1e2a40; border-radius:16px; padding:16px; margin-bottom:16px;
-  }
+  .panel { background:#111a2b; border:1px solid #1e2a40; border-radius:16px; padding:16px; margin-bottom:16px; }
   .panel-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
   .panel-head h2 { font-size:16px; margin:0; display:flex; align-items:center; gap:8px; }
   .btn-refresh { background:#2f6bff; border:none; color:#fff; padding:9px 14px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
   .btn-refresh:hover { background:#1f57e0; }
   .btn-refresh:disabled { opacity:.6; cursor:not-allowed; }
 
-  .user-row {
-    display:flex; align-items:center; gap:12px; padding:14px 4px; border-bottom:1px solid #1b263b;
-  }
+  .user-row { display:flex; align-items:center; gap:12px; padding:14px 4px; border-bottom:1px solid #1b263b; }
   .user-row:last-child { border-bottom:none; }
   .avatar {
     width:42px; height:42px; min-width:42px; border-radius:50%; background:#4d7bff;
@@ -70,92 +85,103 @@
   }
   .u-main { flex:1; min-width:0; }
   .u-name { font-weight:700; font-size:15px; margin-bottom:2px; }
-  .u-phone { font-size:13px; color:#8b98ae; margin-bottom:4px; }
+  .u-phone { font-size:13px; color:#8b98ae; margin-bottom:4px; word-break:break-all; }
   .u-line2 { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12.5px; }
-  .pin { color:#b18cff; font-weight:600; }
   .tag { padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:700; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
   .tag.warn { background:#3a2412; color:#ffb648; }
   .tag.premium { background:#3a2b06; color:#ffcc55; }
+  .tag.trial { background:#0e2a1c; color:#3ddc84; }
   .u-right { text-align:right; font-size:11.5px; color:#8b98ae; display:flex; flex-direction:column; align-items:flex-end; gap:8px; min-width:78px; }
-  .btn-del {
-    background:transparent; border:1px solid #4a2020; color:#ff6b6b; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:14px;
-  }
+  .btn-del { background:transparent; border:1px solid #4a2020; color:#ff6b6b; width:30px; height:30px; border-radius:8px; cursor:pointer; font-size:14px; }
   .btn-del:hover { background:#241012; }
   .empty, .loading { text-align:center; color:#7c8aa3; padding:30px 10px; font-size:13px; }
 </style>
 </head>
 <body>
 
-<header>
-  <div class="brand"><span class="icon">📓</span> অ্যাডমিন প্যানেল <span class="badge-admin">ADMIN</span></div>
-  <div style="display:flex; gap:8px;">
-    <a href="school-admin.html" style="text-decoration:none; background:transparent; border:1px solid #2c3a52; color:#cdd8ea; padding:8px 14px; border-radius:8px; font-size:13px;">🏫 স্কুল ম্যানেজমেন্ট</a>
-    <button class="btn-logout" onclick="logout()">লগআউট</button>
+<!-- ===== লগইন স্ক্রিন ===== -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <h2>🔒 সুপার-অ্যাডমিন লগইন</h2>
+    <div class="field">
+      <label>ইমেইল</label>
+      <input id="sa-email" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field">
+      <label>পাসওয়ার্ড</label>
+      <input id="sa-pass" type="password" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">লগইন করুন</button>
+    <div id="login-msg" class="msg hidden"></div>
   </div>
-</header>
+</div>
 
+<!-- ===== ড্যাশবোর্ড (লগইনের পর দেখাবে) ===== -->
+<div id="dashboard" style="display:none;">
+  <header>
+    <div class="brand"><span class="icon">📓</span> অ্যাডমিন প্যানেল <span class="badge-admin">ADMIN</span></div>
+    <div style="display:flex; gap:8px;">
+      <a href="school-admin.html" class="btn-link">🏫 স্কুল ম্যানেজমেন্ট</a>
+      <button class="btn-logout" onclick="logout()">লগআউট</button>
+    </div>
+  </header>
 
-<div class="wrap">
+  <div class="wrap">
+    <div id="banner" class="banner">
+      <div class="chk">✅</div>
+      <div><h3 id="banner-title">লোড হচ্ছে...</h3><p id="banner-sub"></p></div>
+    </div>
 
-  <div id="banner" class="banner">
-    <div class="chk">✅</div>
-    <div>
-      <h3 id="banner-title">লোড হচ্ছে...</h3>
-      <p id="banner-sub"></p>
+    <div class="grid2">
+      <div class="stat-card">
+        <div class="label">📖 Read</div>
+        <div class="value" id="q-read">0</div>
+        <div class="bar-bg"><div class="bar-fill" id="q-read-bar" style="width:0%"></div></div>
+        <div class="meta" id="q-read-meta">0% · লিমিট: ৫০,০০০</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">✏️ Write</div>
+        <div class="value" id="q-write">0</div>
+        <div class="bar-bg"><div class="bar-fill" id="q-write-bar" style="width:0%"></div></div>
+        <div class="meta" id="q-write-meta">0% · লিমিট: ২০,০০০</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">💾 Storage</div>
+        <div class="value" id="q-storage">0 MB</div>
+        <div class="bar-bg"><div class="bar-fill" id="q-storage-bar" style="width:0%"></div></div>
+        <div class="meta" id="q-storage-meta">0% · লিমিট: ১ GB</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">🗑️ Delete</div>
+        <div class="value" id="q-delete">0</div>
+        <div class="bar-bg"><div class="bar-fill" id="q-delete-bar" style="width:0%"></div></div>
+        <div class="meta" id="q-delete-meta">0% · লিমিট: ২০,০০০</div>
+      </div>
+    </div>
+
+    <div class="section-title">👥 স্কুল পরিসংখ্যান</div>
+    <div class="userstat-grid">
+      <div class="userstat-card"><div class="num blue" id="s-total">0</div><div class="lbl">মোট স্কুল</div></div>
+      <div class="userstat-card"><div class="num orange" id="s-premium">0</div><div class="lbl">পেইড প্যাকেজ</div></div>
+      <div class="userstat-card"><div class="num green" id="s-trial">0</div><div class="lbl">ফ্রি ট্রায়াল</div></div>
+      <div class="userstat-card"><div class="num red" id="s-expired">0</div><div class="lbl">মেয়াদ শেষ</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>📋 সাম্প্রতিক স্কুল</h2>
+        <button class="btn-refresh" id="refresh-btn" onclick="loadSchools()">🔄 রিফ্রেশ</button>
+      </div>
+      <div id="user-list"><div class="loading">লোড হচ্ছে...</div></div>
     </div>
   </div>
-
-  <div class="grid2">
-    <div class="stat-card">
-      <div class="label">📖 Read</div>
-      <div class="value" id="q-read">0</div>
-      <div class="bar-bg"><div class="bar-fill" id="q-read-bar" style="width:0%"></div></div>
-      <div class="meta" id="q-read-meta">0% · লিমিট: ৫০,০০০</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">✏️ Write</div>
-      <div class="value" id="q-write">0</div>
-      <div class="bar-bg"><div class="bar-fill" id="q-write-bar" style="width:0%"></div></div>
-      <div class="meta" id="q-write-meta">0% · লিমিট: ২০,০০০</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">💾 Storage</div>
-      <div class="value" id="q-storage">0 MB</div>
-      <div class="bar-bg"><div class="bar-fill" id="q-storage-bar" style="width:0%"></div></div>
-      <div class="meta" id="q-storage-meta">0% · লিমিট: ১ GB</div>
-    </div>
-    <div class="stat-card">
-      <div class="label">🗑️ Delete</div>
-      <div class="value" id="q-delete">0</div>
-      <div class="bar-bg"><div class="bar-fill" id="q-delete-bar" style="width:0%"></div></div>
-      <div class="meta" id="q-delete-meta">0% · লিমিট: ২০,০০০</div>
-    </div>
-  </div>
-
-  <div class="section-title">👥 ইউজার পরিসংখ্যান</div>
-  <div class="userstat-grid">
-    <div class="userstat-card"><div class="num blue" id="s-total">0</div><div class="lbl">মোট ইউজার</div></div>
-    <div class="userstat-card"><div class="num orange" id="s-premium">0</div><div class="lbl">প্রিমিয়াম</div></div>
-    <div class="userstat-card"><div class="num green" id="s-trial">0</div><div class="lbl">ফ্রি ট্রায়াল</div></div>
-    <div class="userstat-card"><div class="num red" id="s-expired">0</div><div class="lbl">মেয়াদ শেষ</div></div>
-  </div>
-
-  <div class="panel">
-    <div class="panel-head">
-      <h2>📋 সাম্প্রতিক ইউজার</h2>
-      <button class="btn-refresh" id="refresh-btn" onclick="loadUsers()">🔄 রিফ্রেশ</button>
-    </div>
-    <div id="user-list"><div class="loading">লোড হচ্ছে...</div></div>
-  </div>
-
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-  // ⚠️ এটা আপনার আসল Firebase প্রজেক্ট। ভিন্ন প্রজেক্ট হলে এই কনফিগ বদলে দিন।
   const firebaseConfig = {
     apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
     authDomain: "school-erp-bd.firebaseapp.com",
@@ -166,66 +192,84 @@
     measurementId: "G-9E9LHG9HWS"
   };
 
-  // ⚠️ ইউজারদের কালেকশনের নাম — আপনার ডাটাবেজ অনুযায়ী বদলে নিন
-  const USERS_COLLECTION = "users";
-  // ফ্রি প্ল্যানের মূল লিমিট (রেফারেন্স স্ক্রিনশট অনুযায়ী)
   const LIMITS = { read: 50000, write: 20000, storageMB: 1024, del: 20000 };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  window.logout = function () { signOut(auth).then(() => location.reload()); };
+  function showMsg(text, type) {
+    const el = document.getElementById('login-msg');
+    el.textContent = text;
+    el.className = 'msg ' + type;
+  }
+
+  window.doLogin = async function () {
+    const email = document.getElementById('sa-email').value.trim();
+    const pass = document.getElementById('sa-pass').value;
+    const btn = document.getElementById('login-btn');
+    if (!email || !pass) { showMsg('ইমেইল ও পাসওয়ার্ড দিন।', 'err'); return; }
+    btn.disabled = true; btn.textContent = 'লগইন হচ্ছে...';
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pass);
+      const snap = await getDoc(doc(db, 'superAdmins', cred.user.uid));
+      if (!snap.exists()) {
+        await signOut(auth);
+        showMsg('⚠️ এই ইউজার সুপার-অ্যাডমিন হিসেবে যাচাইকৃত নয়। Firebase Console → Firestore → superAdmins কালেকশনে UID (' + cred.user.uid + ') যোগ করুন।', 'err');
+        return;
+      }
+    } catch (e) {
+      showMsg('❌ লগইন ব্যর্থ: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = 'লগইন করুন';
+    }
+  };
+
+  window.logout = function () { signOut(auth); };
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      return;
+    }
+    const snap = await getDoc(doc(db, 'superAdmins', user.uid));
+    if (!snap.exists()) {
+      document.getElementById('login-screen').style.display = 'block';
+      document.getElementById('dashboard').style.display = 'none';
+      return;
+    }
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    loadSchools();
+  });
 
   function fmtDate(v) {
     if (!v) return "—";
-    let d;
-    if (v.toDate) d = v.toDate();
-    else d = new Date(v);
+    const d = v.toDate ? v.toDate() : new Date(v);
     if (isNaN(d)) return "—";
     return d.toLocaleDateString('bn-BD', { day:'2-digit', month:'2-digit', year:'numeric' });
   }
-
   function initials(name) {
     if (!name || name === "—") return "-";
     return name.trim().charAt(0).toUpperCase();
   }
 
-  function statusOf(u) {
-    // priority: premium flag > expiry date compare > default trial/no-data
-    const now = new Date();
-    let expiry = null;
-    if (u.expiryDate) expiry = u.expiryDate.toDate ? u.expiryDate.toDate() : new Date(u.expiryDate);
-
-    if (u.plan === 'premium' || u.isPremium) {
-      return { type: 'premium' };
-    }
-    if (expiry && expiry < now) {
-      return { type: 'expired' };
-    }
-    if (expiry) {
-      return { type: 'trial' };
-    }
-    return { type: 'no-data' };
-  }
-
-  window.deleteUser = async function (id, name) {
-    if (!confirm(`"${name}" ইউজারকে মুছে ফেলতে চান? এই কাজ ফেরানো যাবে না।`)) return;
+  window.deleteSchool = async function (id, name) {
+    if (!confirm(`"${name}" স্কুলটি মুছে ফেলতে চান?\n\nদ্রষ্টব্য: এটা শুধু schools/{id} ডকুমেন্ট মুছবে। স্কুলের Auth অ্যাকাউন্ট ও users সাব-কালেকশন Firebase Console থেকে আলাদাভাবে মুছতে হবে।`)) return;
     try {
-      await deleteDoc(doc(db, USERS_COLLECTION, id));
-      loadUsers();
+      await deleteDoc(doc(db, 'schools', id));
+      loadSchools();
     } catch (e) {
       alert("মুছতে সমস্যা হয়েছে: " + e.message);
     }
   };
 
-  function setQuota(totalUsers) {
-    // প্রকৃত Firebase ব্যবহার Cloud Monitoring API ছাড়া ক্লায়েন্ট থেকে পড়া যায় না,
-    // তাই এটা ইউজার-সংখ্যার ভিত্তিতে একটা যুক্তিসঙ্গত আনুমানিক হিসাব।
-    const reads = totalUsers * 30;
-    const writes = totalUsers * 10;
-    const deletes = totalUsers;
-    const storageMB = +(totalUsers * 0.0045).toFixed(2);
+  function setQuota(totalSchools) {
+    const reads = totalSchools * 30;
+    const writes = totalSchools * 10;
+    const deletes = totalSchools;
+    const storageMB = +(totalSchools * 0.0045).toFixed(2);
 
     const setCard = (key, value, limit, unit) => {
       const pct = Math.min(100, (value / limit) * 100);
@@ -254,55 +298,56 @@
     }
     const remaining = Math.max(0, Math.floor((LIMITS.write - writes) / 10));
     document.getElementById('banner-sub').textContent =
-      `বর্তমানে ${totalUsers} জন ইউজার, কোটার ${overallPct.toFixed(0)}% ব্যবহার হচ্ছে। আরো ~${remaining} জন ইউজার ফ্রিতে নিতে পারবেন।`;
+      `বর্তমানে ${totalSchools} টি স্কুল, কোটার ${overallPct.toFixed(0)}% ব্যবহার হচ্ছে। আরো ~${remaining} টি স্কুল ফ্রিতে নিতে পারবেন।`;
   }
 
-  window.loadUsers = async function () {
+  window.loadSchools = async function () {
     const btn = document.getElementById('refresh-btn');
     const listEl = document.getElementById('user-list');
     btn.disabled = true;
     listEl.innerHTML = '<div class="loading">লোড হচ্ছে...</div>';
     try {
-      const snap = await getDocs(collection(db, USERS_COLLECTION));
-      const users = [];
-      snap.forEach(d => users.push({ id: d.id, ...d.data() }));
+      const snap = await getDocs(collection(db, 'schools'));
+      const schools = [];
+      snap.forEach(d => schools.push({ id: d.id, ...d.data() }));
 
-      // stats
-      let premium = 0, trial = 0, expired = 0;
-      users.forEach(u => {
-        const s = statusOf(u);
-        if (s.type === 'premium') premium++;
-        else if (s.type === 'expired') expired++;
-        else trial++;
+      const now = new Date();
+      let paid = 0, trial = 0, expired = 0;
+      schools.forEach(s => {
+        const expiry = s.expiryDate?.toDate ? s.expiryDate.toDate() : (s.expiryDate ? new Date(s.expiryDate) : null);
+        const isExpired = expiry && expiry < now;
+        if (isExpired) expired++;
+        else if ((s.package || '').toLowerCase() === 'trial') trial++;
+        else paid++;
       });
-      document.getElementById('s-total').textContent = users.length;
-      document.getElementById('s-premium').textContent = premium;
+      document.getElementById('s-total').textContent = schools.length;
+      document.getElementById('s-premium').textContent = paid;
       document.getElementById('s-trial').textContent = trial;
       document.getElementById('s-expired').textContent = expired;
-      setQuota(users.length);
+      setQuota(schools.length);
 
-      if (users.length === 0) {
-        listEl.innerHTML = '<div class="empty">কোনো ইউজার পাওয়া যায়নি</div>';
+      if (schools.length === 0) {
+        listEl.innerHTML = '<div class="empty">কোনো স্কুল পাওয়া যায়নি</div>';
         return;
       }
 
-      // most recent first if createdAt exists
-      users.sort((a, b) => {
+      schools.sort((a, b) => {
         const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
         const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
         return tb - ta;
       });
 
-      listEl.innerHTML = users.map(u => {
-        const s = statusOf(u);
-        const name = u.name || '—';
-        const phone = u.phone || '—';
-        const pin = u.pin || u.password || 'N/A';
-        const pinDisplay = (u.passwordHashed) ? '••• <span style="color:#8b98ae">(হ্যাশড)</span>' : `<span class="pin">${pin}</span>`;
+      listEl.innerHTML = schools.map(s => {
+        const name = s.name || '—';
+        const phone = s.ownerPhone || s.ownerEmail || '—';
+        const expiry = s.expiryDate?.toDate ? s.expiryDate.toDate() : (s.expiryDate ? new Date(s.expiryDate) : null);
+        const isExpired = expiry && expiry < now;
+        const pkg = s.package || 'Standard';
+
         let tag = '';
-        if (s.type === 'premium') tag = `<span class="tag premium">⭐ প্রিমিয়াম</span>`;
-        else if (s.type === 'expired') tag = `<span class="tag warn">⚠️ মেয়াদ শেষ</span>`;
-        else tag = `<span class="tag warn">⚠️ No Data Use</span>`;
+        if (isExpired) tag = `<span class="tag warn">⚠️ মেয়াদ শেষ</span>`;
+        else if (pkg.toLowerCase() === 'trial') tag = `<span class="tag trial">🆓 ট্রায়াল</span>`;
+        else tag = `<span class="tag premium">⭐ ${pkg}</span>`;
 
         return `
           <div class="user-row">
@@ -310,11 +355,11 @@
             <div class="u-main">
               <div class="u-name">${name}</div>
               <div class="u-phone">${phone}</div>
-              <div class="u-line2">🔑 ${pinDisplay} ${tag}</div>
+              <div class="u-line2">${tag}</div>
             </div>
             <div class="u-right">
-              <div>মেয়াদ:<br>${fmtDate(u.expiryDate)}</div>
-              <button class="btn-del" onclick="deleteUser('${u.id}', '${name.replace(/'/g, "\\'")}')">🗑️</button>
+              <div>মেয়াদ:<br>${fmtDate(s.expiryDate)}</div>
+              <button class="btn-del" onclick="deleteSchool('${s.id}', '${name.replace(/'/g, "\\'")}')">🗑️</button>
             </div>
           </div>`;
       }).join('');
@@ -325,10 +370,6 @@
       btn.disabled = false;
     }
   };
-
-  onAuthStateChanged(auth, () => { loadUsers(); });
-  // লগইন ছাড়াই দেখতে চাইলে (উদাহরণ/ডেমো), সরাসরি লোড করুন:
-  loadUsers();
 </script>
 </body>
 </html>
