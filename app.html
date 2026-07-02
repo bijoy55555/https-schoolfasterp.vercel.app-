@@ -655,6 +655,7 @@
     </div>
     <div class="nav-section">
       <div class="nav-label">পরীক্ষা</div>
+      <div class="nav-item" data-page="question-paper" onclick="showPage('question-paper',this)"><span class="icon">❓</span> প্রশ্নপত্র তৈরি</div>
       <div class="nav-item" data-page="admit-card" onclick="showPage('admit-card',this)"><span class="icon">🪪</span> অ্যাডমিট কার্ড</div>
       <div class="nav-item" data-page="seat-plan" onclick="showPage('seat-plan',this)"><span class="icon">🪑</span> সিট প্ল্যান</div>
       <div class="nav-item" data-page="tabulation" onclick="showPage('tabulation',this)"><span class="icon">📋</span> ট্যাবুলেশন শিট</div>
@@ -1179,6 +1180,79 @@
         <div class="card-body" style="padding:0">
           <table><thead><tr><th>ইভেন্টের নাম</th><th>ধরন</th><th>শুরু তারিখ</th><th>শেষ তারিখ</th><th>বিবরণ</th><th class="no-print"></th></tr></thead>
           <tbody id="ac-cal-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== প্রশ্নপত্র তৈরি (QUESTION PAPER GENERATOR) ===== -->
+    <div class="page" id="page-question-paper">
+
+      <!-- তালিকা ভিউ -->
+      <div id="qp-list-view">
+        <div class="page-actions no-print">
+          <button class="btn btn-primary" onclick="newQuestionPaper()">+ নতুন প্রশ্নপত্র তৈরি করুন</button>
+          <select class="form-select" id="qp-filter-class" style="max-width:160px;padding:9px 12px" onchange="renderQuestionPaperList()">
+            <option value="">সব শ্রেণি</option>
+          </select>
+          <select class="form-select" id="qp-filter-subject" style="max-width:160px;padding:9px 12px" onchange="renderQuestionPaperList()">
+            <option value="">সব বিষয়</option>
+          </select>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">সংরক্ষিত প্রশ্নপত্র সমূহ</div></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>পরীক্ষার নাম</th><th>শ্রেণি</th><th>বিষয়</th><th>পূর্ণমান</th><th>সময়</th><th>তৈরির তারিখ</th><th class="no-print">অ্যাকশন</th></tr></thead>
+            <tbody id="qp-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- বিল্ডার ভিউ -->
+      <div id="qp-builder-view" style="display:none">
+        <div class="page-actions no-print">
+          <button class="btn btn-outline" onclick="closeQuestionPaperBuilder()">← তালিকায় ফিরুন</button>
+          <button class="btn btn-primary" onclick="saveQuestionPaper()">💾 সংরক্ষণ করুন</button>
+          <button class="btn btn-outline" onclick="saveQuestionPaper(true)">🖨️ সংরক্ষণ করে প্রিন্ট করুন</button>
+        </div>
+        <div class="card no-print">
+          <div class="card-header"><div class="card-title">প্রশ্নপত্রের তথ্য</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">পরীক্ষার নাম *</label><input class="form-input" id="qp-exam-name" placeholder="যেমন: অর্ধবার্ষিক পরীক্ষা ২০২৬"></div>
+              <div class="form-group"><label class="form-label">বিষয় *</label><input class="form-input" id="qp-subject" list="qp-subject-list" placeholder="যেমন: বাংলা"></div>
+              <datalist id="qp-subject-list"></datalist>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">শ্রেণি *</label><input class="form-input" id="qp-class" list="qp-class-list" placeholder="যেমন: দশম"></div>
+              <datalist id="qp-class-list"></datalist>
+              <div class="form-group"><label class="form-label">পূর্ণমান *</label><input class="form-input" id="qp-full-marks" type="number" value="100"></div>
+              <div class="form-group"><label class="form-label">পাস মার্ক</label><input class="form-input" id="qp-pass-marks" type="number" value="33"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">সময়</label><input class="form-input" id="qp-time" value="৩ ঘণ্টা"></div>
+              <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="qp-date" type="date"></div>
+              <div class="form-group"><label class="form-label">সাধারণ নির্দেশনা (ঐচ্ছিক)</label><input class="form-input" id="qp-note" placeholder="যেমন: প্রতিটি প্রশ্নের মান আলাদাভাবে উল্লেখ করা আছে"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="qp-sections-container"></div>
+
+        <div class="card no-print" style="margin-top:14px">
+          <div class="card-header"><div class="card-title">নতুন বিভাগ যোগ করুন</div></div>
+          <div class="card-body" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="addQPSection('mcq')">➕ বহুনির্বাচনি (MCQ) বিভাগ</button>
+            <button class="btn btn-outline" onclick="addQPSection('short')">➕ সংক্ষিপ্ত প্রশ্ন বিভাগ</button>
+            <button class="btn btn-outline" onclick="addQPSection('creative')">➕ সৃজনশীল প্রশ্ন বিভাগ</button>
+            <button class="btn btn-outline" onclick="addQPSection('custom')">➕ খালি/কাস্টম বিভাগ</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <div class="card-header"><div class="card-title">👁️ প্রিভিউ</div></div>
+          <div class="card-body">
+            <div id="qp-preview"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -3641,7 +3715,7 @@ let notices = [
 let attendance = {}; // { 'শ্রেণি': { studentName: 'P'|'A'|'L' } }
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -3711,6 +3785,7 @@ function showPage(id, el) {
   if(id==='syllabus') renderSyllabus();
   if(id==='homework') renderHomework();
   if(id==='exam') renderExam();
+  if(id==='question-paper') renderQuestionPaperPage();
   if(id==='session') renderSessions();
   if(id==='master-data') switchMasterTab(currentMasterTab);
   if(id==='lesson-plan') renderLessonPlans();
@@ -5018,6 +5093,38 @@ let examSchedule = [
   {date:'২০২৫-০৭-১৪',time:'১০:০০ AM',subject:'গণিত',cls:'নবম - ক',type:'অর্ধবার্ষিক',hall:'হল-২'},
 ];
 
+// ===== প্রশ্নপত্র (QUESTION PAPER) ডেটা =====
+let questionPapers = [
+  {
+    id:'qp_demo1', examName:'অর্ধবার্ষিক পরীক্ষা ২০২৬', cls:'দশম', subject:'বাংলা',
+    fullMarks:100, passMarks:33, time:'৩ ঘণ্টা', date:'২০২৬-০৭-১৫', note:'',
+    createdAt:'২০২৬-০৬-০১',
+    sections:[
+      { id:'s1', label:'ক', title:'বহুনির্বাচনি প্রশ্ন (MCQ)', instruction:'প্রতিটি প্রশ্নের মান ১, সঠিক উত্তর বেছে নাও', type:'mcq',
+        questions:[
+          {id:'q1', text:'বাংলা সাহিত্যের আদি নিদর্শন কোনটি?', options:['চর্যাপদ','মঙ্গলকাব্য','বৈষ্ণব পদাবলি','পুঁথি সাহিত্য'], marks:1},
+          {id:'q2', text:'রবীন্দ্রনাথ ঠাকুর কত সালে নোবেল পুরস্কার পান?', options:['১৯১০','১৯১৩','১৯২০','১৯০৫'], marks:1},
+        ]},
+      { id:'s2', label:'খ', title:'সংক্ষিপ্ত প্রশ্ন', instruction:'যেকোনো ৫টি প্রশ্নের উত্তর দাও', type:'short',
+        questions:[
+          {id:'q1', text:'চর্যাপদ কী? সংক্ষেপে লেখো।', marks:4},
+          {id:'q2', text:'কারক কাকে বলে? উদাহরণসহ লেখো।', marks:4},
+        ]},
+      { id:'s3', label:'গ', title:'সৃজনশীল প্রশ্ন', instruction:'যেকোনো ৪টি প্রশ্নের উত্তর দাও', type:'creative',
+        questions:[
+          {id:'q1', stem:'নিচের উদ্দীপকটি পড়ে প্রশ্নগুলোর উত্তর দাও: ...', parts:[
+            {label:'ক',text:'উদ্দীপকে ইঙ্গিতিত বিষয়টি কী?',marks:1},
+            {label:'খ',text:'ব্যাখ্যা করো।',marks:2},
+            {label:'গ',text:'পাঠ্যবইয়ের আলোকে বিশ্লেষণ করো।',marks:3},
+            {label:'ঘ',text:'মূল্যায়ন করো।',marks:4},
+          ]},
+        ]},
+    ]
+  }
+];
+let qpDraft = null;
+let qpEditingId = null;
+
 let teacherAtt = {}; // { name: 'P'|'A'|'L' }
 
 // ============ ROUTINE ============
@@ -5790,7 +5897,7 @@ function buildBackupPayload(){
     students, teachers, fees, results, notices, attendance,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
-    lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, vouchers, expenses,
+    lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
     users, permissions, exportedAt: new Date().toISOString()
   };
 }
@@ -5860,6 +5967,7 @@ function applyRestoreData(data){
   if(data.onlineClasses) onlineClasses = data.onlineClasses;
   if(data.academicEvents) academicEvents = data.academicEvents;
   if(data.examSchedule) examSchedule = data.examSchedule;
+  if(data.questionPapers) questionPapers = data.questionPapers;
   if(data.vouchers) vouchers = data.vouchers;
   if(data.expenses) expenses = data.expenses;
   if(data.users) users = data.users;
@@ -6014,7 +6122,7 @@ function applyTheme(name){
 let currentLang = 'bn';
 const navLabelsEn = {
   dashboard:'Dashboard', students:'Students', alumni:'Alumni', attendance:'Attendance', result:'Exams & Results',
-  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule',
+  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator',
   session:'Session Management', 'master-data':'Master Data', 'lesson-plan':'Lesson Plan', assignment:'Assignment',
   'online-class':'Online Class', 'academic-calendar':'Academic Calendar', 'admit-card':'Admit Card', 'seat-plan':'Seat Plan',
   tabulation:'Tabulation Sheet', 'ledger-gen':'General Ledger', 'cash-book':'Cash Book', 'bank-book':'Bank Book',
@@ -6582,6 +6690,415 @@ function saveExam() {
 }
 function deleteExam(idx){examSchedule.splice(idx,1);renderExam();showToast('মুছা হয়েছে','error');}
 
+// ============ প্রশ্নপত্র তৈরি (QUESTION PAPER GENERATOR) ============
+function qpUid(prefix){ return prefix + '_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+
+function renderQuestionPaperPage(){
+  const clsSel = document.getElementById('qp-filter-class');
+  const subSel = document.getElementById('qp-filter-subject');
+  if(clsSel){
+    const cur = clsSel.value;
+    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('');
+    clsSel.value = cur;
+  }
+  if(subSel){
+    const cur = subSel.value;
+    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('');
+    subSel.value = cur;
+  }
+  document.getElementById('qp-list-view').style.display='';
+  document.getElementById('qp-builder-view').style.display='none';
+  renderQuestionPaperList();
+}
+
+function renderQuestionPaperList(){
+  const tbody = document.getElementById('qp-tbody');
+  const fc = document.getElementById('qp-filter-class')?.value||'';
+  const fs = document.getElementById('qp-filter-subject')?.value||'';
+  const list = questionPapers.filter(p=>(!fc||p.cls===fc)&&(!fs||p.subject===fs));
+  tbody.innerHTML = list.map(p=>`<tr>
+      <td><b>${p.examName}</b></td>
+      <td>${p.cls}</td>
+      <td>${p.subject}</td>
+      <td>${p.fullMarks}</td>
+      <td>${p.time||'—'}</td>
+      <td>${p.createdAt||'—'}</td>
+      <td class="no-print" style="white-space:nowrap">
+        <button class="btn btn-outline" onclick="editQuestionPaper('${p.id}')">✏️ এডিট</button>
+        <button class="btn btn-outline" onclick="printQuestionPaper('${p.id}')">🖨️ প্রিন্ট</button>
+        <button class="btn btn-outline" onclick="duplicateQuestionPaper('${p.id}')">📄 কপি</button>
+        <button class="btn btn-danger" onclick="deleteQuestionPaper('${p.id}')">🗑️ মুছুন</button>
+      </td>
+    </tr>`).join('');
+  if(list.length===0) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">কোনো প্রশ্নপত্র নেই — উপরের বাটন থেকে নতুন তৈরি করুন</td></tr>';
+}
+
+function newQuestionPaper(){
+  qpEditingId = null;
+  qpDraft = {
+    id: qpUid('qp'), examName:'', cls:'', subject:'', fullMarks:100, passMarks:33, time:'৩ ঘণ্টা', date:'', note:'',
+    createdAt: (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD'),
+    sections: []
+  };
+  openQuestionPaperBuilder();
+}
+
+function editQuestionPaper(id){
+  const p = questionPapers.find(x=>x.id===id);
+  if(!p) return;
+  qpEditingId = id;
+  qpDraft = JSON.parse(JSON.stringify(p));
+  openQuestionPaperBuilder();
+}
+
+function duplicateQuestionPaper(id){
+  const p = questionPapers.find(x=>x.id===id);
+  if(!p) return;
+  const copy = JSON.parse(JSON.stringify(p));
+  copy.id = qpUid('qp');
+  copy.examName = copy.examName + ' (কপি)';
+  copy.createdAt = (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD');
+  questionPapers.push(copy);
+  saveQuestionPapersData();
+  renderQuestionPaperList();
+  logAudit(`প্রশ্নপত্র কপি করেছেন: ${copy.examName}`);
+  showToast('প্রশ্নপত্র কপি করা হয়েছে!');
+}
+
+function deleteQuestionPaper(id){
+  if(!confirm('এই প্রশ্নপত্রটি মুছে ফেলতে চান?')) return;
+  const p = questionPapers.find(x=>x.id===id);
+  questionPapers = questionPapers.filter(x=>x.id!==id);
+  saveQuestionPapersData();
+  renderQuestionPaperList();
+  if(p) logAudit(`প্রশ্নপত্র মুছেছেন: ${p.examName}`);
+  showToast('মুছে ফেলা হয়েছে','error');
+}
+
+function saveQuestionPapersData(){
+  localStorage.setItem('questionPapers', JSON.stringify(questionPapers));
+  saveTenantData();
+}
+
+function openQuestionPaperBuilder(){
+  document.getElementById('qp-list-view').style.display='none';
+  document.getElementById('qp-builder-view').style.display='';
+  const clsList = document.getElementById('qp-class-list');
+  const subList = document.getElementById('qp-subject-list');
+  if(clsList) clsList.innerHTML = classesList.map(c=>`<option value="${c.name}">`).join('');
+  if(subList) subList.innerHTML = subjectsList.map(s=>`<option value="${s.name}">`).join('');
+
+  document.getElementById('qp-exam-name').value = qpDraft.examName||'';
+  document.getElementById('qp-subject').value = qpDraft.subject||'';
+  document.getElementById('qp-class').value = qpDraft.cls||'';
+  document.getElementById('qp-full-marks').value = qpDraft.fullMarks||100;
+  document.getElementById('qp-pass-marks').value = qpDraft.passMarks||33;
+  document.getElementById('qp-time').value = qpDraft.time||'৩ ঘণ্টা';
+  document.getElementById('qp-date').value = qpDraft.date||'';
+  document.getElementById('qp-note').value = qpDraft.note||'';
+
+  renderQPSections();
+}
+
+function closeQuestionPaperBuilder(){
+  qpDraft = null; qpEditingId = null;
+  renderQuestionPaperPage();
+}
+
+function qpSyncHeaderFromForm(){
+  if(!qpDraft) return;
+  qpDraft.examName = document.getElementById('qp-exam-name').value.trim();
+  qpDraft.subject = document.getElementById('qp-subject').value.trim();
+  qpDraft.cls = document.getElementById('qp-class').value.trim();
+  qpDraft.fullMarks = parseInt(document.getElementById('qp-full-marks').value)||0;
+  qpDraft.passMarks = parseInt(document.getElementById('qp-pass-marks').value)||0;
+  qpDraft.time = document.getElementById('qp-time').value.trim();
+  qpDraft.date = document.getElementById('qp-date').value;
+  qpDraft.note = document.getElementById('qp-note').value.trim();
+}
+
+const QP_SECTION_LABELS = ['ক','খ','গ','ঘ','ঙ','চ','ছ','জ'];
+function qpNextLabel(){
+  const n = qpDraft.sections.length;
+  return QP_SECTION_LABELS[n] || String(n+1);
+}
+const QP_TYPE_TITLES = {mcq:'বহুনির্বাচনি প্রশ্ন (MCQ)', short:'সংক্ষিপ্ত প্রশ্ন', creative:'সৃজনশীল প্রশ্ন', custom:'নতুন বিভাগ'};
+const QP_TYPE_INSTR = {mcq:'প্রতিটি প্রশ্নের সঠিক উত্তরে টিক চিহ্ন দাও', short:'যেকোনো কয়েকটি প্রশ্নের উত্তর দাও', creative:'যেকোনো ৪টি প্রশ্নের উত্তর দাও', custom:'নির্দেশনা লিখুন'};
+
+function addQPSection(type){
+  qpSyncHeaderFromForm();
+  qpDraft.sections.push({
+    id: qpUid('sec'), label: qpNextLabel(), title: QP_TYPE_TITLES[type]||'বিভাগ',
+    instruction: QP_TYPE_INSTR[type]||'',
+    type, questions: []
+  });
+  renderQPSections();
+}
+
+function removeQPSection(sIdx){
+  if(!confirm('এই বিভাগটি ও এর সব প্রশ্ন মুছে ফেলতে চান?')) return;
+  qpSyncHeaderFromForm();
+  qpDraft.sections.splice(sIdx,1);
+  renderQPSections();
+}
+
+function moveQPSection(sIdx, dir){
+  qpSyncHeaderFromForm();
+  const newIdx = sIdx+dir;
+  if(newIdx<0 || newIdx>=qpDraft.sections.length) return;
+  const tmp = qpDraft.sections[sIdx];
+  qpDraft.sections[sIdx] = qpDraft.sections[newIdx];
+  qpDraft.sections[newIdx] = tmp;
+  renderQPSections();
+}
+
+function qpUpdateSectionField(sIdx, field, value){
+  qpDraft.sections[sIdx][field] = value;
+  renderQPPreview();
+}
+
+function addQPQuestion(sIdx){
+  qpSyncHeaderFromForm();
+  const sec = qpDraft.sections[sIdx];
+  if(sec.type==='mcq'){
+    sec.questions.push({id:qpUid('q'), text:'', options:['','','',''], marks:1});
+  } else if(sec.type==='creative'){
+    sec.questions.push({id:qpUid('q'), stem:'', parts:[{label:'ক',text:'',marks:1},{label:'খ',text:'',marks:2},{label:'গ',text:'',marks:3},{label:'ঘ',text:'',marks:4}]});
+  } else {
+    sec.questions.push({id:qpUid('q'), text:'', marks:5});
+  }
+  renderQPSections();
+}
+
+function removeQPQuestion(sIdx, qIdx){
+  qpSyncHeaderFromForm();
+  qpDraft.sections[sIdx].questions.splice(qIdx,1);
+  renderQPSections();
+}
+
+function moveQPQuestion(sIdx, qIdx, dir){
+  qpSyncHeaderFromForm();
+  const arr = qpDraft.sections[sIdx].questions;
+  const newIdx = qIdx+dir;
+  if(newIdx<0 || newIdx>=arr.length) return;
+  const tmp = arr[qIdx]; arr[qIdx]=arr[newIdx]; arr[newIdx]=tmp;
+  renderQPSections();
+}
+
+function qpUpdateQuestionField(sIdx, qIdx, field, value){
+  qpDraft.sections[sIdx].questions[qIdx][field] = value;
+  renderQPPreview();
+}
+function qpUpdateOption(sIdx, qIdx, optIdx, value){
+  qpDraft.sections[sIdx].questions[qIdx].options[optIdx] = value;
+  renderQPPreview();
+}
+function qpUpdatePart(sIdx, qIdx, pIdx, field, value){
+  qpDraft.sections[sIdx].questions[qIdx].parts[pIdx][field] = value;
+  renderQPPreview();
+}
+
+function renderQPSections(){
+  const cont = document.getElementById('qp-sections-container');
+  if(qpDraft.sections.length===0){
+    cont.innerHTML = '<div class="card no-print" style="margin-top:14px"><div class="card-body" style="text-align:center;color:var(--text-muted)">নিচের বাটন থেকে একটি বিভাগ (MCQ / সংক্ষিপ্ত / সৃজনশীল / কাস্টম) যোগ করুন</div></div>';
+    renderQPPreview();
+    return;
+  }
+  cont.innerHTML = qpDraft.sections.map((sec, sIdx)=>{
+    let qHtml = '';
+    if(sec.type==='mcq'){
+      qHtml = sec.questions.map((q,qIdx)=>`
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="font-weight:600;padding-top:9px">${qIdx+1}.</span>
+            <textarea class="form-input" rows="2" style="flex:1" placeholder="প্রশ্ন লিখুন..." oninput="qpUpdateQuestionField(${sIdx},${qIdx},'text',this.value)">${q.text||''}</textarea>
+            <input class="form-input" type="number" style="max-width:80px" value="${q.marks||1}" placeholder="মান" oninput="qpUpdateQuestionField(${sIdx},${qIdx},'marks',parseInt(this.value)||0)">
+            <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)" title="উপরে সরান">↑</button>
+            <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)" title="নিচে সরান">↓</button>
+            <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;margin-left:26px">
+            ${(q.options||['','','','']).map((op,oIdx)=>`<div style="display:flex;gap:6px;align-items:center"><span>${['ক','খ','গ','ঘ'][oIdx]})</span><input class="form-input" value="${op||''}" placeholder="অপশন ${oIdx+1}" oninput="qpUpdateOption(${sIdx},${qIdx},${oIdx},this.value)"></div>`).join('')}
+          </div>
+        </div>`).join('');
+    } else if(sec.type==='creative'){
+      qHtml = sec.questions.map((q,qIdx)=>`
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:8px">
+          <div style="display:flex;gap:8px;align-items:flex-start">
+            <span style="font-weight:600;padding-top:9px">${qIdx+1}.</span>
+            <textarea class="form-input" rows="2" style="flex:1" placeholder="উদ্দীপক / প্রশ্নের ভূমিকা লিখুন..." oninput="qpUpdateQuestionField(${sIdx},${qIdx},'stem',this.value)">${q.stem||''}</textarea>
+            <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)">↑</button>
+            <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)">↓</button>
+            <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
+          </div>
+          <div style="margin-left:26px;margin-top:6px;display:flex;flex-direction:column;gap:6px">
+            ${(q.parts||[]).map((pt,pIdx)=>`<div style="display:flex;gap:6px;align-items:center">
+              <span style="min-width:16px">${pt.label})</span>
+              <input class="form-input" style="flex:1" value="${pt.text||''}" placeholder="প্রশ্নাংশ লিখুন..." oninput="qpUpdatePart(${sIdx},${qIdx},${pIdx},'text',this.value)">
+              <input class="form-input" type="number" style="max-width:70px" value="${pt.marks||1}" placeholder="মান" oninput="qpUpdatePart(${sIdx},${qIdx},${pIdx},'marks',parseInt(this.value)||0)">
+            </div>`).join('')}
+          </div>
+        </div>`).join('');
+    } else {
+      qHtml = sec.questions.map((q,qIdx)=>`
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:10px;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start">
+          <span style="font-weight:600;padding-top:9px">${qIdx+1}.</span>
+          <textarea class="form-input" rows="2" style="flex:1" placeholder="প্রশ্ন লিখুন..." oninput="qpUpdateQuestionField(${sIdx},${qIdx},'text',this.value)">${q.text||''}</textarea>
+          <input class="form-input" type="number" style="max-width:80px" value="${q.marks||0}" placeholder="মান" oninput="qpUpdateQuestionField(${sIdx},${qIdx},'marks',parseInt(this.value)||0)">
+          <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)">↑</button>
+          <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)">↓</button>
+          <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
+        </div>`).join('');
+    }
+    return `<div class="card no-print" style="margin-top:14px">
+      <div class="card-header" style="flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center;flex:1;min-width:260px">
+          <input class="form-input" style="max-width:50px;text-align:center;font-weight:700" value="${sec.label}" oninput="qpUpdateSectionField(${sIdx},'label',this.value)">
+          <span style="white-space:nowrap">বিভাগ:</span>
+          <input class="form-input" style="flex:1" value="${sec.title}" oninput="qpUpdateSectionField(${sIdx},'title',this.value)">
+        </div>
+        <div style="white-space:nowrap">
+          <button class="btn btn-outline" onclick="moveQPSection(${sIdx},-1)">↑</button>
+          <button class="btn btn-outline" onclick="moveQPSection(${sIdx},1)">↓</button>
+          <button class="btn btn-danger" onclick="removeQPSection(${sIdx})">🗑️ বিভাগ মুছুন</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <input class="form-input" style="margin-bottom:10px" value="${sec.instruction||''}" placeholder="বিভাগের নির্দেশনা (যেমন: যেকোনো ৫টি প্রশ্নের উত্তর দাও)" oninput="qpUpdateSectionField(${sIdx},'instruction',this.value)">
+        ${qHtml || '<p style="color:var(--text-muted)">এখনো কোনো প্রশ্ন যোগ করা হয়নি</p>'}
+        <button class="btn btn-primary" onclick="addQPQuestion(${sIdx})">+ প্রশ্ন যোগ করুন</button>
+      </div>
+    </div>`;
+  }).join('');
+  renderQPPreview();
+}
+
+// ===== প্রিন্ট/প্রিভিউ টেমপ্লেট =====
+function qpSectionHTML(sec){
+  let body = '';
+  if(sec.type==='mcq'){
+    body = (sec.questions||[]).map((q,i)=>`
+      <div class="qpp-q">
+        <b>${i+1}.</b> ${q.text||''} <span class="qpp-marks">[${q.marks||0}]</span>
+        <div class="qpp-opts">
+          ${(q.options||[]).map((op,oi)=>`<div>${['ক','খ','গ','ঘ'][oi]}) ${op||''}</div>`).join('')}
+        </div>
+      </div>`).join('');
+  } else if(sec.type==='creative'){
+    body = (sec.questions||[]).map((q,i)=>`
+      <div class="qpp-q">
+        <div><b>${i+1}.</b> ${q.stem||''}</div>
+        <div class="qpp-part-wrap">
+          ${(q.parts||[]).map(pt=>`<div class="qpp-part">${pt.label}) ${pt.text||''} <span class="qpp-marks">[${pt.marks||0}]</span></div>`).join('')}
+        </div>
+      </div>`).join('');
+  } else {
+    body = (sec.questions||[]).map((q,i)=>`<div class="qpp-q"><b>${i+1}.</b> ${q.text||''} <span class="qpp-marks">[${q.marks||0}]</span></div>`).join('');
+  }
+  return `<div class="qpp-section">
+    <div class="qpp-sec-title">${sec.label}-বিভাগ: ${sec.title} <span class="qpp-sec-instr">(${sec.instruction||''})</span></div>
+    ${body || '<div style="color:#999;font-size:12px">কোনো প্রশ্ন যোগ করা হয়নি</div>'}
+  </div>`;
+}
+
+function qpPaperBodyHTML(p, school, address){
+  return `<div class="qpp-head">
+      <div class="qpp-school">${school}</div>
+      <div class="qpp-addr">${address}</div>
+      <div class="qpp-exam">${p.examName||'(পরীক্ষার নাম দিন)'}</div>
+      <div class="qpp-sub">বিষয়: ${p.subject||'—'} &nbsp;|&nbsp; শ্রেণি: ${p.cls||'—'}</div>
+    </div>
+    <div class="qpp-meta">
+      <span>সময়: ${p.time||'—'}</span>
+      <span>পূর্ণমান: ${p.fullMarks||0}</span>
+      <span>${p.passMarks?('পাস মার্ক: '+p.passMarks):''}</span>
+    </div>
+    ${p.note?`<div class="qpp-note">[ ${p.note} ]</div>`:''}
+    ${(p.sections||[]).map(sec=>qpSectionHTML(sec)).join('')}`;
+}
+
+function renderQPPreview(){
+  const el = document.getElementById('qp-preview');
+  if(!el || !qpDraft) return;
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
+  el.innerHTML = `<style>
+      #qp-preview .qpp-head{text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      #qp-preview .qpp-school{font-size:20px;font-weight:700;color:#1a5276}
+      #qp-preview .qpp-addr{font-size:12px;color:#555;margin-top:2px}
+      #qp-preview .qpp-exam{font-size:16px;font-weight:700;margin-top:10px;text-decoration:underline}
+      #qp-preview .qpp-sub{font-size:14px;font-weight:600;margin-top:4px}
+      #qp-preview .qpp-meta{display:flex;justify-content:space-between;font-size:13px;margin:12px 0;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:6px 0}
+      #qp-preview .qpp-note{font-size:12px;font-style:italic;margin-bottom:14px;text-align:center}
+      #qp-preview .qpp-section{margin-bottom:18px}
+      #qp-preview .qpp-sec-title{font-weight:700;font-size:14.5px;margin-bottom:8px;background:#f2f2f2;padding:5px 8px;border-left:4px solid #1a5276}
+      #qp-preview .qpp-sec-instr{font-weight:400;font-size:12px;color:#555}
+      #qp-preview .qpp-q{margin-bottom:10px}
+      #qp-preview .qpp-marks{float:right;font-weight:600}
+      #qp-preview .qpp-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-left:20px;margin-top:3px}
+      #qp-preview .qpp-part{margin-left:20px;margin-top:2px}
+    </style>
+    <div style="background:#fff;padding:24px;border:1px solid #ddd;border-radius:8px">${qpPaperBodyHTML(qpDraft, school, address)}</div>`;
+}
+
+function saveQuestionPaper(andPrint){
+  if(!qpDraft) return;
+  qpSyncHeaderFromForm();
+  if(!qpDraft.examName){ showToast('পরীক্ষার নাম দিন','error'); return; }
+  if(!qpDraft.subject){ showToast('বিষয়ের নাম দিন','error'); return; }
+  if(!qpDraft.cls){ showToast('শ্রেণি দিন','error'); return; }
+  if(qpDraft.sections.length===0){ showToast('অন্তত একটি বিভাগ যোগ করুন','error'); return; }
+  const existingIdx = questionPapers.findIndex(x=>x.id===qpDraft.id);
+  const isNew = existingIdx===-1;
+  if(!isNew) questionPapers[existingIdx] = qpDraft;
+  else { qpDraft.createdAt = (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD'); questionPapers.push(qpDraft); }
+  saveQuestionPapersData();
+  logAudit(`প্রশ্নপত্র ${isNew?'তৈরি':'সম্পাদনা'} করেছেন: ${qpDraft.examName} (${qpDraft.subject}, ${qpDraft.cls})`);
+  showToast('প্রশ্নপত্র সংরক্ষণ হয়েছে!');
+  const savedId = qpDraft.id;
+  if(andPrint) printQuestionPaper(savedId);
+  closeQuestionPaperBuilder();
+}
+
+function printQuestionPaper(id){
+  const p = questionPapers.find(x=>x.id===id);
+  if(!p){ showToast('প্রশ্নপত্র খুঁজে পাওয়া যায়নি','error'); return; }
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
+  const w = window.open('', '_blank');
+  if(!w){ showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head>
+    <meta charset="UTF-8">
+    <title>প্রশ্নপত্র - ${p.examName} - ${p.subject}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+      body{font-family:'Hind Siliguri',sans-serif;margin:0;padding:30px;color:#111;font-size:14px;line-height:1.7}
+      .qpp-head{text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      .qpp-school{font-size:22px;font-weight:700;color:#1a5276}
+      .qpp-addr{font-size:12px;color:#555;margin-top:2px}
+      .qpp-exam{font-size:16px;font-weight:700;margin-top:10px;text-decoration:underline}
+      .qpp-sub{font-size:14px;font-weight:600;margin-top:4px}
+      .qpp-meta{display:flex;justify-content:space-between;font-size:13px;margin:12px 0;border-top:1px dashed #999;border-bottom:1px dashed #999;padding:6px 0}
+      .qpp-note{font-size:12px;font-style:italic;margin-bottom:14px;text-align:center}
+      .qpp-section{margin-bottom:20px}
+      .qpp-sec-title{font-weight:700;font-size:14.5px;margin-bottom:8px;background:#f2f2f2;padding:5px 8px;border-left:4px solid #1a5276}
+      .qpp-sec-instr{font-weight:400;font-size:12px;color:#555}
+      .qpp-q{margin-bottom:10px;page-break-inside:avoid}
+      .qpp-marks{float:right;font-weight:600}
+      .qpp-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-left:20px;margin-top:3px}
+      .qpp-part{margin-left:20px;margin-top:2px}
+      @media print{body{padding:15px}}
+    </style>
+  </head><body>
+    ${qpPaperBodyHTML(p, school, address)}
+    <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`);
+  w.document.close();
+  logAudit(`প্রশ্নপত্র প্রিন্ট করেছেন: ${p.examName} (${p.subject})`);
+}
+
+
 // ============ MARKSHEET (Phase 3) ============
 function renderMarksheet() {
   const cls = document.getElementById('ms-class-sel').value;
@@ -7074,6 +7591,7 @@ async function loadTenantData(schoolId) {
     if (d.classesList) classesList = d.classesList;
     if (d.onlineClasses) onlineClasses = d.onlineClasses;
     if (d.examSchedule) examSchedule = d.examSchedule;
+    if (d.questionPapers) questionPapers = d.questionPapers;
     if (d.teacherAtt) teacherAtt = d.teacherAtt;
     if (d.books) books = d.books;
     if (d.bookIssues) bookIssues = d.bookIssues;
@@ -7095,7 +7613,7 @@ async function saveTenantData() {
   try {
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
       students, teachers, fees, results, notices, attendance,
-      payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule,
+      payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule, questionPapers,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
