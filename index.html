@@ -252,7 +252,7 @@
   .role-badge.parent { background:#fdebd0; color:#af601a; }
   .role-badge.student { background:#fadbd8; color:#943126; }
   .perm-denied-banner { background:#fadbd8; border:1px solid #f5c6c6; color:#c0392b; border-radius:12px; padding:16px 20px; font-size:13px; font-weight:600; text-align:center; margin:40px auto; max-width:480px; }
-  .login-hint { background:#f0f4f8; border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted); margin-bottom:18px; text-align:center; }
+  .login-hint { background:#f0f4f8; border-radius:8px; padding:10px 12px; font-size:12px; color:var(--text-muted); margin-bottom:18px; text-align:center; display:none; }
   .login-btn { width:100%; padding:13px; background:linear-gradient(135deg,var(--primary),var(--primary-light)); color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:700; font-family:'Hind Siliguri',sans-serif; cursor:pointer; transition:all 0.18s; margin-top:8px; }
   .login-btn:hover { opacity:0.92; transform:translateY(-1px); }
   .login-footer { text-align:center; font-size:11px; color:var(--text-muted); margin-top:18px; }
@@ -605,8 +605,8 @@
   <div class="login-box">
     <div class="login-logo">
       <div class="login-logo-icon">🏫</div>
-      <div class="login-school" id="login-school-name">আদর্শ উচ্চ বিদ্যালয়</div>
-      <div class="login-sub">Adarsha High School, Dhaka • ERP System</div>
+      <div class="login-school" id="login-school-name">স্কুল ইআরপি সিস্টেম</div>
+      <div class="login-sub">একাধিক স্কুলের ডিজিটাল ব্যবস্থাপনা প্ল্যাটফর্ম</div>
     </div>
     <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center">আপনার ভূমিকা বেছে নিন</div>
     <div class="role-tabs" style="grid-template-columns:repeat(5,1fr)">
@@ -621,7 +621,7 @@
     </div>
     <div class="form-group" style="margin-bottom:12px">
       <label class="form-label">ইউজার আইডি</label>
-      <input class="form-input" id="login-user" placeholder="যেমন: admin / teacher1 / parent1 / student1">
+      <input class="form-input" id="login-user" placeholder="যেমন: admin@school1.com">
     </div>
     <div class="form-group">
       <label class="form-label">পাসওয়ার্ড</label>
@@ -4703,9 +4703,9 @@ function saveSettings() {
 
 function applySchoolConfig(cfg) {
   const nameEl = document.querySelector('.school-name');
-  if(nameEl) nameEl.textContent = cfg.name || 'আদর্শ উচ্চ বিদ্যালয়';
+  if(nameEl) nameEl.textContent = cfg.name || 'স্কুল ইআরপি সিস্টেম';
   const loginTitle = document.getElementById('login-school-name');
-  if(loginTitle) loginTitle.textContent = cfg.name || 'আদর্শ উচ্চ বিদ্যালয়';
+  if(loginTitle) loginTitle.textContent = cfg.name || 'স্কুল ইআরপি সিস্টেম';
   const badge = document.querySelector('.logo-badge');
   if(badge && cfg.logo) { badge.style.backgroundImage=`url(${cfg.logo})`; badge.style.backgroundSize='cover'; badge.textContent=''; }
   else if(badge && !cfg.logo) { badge.style.backgroundImage=''; badge.textContent='🏫'; }
