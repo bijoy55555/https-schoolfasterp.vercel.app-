@@ -19,7 +19,7 @@
   .sidebar-close { display:none; }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
   .sidebar-overlay.active { display:block; }
-  @media(max-width:1024px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0)} .main{margin-left:0!important} .sidebar-close{display:block} }
+  @media(max-width:1024px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0); z-index:220} .main{margin-left:0!important} .sidebar-close{display:block} }
   .sidebar-logo { padding:22px 20px 18px; border-bottom:1px solid rgba(255,255,255,0.08); position:relative; }
   .sidebar-close { position:absolute; top:16px; right:14px; background:none; border:none; color:rgba(255,255,255,0.7); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
   .sidebar-close:hover { color:#fff; }
