@@ -101,10 +101,18 @@
   window.saLogin = async function () {
     const email = document.getElementById('sa-email').value.trim();
     const pass = document.getElementById('sa-pass').value;
+    const btn = document.querySelector('#login-card button');
+
+    btn.disabled = true;
+    btn.textContent = "লগইন হচ্ছে...";
+
     try {
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (e) {
-      showMsg('login-msg', '❌ লগইন ব্যর্থ: ' + e.message, 'err');
+      console.error(e);
+      showMsg('login-msg', '❌ ' + e.code + ' : ' + e.message, 'err');
+      btn.disabled = false;
+      btn.textContent = "লগইন করুন";
     }
   };
 
