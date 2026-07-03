@@ -707,12 +707,67 @@
     <div class="topbar-right">
       <div id="subscription-badge" style="display:none;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px"></div>
       <div class="topbar-date" id="topbar-date"></div>
-      <div class="user-chip" id="user-chip"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
+      <div class="user-chip" id="user-chip" style="cursor:pointer" title="প্রোফাইল দেখুন" onclick="showPage('profile', null)"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
       <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="doLogout()">🔓 লগআউট</button>
     </div>
   </div>
 
   <div class="content">
+
+    <!-- ===== প্রোফাইল ===== -->
+    <div class="page" id="page-profile">
+      <div class="page-actions no-print">
+        <button class="btn btn-outline" onclick="showPage('dashboard', document.querySelector('[data-page=\"dashboard\"]'))">← ড্যাশবোর্ডে ফিরুন</button>
+      </div>
+
+      <div class="card">
+        <div class="card-body" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+          <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;flex-shrink:0">প্র</div>
+          <div style="flex:1;min-width:200px">
+            <div id="profile-name" style="font-size:19px;font-weight:700;color:var(--text)">—</div>
+            <div id="profile-role" style="font-size:13px;color:var(--text-muted);margin-top:2px">—</div>
+            <div id="profile-email" style="font-size:12.5px;color:var(--text-muted);margin-top:4px">—</div>
+          </div>
+          <button class="btn btn-danger no-print" onclick="doLogout()">🔓 লগআউট</button>
+        </div>
+      </div>
+
+      <div id="profile-subscription-card" class="card" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">💳 সাবস্ক্রিপশন</div></div>
+        <div class="card-body">
+          <div id="profile-sub-status" style="font-size:14px;font-weight:600;margin-bottom:6px">—</div>
+          <div id="profile-sub-detail" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">—</div>
+          <button class="btn btn-primary" onclick="openPackagePurchasePage()">💳 প্যাকেজ কিনুন / নবায়ন করুন</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">🏫 বিদ্যালয়ের তথ্য</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-school-name" style="padding:9px 0;font-weight:600">—</div></div>
+            <div class="form-group"><label class="form-label">ঠিকানা</label><div id="profile-school-address" style="padding:9px 0">—</div></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">ফোন</label><div id="profile-school-phone" style="padding:9px 0">—</div></div>
+            <div class="form-group"><label class="form-label">রেজিস্টার্ড (ওনার) ফোন</label><div id="profile-school-owner-phone" style="padding:9px 0">—</div></div>
+          </div>
+          <button class="btn btn-outline" onclick="showPage('settings', document.querySelector('[data-page=\"settings\"]'))">⚙️ সেটিংসে গিয়ে তথ্য পরিবর্তন করুন</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><div class="card-title">📊 এক নজরে</div></div>
+        <div class="card-body">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon blue">👨‍🎓</div><div><div class="stat-value" id="profile-stat-students">০</div><div class="stat-label">মোট ছাত্রছাত্রী</div></div></div>
+            <div class="stat-card"><div class="stat-icon green">👨‍🏫</div><div><div class="stat-value" id="profile-stat-teachers">০</div><div class="stat-label">মোট শিক্ষক</div></div></div>
+            <div class="stat-card"><div class="stat-icon orange">📝</div><div><div class="stat-value" id="profile-stat-notices">০</div><div class="stat-label">নোটিশ</div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">📄</div><div><div class="stat-value" id="profile-stat-qp">০</div><div class="stat-label">প্রশ্নপত্র তৈরি</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== DASHBOARD ===== -->
     <div class="page active" id="page-dashboard">
@@ -3715,7 +3770,7 @@ let notices = [
 let attendance = {}; // { 'শ্রেণি': { studentName: 'P'|'A'|'L' } }
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -3786,6 +3841,7 @@ function showPage(id, el) {
   if(id==='homework') renderHomework();
   if(id==='exam') renderExam();
   if(id==='question-paper') renderQuestionPaperPage();
+  if(id==='profile') renderProfilePage();
   if(id==='session') renderSessions();
   if(id==='master-data') switchMasterTab(currentMasterTab);
   if(id==='lesson-plan') renderLessonPlans();
@@ -6122,7 +6178,7 @@ function applyTheme(name){
 let currentLang = 'bn';
 const navLabelsEn = {
   dashboard:'Dashboard', students:'Students', alumni:'Alumni', attendance:'Attendance', result:'Exams & Results',
-  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator',
+  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator', profile:'Profile',
   session:'Session Management', 'master-data':'Master Data', 'lesson-plan':'Lesson Plan', assignment:'Assignment',
   'online-class':'Online Class', 'academic-calendar':'Academic Calendar', 'admit-card':'Admit Card', 'seat-plan':'Seat Plan',
   tabulation:'Tabulation Sheet', 'ledger-gen':'General Ledger', 'cash-book':'Cash Book', 'bank-book':'Bank Book',
@@ -7429,7 +7485,7 @@ function renderSubscriptionBadge(school){
 // ✅ ব্যাজে ক্লিক করলে প্যাকেজ কেনার পেজ (pay.html) নতুন ট্যাবে খোলে,
 // সম্ভব হলে স্কুলের রেজিস্টার্ড ফোন নম্বর আগে থেকেই বসানো থাকে
 function openPackagePurchasePage(){
-  const phone = (window._schoolDoc && window._schoolDoc.ownerPhone) || document.getElementById('s-phone-no')?.value || '';
+  const phone = (window._schoolDoc && window._schoolDoc.ownerPhone) || document.getElementById('s-phone')?.value || '';
   const schoolName = (window._schoolDoc && window._schoolDoc.name) || document.getElementById('s-school-name')?.value || '';
   const activeStudents = (typeof students!=='undefined') ? students.filter(s=>s.status==='সক্রিয়').length : 0;
   const params = new URLSearchParams();
@@ -7440,6 +7496,51 @@ function openPackagePurchasePage(){
   window.open('pay.html' + (qs ? ('?' + qs) : ''), '_blank');
 }
 
+// ============ প্রোফাইল পেজ ============
+function renderProfilePage(){
+  const u = currentUser || {name:'ব্যবহারকারী', role:'admin', avatar:'ব'};
+  document.getElementById('profile-avatar').textContent = u.avatar || (u.name||'ব').charAt(0);
+  document.getElementById('profile-name').textContent = u.name || 'ব্যবহারকারী';
+  document.getElementById('profile-role').textContent = `${roleIcons[u.role]||'👤'} ${roleNamesBn[u.role]||u.role||''}`;
+  const loginEmail = (window.auth && window.auth.currentUser && window.auth.currentUser.email) || '';
+  document.getElementById('profile-email').textContent = loginEmail ? `📧 ${loginEmail}` : '';
+
+  // ===== সাবস্ক্রিপশন তথ্য =====
+  const school = window._schoolDoc || null;
+  const subCard = document.getElementById('profile-subscription-card');
+  const statusEl = document.getElementById('profile-sub-status');
+  const detailEl = document.getElementById('profile-sub-detail');
+  if(!school || !school.expiryDate){
+    subCard.style.display = 'none'; // ডেমো/অফলাইন মোডে সাবস্ক্রিপশন প্রযোজ্য না
+  } else {
+    subCard.style.display = '';
+    const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
+    const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
+    const pkg = school.package || 'Standard';
+    if(pkg === 'Trial'){
+      statusEl.textContent = daysLeft > 0 ? `🎁 ফ্রি ট্রায়াল চলছে` : `⛔ ফ্রি ট্রায়াল শেষ হয়ে গেছে`;
+      statusEl.style.color = daysLeft > 0 ? '#1a5276' : '#b03030';
+    } else {
+      statusEl.textContent = daysLeft > 0 ? `✅ সাবস্ক্রিপশন সক্রিয় (${pkg})` : `⛔ সাবস্ক্রিপশনের মেয়াদ শেষ হয়ে গেছে (${pkg})`;
+      statusEl.style.color = daysLeft > 0 ? '#1e7e46' : '#b03030';
+    }
+    detailEl.textContent = daysLeft > 0
+      ? `মেয়াদ শেষ: ${expiry.toLocaleDateString('bn-BD')} (আর ${toBnNum(daysLeft)} দিন বাকি)`
+      : `মেয়াদ শেষ হয়েছে: ${expiry.toLocaleDateString('bn-BD')} — এখনই নবায়ন করুন`;
+  }
+
+  // ===== বিদ্যালয়ের তথ্য (সেটিংস থেকে) =====
+  document.getElementById('profile-school-name').textContent = document.getElementById('s-school-name')?.value || (school && school.name) || '—';
+  document.getElementById('profile-school-address').textContent = document.getElementById('s-address')?.value || '—';
+  document.getElementById('profile-school-phone').textContent = document.getElementById('s-phone')?.value || '—';
+  document.getElementById('profile-school-owner-phone').textContent = (school && school.ownerPhone) || '—';
+
+  // ===== এক নজরে পরিসংখ্যান =====
+  document.getElementById('profile-stat-students').textContent = toBnNum(students.length);
+  document.getElementById('profile-stat-teachers').textContent = toBnNum(teachers.length);
+  document.getElementById('profile-stat-notices').textContent = toBnNum(notices.length);
+  document.getElementById('profile-stat-qp').textContent = toBnNum(questionPapers.length);
+}
 
 function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
