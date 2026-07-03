@@ -607,7 +607,7 @@
 <div class="login-screen active" id="login-screen">
   <div class="login-box">
     <div class="login-logo">
-      <div class="login-logo-icon">🏫</div>
+      <div class="login-logo-icon"><svg viewBox="0 0 24 24" width="30" height="30" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 1 8l11 6 9-4.91V17h2V8L12 2Zm0 8.5L4.24 8 12 4.5 19.76 8 12 10.5ZM5 11.18v4.68C5 17.66 8.13 19 12 19s7-1.34 7-3.14v-4.68l-7 3.82-7-3.82Z"/></svg></div>
       <div class="login-school" id="login-school-name">স্কুল ইআরপি সিস্টেম</div>
       <div class="login-sub">একাধিক স্কুলের ডিজিটাল ব্যবস্থাপনা প্ল্যাটফর্ম</div>
     </div>
@@ -630,7 +630,7 @@
 <aside class="sidebar">
   <div class="sidebar-logo">
     <button class="sidebar-close" onclick="closeSidebar()" title="মেনু বন্ধ করুন">✕</button>
-    <div class="logo-badge">🏫</div>
+    <div class="logo-badge"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 1 8l11 6 9-4.91V17h2V8L12 2Zm0 8.5L4.24 8 12 4.5 19.76 8 12 10.5ZM5 11.18v4.68C5 17.66 8.13 19 12 19s7-1.34 7-3.14v-4.68l-7 3.82-7-3.82Z"/></svg></div>
     <div class="school-name">আদর্শ উচ্চ বিদ্যালয়</div>
     <div class="school-sub">Adarsha High School, Dhaka</div>
   </div>
@@ -4840,14 +4840,19 @@ function saveSettings() {
   saveTenantData();
 }
 
-// ✅ লোগো সেট করার নিরাপদ উপায় — ছবিটা আসলেই লোড হয় কিনা যাচাই করে,
-// না হলে (করাপ্ট/অসম্পূর্ণ ডেটা হলে) 🏫 ইমোজিতে ফিরে যায়, কখনো খালি দেখাবে না
+// ডিফল্ট লোগো — ইমোজি না, আসল SVG আইকন, তাই যেকোনো ডিভাইস/ব্রাউজারে একইভাবে দেখা যাবে
+// (ইমোজি ফন্টের উপর নির্ভরশীল না, তাই কখনো অদৃশ্য হয়ে যাবে না)
+const DEFAULT_LOGO_SVG = '<svg viewBox="0 0 24 24" width="60%" height="60%" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 1 8l11 6 9-4.91V17h2V8L12 2Zm0 8.5L4.24 8 12 4.5 19.76 8 12 10.5ZM5 11.18v4.68C5 17.66 8.13 19 12 19s7-1.34 7-3.14v-4.68l-7 3.82-7-3.82Z"/></svg>';
+
+// ✅ লোগো সেট করার নিরাপদ উপায় — প্রতিটা স্কুল নিজের কাস্টম লোগো আপলোড করলে সেটাই দেখাবে (সেটিংস > ব্র্যান্ডিং থেকে)।
+// ছবিটা আসলেই লোড হয় কিনা যাচাই করে, না হলে (কাস্টম লোগো না থাকলে বা করাপ্ট/অসম্পূর্ণ ডেটা হলে)
+// ডিফল্ট SVG আইকনে ফিরে যায়, কখনো খালি দেখাবে না
 function setLogoOnElement(el, logoUrl){
   if(!el) return;
-  if(!logoUrl){ el.style.backgroundImage=''; el.textContent='🏫'; return; }
+  if(!logoUrl){ el.style.backgroundImage=''; el.innerHTML=DEFAULT_LOGO_SVG; return; }
   const test = new Image();
-  test.onload = () => { el.style.backgroundImage = `url(${logoUrl})`; el.style.backgroundSize='cover'; el.textContent=''; };
-  test.onerror = () => { el.style.backgroundImage=''; el.textContent='🏫'; };
+  test.onload = () => { el.style.backgroundImage = `url(${logoUrl})`; el.style.backgroundSize='cover'; el.innerHTML=''; };
+  test.onerror = () => { el.style.backgroundImage=''; el.innerHTML=DEFAULT_LOGO_SVG; };
   test.src = logoUrl;
 }
 
@@ -4880,7 +4885,7 @@ function getPrintHeader() {
   const cfg = window._schoolCfg || {};
   const logoHtml = cfg.logo
     ? `<img src="${cfg.logo}" style="height:56px;width:56px;object-fit:contain;border-radius:8px;margin-right:14px">`
-    : `<div style="width:56px;height:56px;background:#1a5276;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-right:14px">🏫</div>`;
+    : `<div style="width:56px;height:56px;background:#1a5276;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;margin-right:14px">${DEFAULT_LOGO_SVG}</div>`;
   return `<div style="display:flex;align-items:center;border-bottom:2px solid #1a5276;padding-bottom:14px;margin-bottom:16px">${logoHtml}<div><div style="font-size:20px;font-weight:700;color:#1a5276">${cfg.name||'আদর্শ উচ্চ বিদ্যালয়'}</div><div style="font-size:12px;color:#5d6d7e;margin-top:2px">${cfg.address||''}${cfg.phone?' | ☎ '+cfg.phone:''}</div></div></div>`;
 }
 
