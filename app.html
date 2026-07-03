@@ -1661,7 +1661,7 @@
               <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
                 ✅ বিদ্যালয়ের নাম লিখুন<br>
                 ✅ ঠিকানা, ফোন, ইমেইল যোগ করুন<br>
-                ✅ বিদ্যালয়ের লোগো আপলোড করুন (থিম ও ব্র্যান্ডিং ট্যাব থেকে)<br>
+                ✅ বিদ্যালয়ের লোগো আপলোড করুন (🛠️ অ্যাডমিন ট্যাব → "লোগো ও স্বাক্ষর" অংশ থেকে)<br>
                 ✅ প্রধান শিক্ষকের স্বাক্ষর আপলোড করুন<br>
                 ✅ <strong>সংরক্ষণ করুন</strong> বাটনে ক্লিক করুন
               </div>
@@ -4840,16 +4840,24 @@ function saveSettings() {
   saveTenantData();
 }
 
+// ✅ লোগো সেট করার নিরাপদ উপায় — ছবিটা আসলেই লোড হয় কিনা যাচাই করে,
+// না হলে (করাপ্ট/অসম্পূর্ণ ডেটা হলে) 🏫 ইমোজিতে ফিরে যায়, কখনো খালি দেখাবে না
+function setLogoOnElement(el, logoUrl){
+  if(!el) return;
+  if(!logoUrl){ el.style.backgroundImage=''; el.textContent='🏫'; return; }
+  const test = new Image();
+  test.onload = () => { el.style.backgroundImage = `url(${logoUrl})`; el.style.backgroundSize='cover'; el.textContent=''; };
+  test.onerror = () => { el.style.backgroundImage=''; el.textContent='🏫'; };
+  test.src = logoUrl;
+}
+
 function applySchoolConfig(cfg) {
   const nameEl = document.querySelector('.school-name');
   if(nameEl) nameEl.textContent = cfg.name || 'স্কুল ইআরপি সিস্টেম';
   const loginTitle = document.getElementById('login-school-name');
   if(loginTitle) loginTitle.textContent = cfg.name || 'স্কুল ইআরপি সিস্টেম';
-  const badge = document.querySelector('.logo-badge');
-  if(badge && cfg.logo) { badge.style.backgroundImage=`url(${cfg.logo})`; badge.style.backgroundSize='cover'; badge.textContent=''; }
-  else if(badge && !cfg.logo) { badge.style.backgroundImage=''; badge.textContent='🏫'; }
-  const loginLogo = document.querySelector('.login-logo-icon');
-  if(loginLogo && cfg.logo) { loginLogo.style.backgroundImage=`url(${cfg.logo})`; loginLogo.style.backgroundSize='cover'; loginLogo.textContent=''; }
+  setLogoOnElement(document.querySelector('.logo-badge'), cfg.logo);
+  setLogoOnElement(document.querySelector('.login-logo-icon'), cfg.logo);
   window._schoolCfg = cfg;
 }
 
@@ -6143,10 +6151,9 @@ function uploadLogo(input){
     schoolLogo = e.target.result;
     document.getElementById('logo-preview').src = schoolLogo;
     document.getElementById('logo-preview-wrap').style.display='';
-    const badge = document.querySelector('.logo-badge');
-    if(badge){ badge.style.backgroundImage = `url(${schoolLogo})`; badge.style.backgroundSize='cover'; badge.textContent=''; }
+    setLogoOnElement(document.querySelector('.logo-badge'), schoolLogo);
     logAudit('বিদ্যালয়ের লোগো পরিবর্তন করেছেন');
-    showToast('লোগো আপলোড হয়েছে!');
+    saveSettings(); // ✅ আলাদা করে "সাধারণ সেটিংস" ট্যাবে গিয়ে সেভ করতে হবে না — এখনই সংরক্ষণ হয়ে যাবে (saveSettings() নিজেই টোস্ট দেখাবে)
   };
   reader.readAsDataURL(file);
 }
@@ -6159,7 +6166,7 @@ function uploadSignature(input){
     document.getElementById('signature-preview').src = principalSignature;
     document.getElementById('signature-preview-wrap').style.display='';
     logAudit('প্রধান শিক্ষকের স্বাক্ষর আপলোড করেছেন');
-    showToast('স্বাক্ষর আপলোড হয়েছে! (প্রিন্টযোগ্য ডকুমেন্টে ব্যবহৃত হবে)');
+    saveSettings(); // ✅ এখনই সংরক্ষণ হয়ে যাবে (saveSettings() নিজেই টোস্ট দেখাবে)
   };
   reader.readAsDataURL(file);
 }
