@@ -825,9 +825,9 @@
         <input class="search-box" type="text" id="student-search" placeholder="🔍 ছাত্র খুঁজুন..." oninput="filterStudents()">
         <select class="form-select" id="student-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterStudents()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option>
+          <option>নবম - ক</option><option>নবম - খ</option>
+          <option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
         </select>
         <button class="btn btn-outline" onclick="printPage()">🖨️ প্রিন্ট</button>
       </div>
@@ -864,9 +864,9 @@
     <div class="page" id="page-attendance">
       <div class="page-actions">
         <select class="form-select" id="att-class-select" style="max-width:180px;padding:9px 12px" onchange="renderAttendanceTable()">
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option>
+          <option>নবম - ক</option><option>নবম - খ</option>
+          <option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
         </select>
         <button class="btn btn-primary" onclick="saveAttendance()">✅ উপস্থিতি সেভ করুন</button>
         <button class="btn btn-outline" onclick="markAll('P')">সবাই উপস্থিত</button>
@@ -897,7 +897,7 @@
         <input class="search-box" type="text" id="result-search" placeholder="🔍 ছাত্রের নাম বা রোল..." oninput="filterResults()">
         <select class="form-select" id="result-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterResults()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
         </select>
       </div>
       <div id="result-list"></div>
@@ -1101,7 +1101,7 @@
     <div class="page" id="page-routine">
       <div class="page-actions">
         <select class="form-select" id="routine-class-sel" style="max-width:180px;padding:9px 12px" onchange="renderRoutine()">
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
         </select>
         <button class="btn btn-primary" onclick="openModal('routine-modal')">+ রুটিন যোগ</button>
         <button class="btn btn-outline" onclick="window.print()">🖨️ প্রিন্ট</button>
@@ -1119,7 +1119,7 @@
     <div class="page" id="page-syllabus">
       <div class="page-actions">
         <select class="form-select" id="syllabus-class-sel" style="max-width:180px;padding:9px 12px" onchange="renderSyllabus()">
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
         </select>
         <button class="btn btn-primary" onclick="openModal('syllabus-modal')">+ সিলেবাস যোগ</button>
       </div>
@@ -1132,7 +1132,7 @@
         <button class="btn btn-primary" onclick="openModal('homework-modal')">+ হোমওয়ার্ক দিন</button>
         <select class="form-select" id="hw-class-filter" style="max-width:180px;padding:9px 12px" onchange="renderHomework()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - ক</option><option>অষ্টম - ক</option>
         </select>
       </div>
       <div id="homework-list"></div>
@@ -1190,7 +1190,7 @@
         <button class="btn btn-primary" onclick="openModal('lp-modal')">+ লেসন প্ল্যান যোগ</button>
         <select class="form-select" id="lp-class-filter" style="max-width:180px;padding:9px 12px" onchange="renderLessonPlans()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - ক</option><option>অষ্টম - ক</option>
         </select>
       </div>
       <div class="card">
@@ -1208,7 +1208,7 @@
         <button class="btn btn-primary" onclick="openModal('assignment-modal')">+ অ্যাসাইনমেন্ট দিন</button>
         <select class="form-select" id="asg-class-filter" style="max-width:180px;padding:9px 12px" onchange="renderAssignments()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - ক</option><option>অষ্টম - ক</option>
         </select>
       </div>
       <div id="assignment-list"></div>
@@ -1321,7 +1321,7 @@
       <div class="page-actions no-print">
         <select class="form-select" id="ac-card-class" style="max-width:180px;padding:9px 12px">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
         </select>
         <input class="form-input" id="ac-card-exam" placeholder="পরীক্ষার নাম (যেমন: অর্ধবার্ষিক পরীক্ষা ২০২৫)" style="max-width:280px;padding:9px 12px">
         <input class="form-input" id="ac-card-center" placeholder="পরীক্ষার কেন্দ্র / হল" style="max-width:200px;padding:9px 12px">
@@ -1336,7 +1336,7 @@
       <div class="page-actions no-print">
         <select class="form-select" id="sp-class" style="max-width:180px;padding:9px 12px">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
         </select>
         <input class="form-input" id="sp-hall" placeholder="হলের নাম (যেমন: হল-১)" style="max-width:180px;padding:9px 12px">
         <input class="form-input" id="sp-perrow" type="number" value="5" placeholder="প্রতি সারিতে আসন" style="max-width:160px;padding:9px 12px">
@@ -1356,7 +1356,7 @@
     <div class="page" id="page-tabulation">
       <div class="page-actions no-print">
         <select class="form-select" id="tab-class" style="max-width:180px;padding:9px 12px" onchange="renderTabulation()">
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - খ</option>
         </select>
         <select class="form-select" id="tab-exam" style="max-width:180px;padding:9px 12px" onchange="renderTabulation()">
           <option>অর্ধবার্ষিক</option><option>বার্ষিক</option><option>নির্বাচনী</option>
@@ -1493,7 +1493,7 @@
       <div class="page-actions no-print">
         <select class="form-select" id="dre-class-filter" style="max-width:180px;padding:9px 12px" onchange="renderDueReport()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>দশম - খ</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option>
         </select>
         <button class="btn btn-outline" onclick="window.print()">🖨️ প্রিন্ট</button>
       </div>
@@ -1512,7 +1512,7 @@
       <div class="page-actions no-print">
         <select class="form-select" id="ms-class-sel" style="max-width:180px;padding:9px 12px" onchange="renderMarksheet()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
         </select>
         <select class="form-select" id="ms-exam-sel" style="max-width:180px;padding:9px 12px" onchange="renderMarksheet()">
           <option value="">সব পরীক্ষা</option>
@@ -1528,7 +1528,7 @@
       <div class="page-actions">
         <select class="form-select" id="merit-class-sel" style="max-width:180px;padding:9px 12px" onchange="renderMerit()">
           <option value="">সব শ্রেণি</option>
-          <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+          <option>দশম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
         </select>
         <select class="form-select" id="merit-exam-sel" style="max-width:180px;padding:9px 12px" onchange="renderMerit()">
           <option value="">সব পরীক্ষা</option>
@@ -2290,7 +2290,7 @@
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <select class="form-select" id="report-class-sel" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:8px 12px;font-size:13px" onchange="renderMonthlyReport()">
             <option value="">সব শ্রেণি</option>
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
           </select>
           <div class="report-month-nav">
             <button class="month-nav-btn" onclick="changeReportMonth(-1)">◀</button>
@@ -3004,7 +3004,7 @@
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="s-class">
             <option value="">শ্রেণি নির্বাচন</option>
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">অবস্থা</label>
@@ -3113,7 +3113,7 @@
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="f-class">
             <option value="">শ্রেণি নির্বাচন</option>
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
           </select>
         </div>
       </div>
@@ -3154,7 +3154,7 @@
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="r-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">পরীক্ষার ধরন</label>
@@ -3211,7 +3211,7 @@
         <div class="form-group"><label class="form-label">সময় *</label><input class="form-input" id="rt-time" placeholder="যেমন: ৮:০০ - ৮:৪৫"></div>
         <div class="form-group"><label class="form-label">শ্রেণি</label>
           <select class="form-select" id="rt-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option><option>সপ্তম - গ</option><option>ষষ্ঠ - ক</option>
           </select>
         </div>
       </div>
@@ -3248,7 +3248,7 @@
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="sy-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>নবম - ক</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
@@ -3284,7 +3284,7 @@
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="hw-class">
             <option value="">নির্বাচন করুন</option>
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
@@ -3352,7 +3352,7 @@
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="lp-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
@@ -3388,7 +3388,7 @@
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="asg-class">
             <option value="">নির্বাচন করুন</option>
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
@@ -3426,7 +3426,7 @@
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="oc-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
@@ -3520,7 +3520,7 @@
         </div>
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
           <select class="form-select" id="ex-class">
-            <option>প্লে - ক</option><option>নার্সারি - ক</option><option>১ম - ক</option><option>২য় - ক</option><option>৩য় - ক</option><option>৪র্থ - ক</option><option>৫ম - ক</option><option>ষষ্ঠ - ক</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>নবম - ক</option><option>নবম - খ</option><option>দশম - ক</option><option>দশম - খ</option>
+            <option>দশম - ক</option><option>দশম - খ</option><option>নবম - ক</option><option>নবম - খ</option><option>অষ্টম - ক</option>
           </select>
         </div>
       </div>
@@ -3710,7 +3710,7 @@
         <div class="form-group"><label class="form-label">নতুন শ্রেণি *</label>
           <select class="form-select" id="tr-new-cls">
             <option value="">শ্রেণি নির্বাচন</option>
-            <option>প্লে</option><option>নার্সারি</option><option>১ম</option><option>২য়</option><option>৩য়</option><option>৪র্থ</option><option>৫ম</option><option>ষষ্ঠ</option><option>সপ্তম</option><option>অষ্টম</option><option>নবম</option><option>দশম</option>
+            <option>দশম</option><option>নবম</option><option>অষ্টম</option><option>সপ্তম</option><option>ষষ্ঠ</option>
           </select>
         </div>
         <div class="form-group"><label class="form-label">নতুন সেকশন</label>
@@ -3830,6 +3830,9 @@ function navGo(id){
   showPage(id, document.querySelector(`.nav-item[data-page="${id}"]`));
 }
 function showPage(id, el) {
+  window.scrollTo(0, 0);
+  const contentEl = document.querySelector('.content');
+  if (contentEl) contentEl.scrollTop = 0;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -3907,7 +3910,7 @@ function renderDashboard() {
   </tr>`).join('');
 
   // Class attendance bars
-  const classes = ['প্লে','নার্সারি','১ম','২য়','৩য়','৪র্থ','৫ম','ষষ্ঠ','সপ্তম','অষ্টম','নবম','দশম'];
+  const classes = ['দশম','নবম','অষ্টম','সপ্তম','ষষ্ঠ'];
   const pcts = [95,92,88,90,82];
   const colors = ['#1e8449','#1e8449','#d4ac0d','#1e8449','#c0392b'];
   document.getElementById('dash-class-att').innerHTML = classes.map((c,i)=>`
@@ -9016,7 +9019,7 @@ function renderPrincipalDash() {
     </div>`).join('');
 
   // Class-wise attendance bars
-  const classes = ['প্লে - ক','নার্সারি - ক','১ম - ক','২য় - ক','৩য় - ক','৪র্থ - ক','৫ম - ক','ষষ্ঠ - ক','সপ্তম - গ','অষ্টম - ক','নবম - ক','নবম - খ','দশম - ক','দশম - খ'];
+  const classes = ['দশম - ক','দশম - খ','নবম - ক','নবম - খ','অষ্টম - ক','সপ্তম - গ','ষষ্ঠ - ক'];
   const pcts = [95,92,88,84,90,87,82];
   document.getElementById('pd-class-att').innerHTML = classes.map((c,i)=>{
     const color = pcts[i]>=90?'#1e8449':pcts[i]>=75?'#2e86c1':'#e67e22';
