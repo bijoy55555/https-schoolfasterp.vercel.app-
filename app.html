@@ -2039,6 +2039,18 @@
         </div>
       </div>
 
+      <!-- Fee Due Poster/Banner -->
+      <div id="pp-fee-banner" style="display:none;border-radius:14px;padding:18px 22px;margin-bottom:20px;align-items:center;gap:16px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="font-size:34px" id="pp-fee-banner-icon">💰</div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:16px;font-weight:800" id="pp-fee-banner-title">বেতন পরিশোধের সময় হয়েছে</div>
+            <div style="font-size:13px;opacity:0.95;margin-top:2px" id="pp-fee-banner-sub">বকেয়া: ৳৫০০ — জমার তারিখ: —</div>
+          </div>
+          <button class="btn" style="background:#fff;color:#c0392b;font-weight:700;white-space:nowrap" onclick="openPaymentModal()">📱 এখনই পরিশোধ করুন</button>
+        </div>
+      </div>
+
       <!-- Quick Stats -->
       <div class="parent-stat-grid">
         <div class="parent-stat">
@@ -2996,9 +3008,14 @@
         <div class="form-group"><label class="form-label">অভিভাবকের নাম</label><input class="form-input" id="s-guardian" placeholder="অভিভাবকের নাম"></div>
         <div class="form-group"><label class="form-label">ফোন নম্বর</label><input class="form-input" id="s-phone-no" placeholder="০১৭XX-XXXXXX"></div>
       </div>
-      <div class="form-group"><label class="form-label">ফি অবস্থা</label>
-        <select class="form-select" id="s-fee-status"><option value="পরিশোধিত">পরিশোধিত</option><option value="বকেয়া">বকেয়া</option><option value="আংশিক">আংশিক</option></select>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ফি অবস্থা</label>
+          <select class="form-select" id="s-fee-status"><option value="পরিশোধিত">পরিশোধিত</option><option value="বকেয়া">বকেয়া</option><option value="আংশিক">আংশিক</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">মাসিক বেতনের পরিমাণ (৳)</label><input class="form-input" id="s-monthly-fee" type="number" min="0" placeholder="যেমন: ৫০০"></div>
       </div>
+      <div class="form-group"><label class="form-label">প্রথম বেতন শুরুর তারিখ</label><input class="form-input" id="s-fee-start" type="date"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin:-8px 0 10px">দিলে, প্রতি মাসে এই তারিখ অনুযায়ী স্বয়ংক্রিয়ভাবে বকেয়া তৈরি হয়ে অভিভাবক পোর্টালে দেখাবে। খালি রাখলে আজকের তারিখ থেকে ধরা হবে।</div>
       
       <div class="form-row">
         <div class="form-group"><label class="form-label">জন্মতারিখ</label><input class="form-input" id="s-dob" type="date"></div>
@@ -3721,6 +3738,40 @@ let teachers = [
   {name:'শামসুল হক',subject:'ইতিহাস',cls:'৮ম - ১০ম',phone:'০১৬৫৫-৫৬৭৮৯০',status:'কর্মরত',designation:'প্রধান শিক্ষক (ভারপ্রাপ্ত)',email:'shamsul@school.edu',nid:'5678901234',address:'গুলশান, ঢাকা',joinDate:'২০১০-০১-০১',salary:50000,allowance:12000,deduction:5000},
 ];
 
+// ============ AUTO ফি জেনারেশন ============
+// প্রতিটা সক্রিয় ছাত্রের "প্রথম বেতন শুরুর তারিখ" থেকে হিসাব করে, যতগুলো মাস পার হয়ে গেছে
+// অথচ সেই মাসের বেতন এন্ট্রি এখনো তৈরি হয়নি — সেগুলোর জন্য status:'বকেয়া' সহ নতুন fee এন্ট্রি বানায়।
+// এটা কোনো ব্যাকগ্রাউন্ড সার্ভার/cron না — অ্যাপ যখনই খোলা হয় (অ্যাডমিন বা অভিভাবক, যেই হোক), তখনই চলে,
+// তাই যিনিই পোর্টালে ঢুকুন, তিনি সবসময় সবশেষ সঠিক বকেয়া অবস্থা দেখবেন।
+function generateAutoFees() {
+  if(typeof students==='undefined' || typeof fees==='undefined') return;
+  const today = new Date(); today.setHours(0,0,0,0);
+  students.forEach(s=>{
+    if(s.status && s.status!=='সক্রিয়') return; // শুধু সক্রিয় ছাত্রের জন্য
+    if(!s.monthlyFee || Number(s.monthlyFee)<=0) return; // মাসিক বেতন সেট না থাকলে স্কিপ
+    const start = parseDateSafe(s.feeStartDate);
+    if(!start) return;
+    let cursor = new Date(start);
+    cursor.setHours(0,0,0,0);
+    // ভবিষ্যতে অসীম লুপ ঠেকাতে সর্বোচ্চ ২৪ মাস পর্যন্ত চেক করা হবে
+    let guard = 0;
+    while(cursor <= today && guard < 24) {
+      const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`;
+      const already = fees.some(f=>f.student===s.name && f.autoMonthKey===monthKey);
+      if(!already) {
+        fees.push({
+          student: s.name, cls: s.cls, type:'মাসিক বেতন', amount: Number(s.monthlyFee),
+          date:'—', month: cursor.getMonth(), method:'—', status:'বকেয়া',
+          dueDate: cursor.toISOString().split('T')[0], // ISO — হিসাবের জন্য
+          autoMonthKey: monthKey, auto:true,
+        });
+      }
+      cursor.setMonth(cursor.getMonth()+1);
+      guard++;
+    }
+  });
+}
+
 let fees = [
   {student:'রাহেলা বেগম',cls:'দশম - ক',type:'মাসিক বেতন',amount:500,date:'০২ জুন',month:5,method:'বিকাশ',status:'পরিশোধিত',receiptNo:1001},
   {student:'সুমাইয়া আক্তার',cls:'নবম - খ',type:'মাসিক বেতন',amount:500,date:'০৩ জুন',month:5,method:'নগদ',status:'পরিশোধিত',receiptNo:1002},
@@ -3785,6 +3836,19 @@ function todayBn() {
 }
 function toBnNum(n) {
   return String(n).replace(/[0-9]/g, d=>'০১২৩৪৫৬৭৮৯'[d]);
+}
+// বাংলা সংখ্যা (০-৯) কে ইংরেজি সংখ্যায় (0-9) রূপান্তর করে — তারিখ parse করার আগে ব্যবহার করতে হবে,
+// নাহলে new Date('২০২৫-০৬-২৬') এর মতো ইনপুট Invalid Date / NaN দেয়।
+function bnDigitsToEn(str) {
+  if(str===undefined||str===null) return str;
+  const map = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
+  return String(str).replace(/[০-৯]/g, d=>map[d]);
+}
+// যেকোনো তারিখ-স্ট্রিং (বাংলা বা ইংরেজি সংখ্যায়) নিরাপদে Date অবজেক্টে রূপান্তর করে
+function parseDateSafe(str) {
+  if(!str) return null;
+  const d = new Date(bnDigitsToEn(str));
+  return isNaN(d.getTime()) ? null : d;
 }
 
 // ============ SIDEBAR / NAV ============
@@ -3953,6 +4017,8 @@ async function saveStudent() {
   const photoFile = document.getElementById('s-photo').files[0];
   const photo = await fileToBase64(photoFile);
   const section = document.getElementById('s-section').value;
+  const feeStartInput = document.getElementById('s-fee-start').value; // yyyy-mm-dd বা খালি
+  const todayISO = new Date().toISOString().split('T')[0];
   students.push({
     roll, name, cls, section,
     guardian: document.getElementById('s-guardian').value.trim()||'—',
@@ -3966,11 +4032,14 @@ async function saveStudent() {
     photo: photo||'',
     transferHistory: [],
     admissionDate: new Date().toLocaleDateString('bn-BD'),
+    monthlyFee: Number(document.getElementById('s-monthly-fee').value)||0,
+    feeStartDate: feeStartInput || todayISO, // অটো বকেয়া হিসাবের জন্য ইংরেজি (ISO) তারিখ
   });
-  ['s-name','s-roll','s-guardian','s-phone-no','s-address-full'].forEach(id=>document.getElementById(id).value='');
+  ['s-name','s-roll','s-guardian','s-phone-no','s-address-full','s-monthly-fee','s-fee-start'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('s-class').value='';
   document.getElementById('s-photo').value='';
   closeModal('student-modal');
+  generateAutoFees();
   renderStudents(); renderDashboard();
   showToast('ছাত্র সফলভাবে ভর্তি হয়েছে!');
 }
@@ -4450,6 +4519,7 @@ function switchFeeTab(tab) {
 }
 
 function renderFees(list) {
+  generateAutoFees(); // ফি ম্যানেজমেন্ট পেজ খোলার সময়ও সবশেষ অটো-বকেয়া তৈরি করে নেয়
   const data = list || fees;
   const tbody = document.getElementById('fee-tbody');
   tbody.innerHTML = data.map((f,i)=>`<tr>
@@ -4865,6 +4935,7 @@ function printPage() { window.print(); }
 
 // ============ INIT ============
 document.getElementById('topbar-date').textContent = todayBn();
+generateAutoFees(); // অ্যাপ খোলার সাথে সাথেই মিসিং মাসগুলোর বকেয়া অটো তৈরি করে নেয়
 renderDashboard();
 
 // ===== ERP EXTENSIONS =====
@@ -7899,6 +7970,7 @@ function savePermissions() {
 // ============ PARENT PORTAL ============
 function renderParentPortal() {
   if(!currentUser) return;
+  generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   const sCls = currentUser.studentCls || 'দশম - ক';
@@ -7916,6 +7988,53 @@ function renderParentPortal() {
   const feeEl = document.getElementById('pp-fee-status');
   feeEl.textContent = hasDue?'বকেয়া':hasPartial?'আংশিক':'পরিশোধিত';
   feeEl.style.color = hasDue?'var(--danger)':hasPartial?'var(--accent)':'var(--success)';
+
+  // Fee due পোস্টার/ব্যানার — সবচেয়ে জরুরি (সবচেয়ে কাছের due date-এর) বকেয়াটা দেখানো হয়
+  const banner = document.getElementById('pp-fee-banner');
+  const dueList = studentFees.filter(f=>f.status==='বকেয়া');
+  if(dueList.length>0) {
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    const withDays = dueList.map(f=>{
+      const dd = parseDateSafe(f.dueDate);
+      const daysLeft = dd ? Math.round((dd-today0)/(1000*60*60*24)) : null;
+      return {f, daysLeft};
+    }).sort((a,b)=>{
+      if(a.daysLeft===null) return 1;
+      if(b.daysLeft===null) return -1;
+      return a.daysLeft-b.daysLeft;
+    });
+    const top = withDays[0];
+    const totalDueAmt = dueList.reduce((sum,f)=>sum+Number(f.amount||0),0);
+    let title, sub, bg, icon;
+    if(top.daysLeft===null) {
+      title = 'বেতন বকেয়া আছে';
+      sub = `মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#e67e22,#d35400)'; icon='💰';
+    } else if(top.daysLeft<0) {
+      title = 'বেতন পরিশোধের মেয়াদ শেষ!';
+      sub = `${toBnNum(Math.abs(top.daysLeft))} দিন বিলম্বিত — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#c0392b,#922b21)'; icon='⚠️';
+    } else if(top.daysLeft===0) {
+      title = 'আজই বেতন পরিশোধের শেষ দিন!';
+      sub = `মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#c0392b,#e74c3c)'; icon='⏰';
+    } else if(top.daysLeft<=5) {
+      title = 'বেতন পরিশোধের সময় হয়েছে';
+      sub = `${toBnNum(top.daysLeft)} দিন বাকি — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#e67e22,#d35400)'; icon='⏳';
+    } else {
+      title = 'বেতন বকেয়া আছে';
+      sub = `জমার তারিখ: ${top.f.dueDate||'—'} (${toBnNum(top.daysLeft)} দিন বাকি) — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#2e86c1,#2874a6)'; icon='💰';
+    }
+    document.getElementById('pp-fee-banner-title').textContent = title;
+    document.getElementById('pp-fee-banner-sub').textContent = sub;
+    document.getElementById('pp-fee-banner-icon').textContent = icon;
+    banner.style.background = bg;
+    banner.style.display = 'flex';
+  } else {
+    banner.style.display = 'none';
+  }
 
   // GPA from results
   const sr = results.filter(r=>r.name===sName);
@@ -7985,11 +8104,25 @@ function renderParentPortal() {
 
   // Fee table
   document.getElementById('pp-fee-tbody').innerHTML = studentFees.length>0
-    ? studentFees.map(f=>`<tr>
+    ? studentFees.map(f=>{
+        let statusCell = `<span class="badge ${feeClass(f.status)}">${f.status}</span>`;
+        if(f.status==='বকেয়া' && f.dueDate) {
+          const dd = parseDateSafe(f.dueDate);
+          if(dd) {
+            const today0 = new Date(); today0.setHours(0,0,0,0);
+            const dl = Math.round((dd-today0)/(1000*60*60*24));
+            const extra = dl<0 ? `<div style="font-size:11px;color:var(--danger);margin-top:2px">${toBnNum(Math.abs(dl))} দিন বিলম্বিত</div>`
+              : dl===0 ? `<div style="font-size:11px;color:var(--danger);margin-top:2px">আজই শেষ দিন</div>`
+              : `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${toBnNum(dl)} দিন বাকি</div>`;
+            statusCell += extra;
+          }
+        }
+        return `<tr>
         <td>${f.type}</td>
         <td style="font-weight:700">${toBnNum(f.amount)}৳</td>
-        <td><span class="badge ${feeClass(f.status)}">${f.status}</span></td>
-      </tr>`).join('')
+        <td>${statusCell}</td>
+      </tr>`;
+      }).join('')
     : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো ফি রেকর্ড নেই</td></tr>';
 
   // Homework list
@@ -8000,7 +8133,7 @@ function renderParentPortal() {
   } else {
     const today = new Date(); today.setHours(0,0,0,0);
     document.getElementById('pp-hw-list').innerHTML = clsHWList.map(h=>{
-      const dueDate = new Date(h.due);
+      const dueDate = parseDateSafe(h.due) || today;
       const isOverdue = h.status==='সক্রিয়' && dueDate < today;
       const isDone = h.status==='জমা';
       let cardCls = 'pp-hw-card';
