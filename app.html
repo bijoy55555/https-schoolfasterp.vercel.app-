@@ -600,6 +600,7 @@
 
     console.log("✅ Firebase কানেক্ট হয়েছে (অফলাইন সাপোর্ট চালু)");
   </script>
+  <link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/>
 </head>
 <body>
 
@@ -9549,6 +9550,15 @@ window.addEventListener('load', ()=>{
   renderDashboard(); // pre-render for after login
 });
 
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.error("Service worker registration failed:", err);
+      });
+    });
+  }
 </script>
 </body>
 </html>

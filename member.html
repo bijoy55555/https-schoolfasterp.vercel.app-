@@ -30,7 +30,7 @@
   .badge.rejected { background:#fdeaea; color:#b03030; }
   .hidden { display:none; }
 </style>
-</head>
+<link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/></head>
 <body>
 <div class="wrap">
   <h1>✅ পেমেন্ট অ্যাপ্রুভ</h1>
@@ -244,6 +244,15 @@
       showMsg('action-msg', '❌ ব্যর্থ: ' + e.message, 'err');
     }
   };
+</script>
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.error("Service worker registration failed:", err);
+      });
+    });
+  }
 </script>
 </body>
 </html>
