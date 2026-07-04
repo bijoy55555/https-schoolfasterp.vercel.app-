@@ -494,7 +494,8 @@
   .id-card-barcode span { display:inline-block; background:rgba(255,255,255,0.8); border-radius:1px; }
   .id-card-stripe { height:4px; background:linear-gradient(90deg,#e67e22,#f39c12,#e67e22); }
   @media print {
-    .id-card-overlay { position:static!important; display:block!important; padding:0!important; background:none!important; }
+    .id-card-overlay:not(.open) { display:none!important; }
+    .id-card-overlay.open { position:static!important; display:block!important; padding:0!important; background:none!important; }
     .id-card-wrapper { box-shadow:none!important; padding:0!important; }
     .id-card-top-bar { display:none!important; }
     .id-card { width:85.6mm; height:53.98mm; border-radius:8px; }
@@ -600,7 +601,6 @@
 
     console.log("✅ Firebase কানেক্ট হয়েছে (অফলাইন সাপোর্ট চালু)");
   </script>
-  <link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/>
 </head>
 <body>
 
@@ -2374,6 +2374,8 @@
       </div>
     </div>
 
+    </div>
+
     <!-- ===== EVENT CALENDAR ===== -->
     <div class="page" id="page-event-calendar">
       <div class="ev-cal-header">
@@ -3829,9 +3831,6 @@ function navGo(id){
   showPage(id, document.querySelector(`.nav-item[data-page="${id}"]`));
 }
 function showPage(id, el) {
-  window.scrollTo(0, 0);
-  const contentEl = document.querySelector('.content');
-  if (contentEl) contentEl.scrollTop = 0;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
@@ -9550,15 +9549,6 @@ window.addEventListener('load', ()=>{
   renderDashboard(); // pre-render for after login
 });
 
-</script>
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.error("Service worker registration failed:", err);
-      });
-    });
-  }
 </script>
 </body>
 </html>
