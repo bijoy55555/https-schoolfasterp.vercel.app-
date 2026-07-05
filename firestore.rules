@@ -82,6 +82,13 @@ service cloud.firestore {
       match /data/{docId} {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
+
+      // ===== schools/{schoolId}/settings/{docId} — স্পর্শকাতর সেটিংস (যেমন
+      // পেমেন্ট গেটওয়ে Store ID/Password) — শুধু ঐ স্কুলের admin (অন্য রোল না)
+      // এটা পড়তে/লিখতে পারবে, সাধারণ data/{docId} এর চেয়ে বেশি কড়াকড়ি =====
+      match /settings/{docId} {
+        allow read, write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+      }
     }
 
     // ===== paymentRequests/{trxId} — bKash/Manual পেমেন্ট → WhatsApp

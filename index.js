@@ -23,22 +23,43 @@ const db = admin.firestore();
 // ⚠️ STORE_ID এবং STORE_PASSWORD Firebase Console-এর
 // Environment Config / Secret Manager-এ রাখতে হবে, কোডে লেখা যাবে না।
 exports.initiatePayment = onCall(async (request) => {
-  const { studentId, amount, studentName, phone, email } = request.data;
+  const { studentId, amount, studentName, phone, email, feeType, schoolId } = request.data;
 
   if (!studentId || !amount) {
     throw new Error("studentId এবং amount দেওয়া বাধ্যতামূলক");
   }
+  if (!schoolId) {
+    throw new Error("schoolId দেওয়া বাধ্যতামূলক — কোন স্কুলের পেমেন্ট তা জানা দরকার");
+  }
 
-  // ⚠️ এই দুটো ভ্যালু আপনার SSLCommerz মার্চেন্ট অ্যাকাউন্ট থেকে আসবে
-  const STORE_ID = process.env.SSLCOMMERZ_STORE_ID;
-  const STORE_PASSWORD = process.env.SSLCOMMERZ_STORE_PASSWORD;
-  const IS_LIVE = false; // টেস্টের সময় false, রিয়েল পেমেন্টের সময় true
+  // ⚠️ মডেল ২: প্রতিটা স্কুলের নিজস্ব SSLCommerz Store ID/Password —
+  // এগুলো গ্লোবাল env variable থেকে না নিয়ে schools/{schoolId}/settings/payment
+  // ডকুমেন্ট থেকে পড়া হয়, যাতে প্রতিটা স্কুলের টাকা সরাসরি তাদের নিজের
+  // ব্যাংক অ্যাকাউন্টে যায়, আমাদের কাছে না।
+  const schoolRef = db.collection("schools").doc(schoolId);
+  const paymentSettingsSnap = await schoolRef.collection("settings").doc("payment").get();
+  if (!paymentSettingsSnap.exists) {
+    throw new Error("এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
+  }
+  const paymentSettings = paymentSettingsSnap.data();
+  const STORE_ID = paymentSettings.sslcommerzStoreId;
+  const STORE_PASSWORD = paymentSettings.sslcommerzStorePassword;
+  const IS_LIVE = !!paymentSettings.sslcommerzIsLive; // স্কুল নিজেই সেটিংসে টিক দিয়ে sandbox/live বেছে নেবে
+
+  if (!STORE_ID || !STORE_PASSWORD) {
+    throw new Error("এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
+  }
 
   const sslczUrl = IS_LIVE
     ? "https://securepay.sslcommerz.com/gwprocess/v4/api.php"
     : "https://sandbox.sslcommerz.com/gwprocess/v4/api.php";
 
-  const tranId = `SCHOOL_${studentId}_${Date.now()}`;
+  const tranId = `TXN_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  // ⚠️ এখানে আপনার আসল হোস্টিং ডোমেইন বসান (যেমন Vercel/Firebase Hosting URL)।
+  // Firebase Console → Functions → Environment Variables-এ APP_URL সেট করলে সেটাই ব্যবহার হবে।
+  const APP_URL = process.env.APP_URL || "https://schoolfasterp.vercel.app/app.html";
+  const FUNCTIONS_BASE = process.env.FUNCTIONS_BASE_URL || "https://us-central1-school-erp-bd.cloudfunctions.net";
 
   const postData = {
     store_id: STORE_ID,
@@ -46,9 +67,14 @@ exports.initiatePayment = onCall(async (request) => {
     total_amount: amount,
     currency: "BDT",
     tran_id: tranId,
-    success_url: "https://আপনার-প্রজেক্ট.web.app/payment-success",
-    fail_url: "https://আপনার-প্রজেক্ট.web.app/payment-fail",
-    cancel_url: "https://আপনার-প্রজেক্ট.web.app/payment-cancel",
+    // ✅ value_a দিয়ে schoolId পাঠানো হলো — SSLCommerz এটা অপরিবর্তিত রেখে IPN/redirect-এ
+    // ফেরত পাঠায়, তাই পরে আমরা জানতে পারব এই লেনদেনটা কোন স্কুলের
+    value_a: schoolId,
+    // পেমেন্ট শেষে ব্রাউজার এই ৩টা ঠিকানার একটাতে ফিরে আসবে —
+    // আমাদের নিজস্ব ফাংশন সেটা ধরে Firestore আপডেট করে, তারপর app.html-এ ফেরত পাঠায়
+    success_url: `${FUNCTIONS_BASE}/paymentSuccessRedirect`,
+    fail_url: `${FUNCTIONS_BASE}/paymentFailRedirect`,
+    cancel_url: `${FUNCTIONS_BASE}/paymentCancelRedirect`,
     cus_name: studentName || "Student",
     cus_email: email || "student@example.com",
     cus_phone: phone || "01700000000",
@@ -56,7 +82,7 @@ exports.initiatePayment = onCall(async (request) => {
     cus_city: "Dhaka",
     cus_country: "Bangladesh",
     shipping_method: "NO",
-    product_name: "School Fee",
+    product_name: feeType || "School Fee",
     product_category: "Education",
     product_profile: "general"
   };
@@ -64,9 +90,18 @@ exports.initiatePayment = onCall(async (request) => {
   try {
     const response = await axios.post(sslczUrl, new URLSearchParams(postData));
 
-    // লেনদেনের রেকর্ড Firestore-এ "pending" অবস্থায় সেভ করা হলো
-    await db.collection("payments").doc(tranId).set({
+    if (!response.data || response.data.status !== "SUCCESS") {
+      console.error("SSLCommerz প্রত্যাখ্যান করেছে:", response.data);
+      throw new Error(response.data?.failedreason || "SSLCommerz পেমেন্ট শুরু করতে রাজি হয়নি — Store ID/Password ঠিক আছে কিনা চেক করুন");
+    }
+
+    // ✅ লেনদেনের রেকর্ড স্কুলের নিজস্ব সাব-কালেকশনে সেভ করা হলো (schools/{schoolId}/payments/{tranId})
+    // — অন্য কোনো স্কুলের ডেটার সাথে মিশবে না
+    await schoolRef.collection("payments").doc(tranId).set({
       studentId,
+      studentName: studentName || "",
+      phone: phone || "",
+      feeType: feeType || "",
       amount,
       status: "pending",
       createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -75,22 +110,56 @@ exports.initiatePayment = onCall(async (request) => {
     return { paymentUrl: response.data.GatewayPageURL, tranId };
   } catch (error) {
     console.error("পেমেন্ট ইনিশিয়েট এরর:", error.message);
-    throw new Error("পেমেন্ট শুরু করা যায়নি, আবার চেষ্টা করুন");
+    throw new Error(error.message || "পেমেন্ট শুরু করা যায়নি, আবার চেষ্টা করুন");
   }
 });
 
-// SSLCommerz পেমেন্ট সফল হলে এই ওয়েবহুকে কল করবে
+// SSLCommerz-এর সার্ভার-টু-সার্ভার নোটিফিকেশন (IPN) — টাকা আসলেই পাওয়া গেছে কিনা,
+// এটাই সবচেয়ে নির্ভরযোগ্য উৎস, কারণ এটা ব্যবহারকারীর ব্রাউজার দিয়ে যায় না, সরাসরি SSLCommerz-এর
+// সার্ভার থেকে আসে। মার্চেন্ট প্যানেলে "IPN URL" হিসেবে এই ফাংশনের ঠিকানা বসাতে হবে।
 exports.paymentSuccessWebhook = onRequest(async (req, res) => {
-  const { tran_id, status } = req.body;
+  const { tran_id, status, value_a } = req.body;
+  const schoolId = value_a;
 
-  if (status === "VALID") {
-    await db.collection("payments").doc(tran_id).update({
+  if (status === "VALID" && schoolId && tran_id) {
+    await db.collection("schools").doc(schoolId).collection("payments").doc(tran_id).set({
       status: "paid",
       paidAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    }, { merge: true });
   }
   res.status(200).send("OK");
 });
+
+// ===================================================================
+// পেমেন্টের পর ব্রাউজারকে ফেরত পাঠানোর ফাংশন (success/fail/cancel)
+// ===================================================================
+// SSLCommerz পেমেন্ট শেষে ব্যবহারকারীর ব্রাউজারকে এই ৩টার একটাতে POST করে ফেরত পাঠায়,
+// আর value_a-তে schoolId ফেরত আসে (আমরাই পাঠিয়েছিলাম) — তাই জানা যায় কোন স্কুলের ডকুমেন্ট আপডেট করতে হবে।
+function buildPaymentRedirect(statusLabel) {
+  return onRequest(async (req, res) => {
+    const tranId = (req.body && req.body.tran_id) || req.query.tran_id || "";
+    const schoolId = (req.body && req.body.value_a) || req.query.value_a || "";
+    if (schoolId && tranId) {
+      try {
+        const newStatus = statusLabel === "success" ? "paid" : statusLabel === "fail" ? "failed" : "cancelled";
+        await db.collection("schools").doc(schoolId).collection("payments").doc(tranId).set(
+          {
+            status: newStatus,
+            ...(statusLabel === "success" ? { paidAt: admin.firestore.FieldValue.serverTimestamp() } : {})
+          },
+          { merge: true }
+        );
+      } catch (e) {
+        console.error("redirect-এ Firestore আপডেট এরর:", e.message);
+      }
+    }
+    const APP_URL = process.env.APP_URL || "https://schoolfasterp.vercel.app/app.html";
+    res.redirect(302, `${APP_URL}?payment=${statusLabel}&tran_id=${encodeURIComponent(tranId)}&school_id=${encodeURIComponent(schoolId)}`);
+  });
+}
+exports.paymentSuccessRedirect = buildPaymentRedirect("success");
+exports.paymentFailRedirect = buildPaymentRedirect("fail");
+exports.paymentCancelRedirect = buildPaymentRedirect("cancel");
 
 // ===================================================================
 // ২) SMS গেটওয়ে — বাংলাদেশি SMS প্রোভাইডার (যেমন BulkSMSBD) দিয়ে

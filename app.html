@@ -1802,6 +1802,7 @@
         <div class="settings-tab-btn" id="stab-users" onclick="switchSettingsTab('users')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">👥 ইউজার ও পার্মিশন</div>
         <div class="settings-tab-btn" id="stab-comm" onclick="switchSettingsTab('comm')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">📡 যোগাযোগ</div>
         <div class="settings-tab-btn" id="stab-admin" onclick="switchSettingsTab('admin')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">🛠️ অ্যাডমিন</div>
+        <div class="settings-tab-btn" id="stab-payment" onclick="switchSettingsTab('payment')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">💳 পেমেন্ট সেটিংস</div>
       </div>
 
       <!-- GENERAL TAB -->
@@ -1996,6 +1997,47 @@
           </div>
         </div>
       </div>
+
+      <!-- PAYMENT SETTINGS TAB -->
+      <div id="settings-tab-payment" style="display:none">
+        <div class="two-col">
+          <div>
+            <div class="settings-section">
+              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">💳 SSLCommerz মার্চেন্ট সেটআপ</div>
+              <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+                <div class="settings-sub" style="margin-bottom:4px">
+                  এটা <strong>আপনার নিজের স্কুলের</strong> SSLCommerz মার্চেন্ট অ্যাকাউন্টের তথ্য — অভিভাবকরা যখন এখানে ফি পরিশোধ করবে, টাকা সরাসরি <strong>আপনার স্কুলের ব্যাংক অ্যাকাউন্টে</strong> যাবে, অন্য কোথাও না।
+                </div>
+                <div class="form-group"><label class="form-label">Store ID</label><input class="form-input" id="pset-store-id" placeholder="SSLCommerz থেকে পাওয়া Store ID"></div>
+                <div class="form-group"><label class="form-label">Store Password</label><input class="form-input" id="pset-store-pass" type="password" placeholder="SSLCommerz থেকে পাওয়া Store Password"></div>
+                <div class="settings-row" style="padding:8px 0">
+                  <div><div class="settings-label">Live মোড</div><div class="settings-sub">বন্ধ থাকলে Sandbox/টেস্ট মোডে চলবে (আসল টাকা কাটবে না)</div></div>
+                  <label class="toggle"><input type="checkbox" id="pset-is-live"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-error" id="pset-error"></div>
+                <button class="btn btn-primary" onclick="savePaymentSettings()">💾 পেমেন্ট সেটিংস সংরক্ষণ করুন</button>
+                <div id="pset-status" style="font-size:12px;color:var(--text-muted)"></div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="settings-section">
+              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">ℹ️ কীভাবে পাবেন</div>
+              <div style="padding:20px;font-size:13px;line-height:1.8;color:var(--text)">
+                <ol style="padding-left:18px;margin:0">
+                  <li>sslcommerz.com-এ গিয়ে মার্চেন্ট অ্যাকাউন্টের জন্য আবেদন করুন (ট্রেড লাইসেন্স, TIN, ব্যাংক অ্যাকাউন্ট লাগবে)</li>
+                  <li>অনুমোদন পেলে তারা আপনাকে Store ID ও Store Password দেবে</li>
+                  <li>টেস্টের জন্য প্রথমে Sandbox অ্যাকাউন্ট দিয়েও শুরু করতে পারেন (ডকুমেন্ট ছাড়াই ফ্রি) — "Live মোড" বন্ধ রাখুন</li>
+                  <li>আসল টাকা নেওয়া শুরু করতে চাইলে Live মার্চেন্ট অ্যাকাউন্ট থেকে পাওয়া তথ্য বসিয়ে "Live মোড" চালু করুন</li>
+                </ol>
+                <div style="margin-top:14px;padding:10px;background:#fef3e2;border-radius:8px;font-size:12px;color:#8a5a00">
+                  ⚠️ এই তথ্য শুধু আপনার স্কুলের জন্য প্রযোজ্য এবং এনক্রিপ্টেড Firestore ডাটাবেসে সংরক্ষিত হয় — অন্য কোনো স্কুল এটা দেখতে পারবে না।
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="modal-overlay" id="add-user-modal">
@@ -2177,35 +2219,29 @@
             <div class="form-error" id="pay-err" style="margin-top:10px"></div>
             <div class="modal-footer" style="margin-top:18px">
               <button class="btn btn-outline" style="flex:1" onclick="closePaymentModal()">বাতিল</button>
-              <button class="btn btn-success" style="flex:2" onclick="goPayStep2()">পরবর্তী →</button>
+              <button class="btn btn-success" style="flex:2" onclick="startRealPayment()">💳 পেমেন্টে যান →</button>
             </div>
           </div>
 
-          <!-- Step 2: OTP -->
+          <!-- Step 2: Redirecting to real payment gateway -->
           <div class="pay-step" id="pay-step-2" style="padding:22px;text-align:center">
             <div style="font-size:36px;margin-bottom:8px" id="pay-step2-icon">🩷</div>
-            <div style="font-size:15px;font-weight:700;color:var(--text)" id="pay-step2-title">বিকাশ যাচাইকরণ</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="pay-step2-sub">আপনার নম্বরে OTP পাঠানো হয়েছে</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)" id="pay-step2-title">পেমেন্ট গেটওয়েতে পাঠানো হচ্ছে...</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="pay-step2-sub">অনুগ্রহ করে অপেক্ষা করুন</div>
             <div style="background:#f0f9f4;border-radius:10px;padding:12px;margin:14px 0;font-size:13px">
               পরিমাণ: <strong id="pay-amount-show"></strong> | নম্বর: <strong id="pay-phone-show"></strong>
             </div>
-            <div style="font-size:13px;font-weight:700;color:var(--text-muted);margin-bottom:8px">৬ সংখ্যার OTP কোড দিন</div>
-            <div class="pay-otp-boxes">
-              <input class="pay-otp-box" id="otp0" maxlength="1" oninput="otpNext(this,1)" type="tel">
-              <input class="pay-otp-box" id="otp1" maxlength="1" oninput="otpNext(this,2)" type="tel">
-              <input class="pay-otp-box" id="otp2" maxlength="1" oninput="otpNext(this,3)" type="tel">
-              <input class="pay-otp-box" id="otp3" maxlength="1" oninput="otpNext(this,4)" type="tel">
-              <input class="pay-otp-box" id="otp4" maxlength="1" oninput="otpNext(this,5)" type="tel">
-              <input class="pay-otp-box" id="otp5" maxlength="1" oninput="otpNext(this,-1)" type="tel">
+            <div id="pay-loading-spinner" style="padding:20px 0">
+              <div style="width:36px;height:36px;border:4px solid #e0e0e0;border-top-color:#1e8449;border-radius:50%;margin:0 auto;animation:paySpin 0.8s linear infinite"></div>
+              <style>@keyframes paySpin{to{transform:rotate(360deg)}}</style>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">Demo-তে যেকোনো ৬টি সংখ্যা দিন</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px">আপনাকে বিকাশ/নগদ/ব্যাংকের নিজস্ব নিরাপদ পেজে পাঠানো হচ্ছে — সেখানে PIN/OTP দিয়ে পেমেন্ট সম্পন্ন করুন</div>
             <div class="modal-footer" style="justify-content:center">
-              <button class="btn btn-outline" onclick="goPayStep(1)">← পেছনে</button>
-              <button class="btn btn-success" style="flex:1" onclick="goPayStep3()">✓ যাচাই করুন</button>
+              <button class="btn btn-outline" onclick="goPayStep(1)">← বাতিল করুন</button>
             </div>
           </div>
 
-          <!-- Step 3: Success -->
+          <!-- Step 3: Success (দেখা যাবে শুধু পুরনো/ম্যানুয়াল ফ্লো থেকে ফেরত এলে) -->
           <div class="pay-step" id="pay-step-3" style="padding:22px">
             <div class="pay-success-anim">
               <div class="pay-success-circle">✓</div>
@@ -4937,6 +4973,9 @@ function printPage() { window.print(); }
 document.getElementById('topbar-date').textContent = todayBn();
 generateAutoFees(); // অ্যাপ খোলার সাথে সাথেই মিসিং মাসগুলোর বকেয়া অটো তৈরি করে নেয়
 renderDashboard();
+// পেমেন্ট গেটওয়ে থেকে ফেরত এলে (?payment=success/fail/cancel&tran_id=...) তা প্রসেস করা —
+// সেশন/লগইন রিস্টোর হতে একটু সময় লাগতে পারে বলে সামান্য দেরি করা হলো
+setTimeout(()=>{ if(typeof handlePaymentReturn==='function') handlePaymentReturn(); }, 1200);
 
 // ===== ERP EXTENSIONS =====
 // Student object can be extended with:
@@ -7865,7 +7904,8 @@ function switchSettingsTab(tab) {
   document.getElementById('settings-tab-users').style.display = tab==='users'?'':'none';
   document.getElementById('settings-tab-comm').style.display = tab==='comm'?'':'none';
   document.getElementById('settings-tab-admin').style.display = tab==='admin'?'':'none';
-  ['general','users','comm','admin'].forEach(t=>{
+  document.getElementById('settings-tab-payment').style.display = tab==='payment'?'':'none';
+  ['general','users','comm','admin','payment'].forEach(t=>{
     document.getElementById('stab-'+t).style.cssText = tab===t
       ? 'padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--primary);border-bottom:3px solid var(--primary);margin-bottom:-2px'
       : 'padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px';
@@ -7873,6 +7913,67 @@ function switchSettingsTab(tab) {
   if(tab==='users') { renderUserList(); renderPermRoleTabs(); renderPermMatrix(); }
   if(tab==='comm') { renderCommLog(); }
   if(tab==='admin') { renderAuditLog(); renderBackupHistory(); }
+  if(tab==='payment') { loadPaymentSettings(); }
+}
+
+// ============ পেমেন্ট সেটিংস (প্রতিটা স্কুলের নিজস্ব SSLCommerz তথ্য) ============
+async function loadPaymentSettings() {
+  const errEl = document.getElementById('pset-error');
+  const statusEl = document.getElementById('pset-status');
+  errEl.style.display = 'none';
+  if(!window.currentSchoolId) {
+    statusEl.textContent = 'ℹ️ এটা ডেমো/অফলাইন মোড — পেমেন্ট সেটিংস সেভ করতে আসল স্কুল অ্যাকাউন্ট (ইমেইল) দিয়ে লগইন করতে হবে।';
+    return;
+  }
+  try {
+    const snap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'settings', 'payment'));
+    if(snap.exists()) {
+      const d = snap.data();
+      document.getElementById('pset-store-id').value = d.sslcommerzStoreId || '';
+      document.getElementById('pset-store-pass').value = d.sslcommerzStorePassword || '';
+      document.getElementById('pset-is-live').checked = !!d.sslcommerzIsLive;
+      statusEl.textContent = d.sslcommerzStoreId
+        ? '✅ পেমেন্ট সেটআপ করা আছে ('+(d.sslcommerzIsLive?'Live মোড':'Sandbox/টেস্ট মোড')+')'
+        : '⚠️ এখনো পেমেন্ট সেটআপ করা হয়নি — নিচে তথ্য দিয়ে সংরক্ষণ করুন';
+    } else {
+      statusEl.textContent = '⚠️ এখনো পেমেন্ট সেটআপ করা হয়নি — নিচে তথ্য দিয়ে সংরক্ষণ করুন';
+    }
+  } catch(e) {
+    console.error('পেমেন্ট সেটিংস লোড এরর:', e);
+    statusEl.textContent = 'সেটিংস লোড করা যায়নি — ইন্টারনেট সংযোগ চেক করুন (বা এই ইউজারের admin অনুমতি নেই)';
+  }
+}
+async function savePaymentSettings() {
+  const errEl = document.getElementById('pset-error');
+  const statusEl = document.getElementById('pset-status');
+  errEl.style.display = 'none';
+  const storeId = document.getElementById('pset-store-id').value.trim();
+  const storePass = document.getElementById('pset-store-pass').value.trim();
+  const isLive = document.getElementById('pset-is-live').checked;
+  if(!storeId || !storePass) {
+    errEl.textContent = 'Store ID ও Store Password দুটোই দিতে হবে';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(!window.currentSchoolId) {
+    errEl.textContent = 'ডেমো মোডে এটা সেভ করা যাবে না — আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করুন';
+    errEl.style.display = 'block';
+    return;
+  }
+  try {
+    await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'settings', 'payment'), {
+      sslcommerzStoreId: storeId,
+      sslcommerzStorePassword: storePass,
+      sslcommerzIsLive: isLive,
+    }, { merge: true });
+    statusEl.textContent = '✅ সংরক্ষিত হয়েছে — '+todayBn();
+    showToast('পেমেন্ট সেটিংস সংরক্ষিত হয়েছে!');
+    logAudit('পেমেন্ট সেটিংস (SSLCommerz) আপডেট করেছেন');
+  } catch(e) {
+    console.error('পেমেন্ট সেটিংস সেভ এরর:', e);
+    errEl.textContent = 'সংরক্ষণ করা যায়নি: '+(e.message||'অজানা সমস্যা');
+    errEl.style.display = 'block';
+  }
 }
 
 // ===== User list =====
@@ -8758,59 +8859,104 @@ function selectPayMethod(m) {
 function goPayStep(n) {
   document.querySelectorAll('.pay-step').forEach((s,i)=>s.classList.toggle('active', i===n-1));
 }
-function goPayStep2() {
+// ============ আসল পেমেন্ট (SSLCommerz via Firebase Functions) ============
+// আগে এখানে একটা mock/নকল OTP ফ্লো ছিল যা আসলে কোনো টাকা নড়াচড়া করত না।
+// এখন এটা সত্যিকারের index.js-এর initiatePayment ফাংশনকে কল করে,
+// যা অভিভাবককে SSLCommerz-এর নিজস্ব নিরাপদ পেমেন্ট পেজে (বিকাশ/নগদ/রকেট/কার্ড) পাঠায়।
+// ⚠️ এটা কাজ করার জন্য প্রয়োজন:
+//   ১) Firebase Functions ডিপ্লয় করা থাকতে হবে (firebase deploy --only functions)
+//   ২) SSLCOMMERZ_STORE_ID ও SSLCOMMERZ_STORE_PASSWORD এনভায়রনমেন্ট কনফিগে সেট থাকতে হবে
+//   ৩) index.js-এ success_url/fail_url/cancel_url সঠিক ডোমেইনে বসাতে হবে
+async function startRealPayment() {
   const phone = document.getElementById('pay-phone').value.trim();
   if(!/^01[3-9]\d{8}$/.test(phone)) {
     const err = document.getElementById('pay-err');
     err.textContent='সঠিক মোবাইল নম্বর দিন (যেমন: ০১৭XXXXXXXX)';
     err.style.display='block'; return;
   }
+  document.getElementById('pay-err').style.display='none';
+
   const sel = document.getElementById('pay-fee-type');
-  const amt = sel.options[sel.selectedIndex].text.split('—')[1]?.trim()||'৳৫০০';
+  const amount = Number(sel.value);
+  const feeText = sel.options[sel.selectedIndex].text.split('—')[0].trim();
   const icons = {bkash:'🩷',nagad:'🧡',rocket:'🟣',bank:'🏦'};
   const names = {bkash:'বিকাশ',nagad:'নগদ',rocket:'রকেট',bank:'ব্যাংক'};
-  document.getElementById('pay-step2-icon').textContent = icons[selectedPayMethod];
-  document.getElementById('pay-step2-title').textContent = names[selectedPayMethod]+' যাচাইকরণ';
-  document.getElementById('pay-step2-sub').textContent = `আপনার ${phone} নম্বরে OTP পাঠানো হয়েছে`;
-  document.getElementById('pay-amount-show').textContent = amt;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = bnDigitsToEn(currentUser.studentRoll || '0');
+
+  document.getElementById('pay-step2-icon').textContent = icons[selectedPayMethod]||'💳';
+  document.getElementById('pay-step2-title').textContent = 'পেমেন্ট গেটওয়েতে পাঠানো হচ্ছে...';
+  document.getElementById('pay-step2-sub').textContent = names[selectedPayMethod]+' সহ সব পদ্ধতি ওখানে বেছে নিতে পারবেন';
+  document.getElementById('pay-amount-show').textContent = '৳'+toBnNum(amount);
   document.getElementById('pay-phone-show').textContent = phone;
-  for(let i=0;i<6;i++) document.getElementById('otp'+i).value='';
+  document.getElementById('pay-loading-spinner').style.display = 'block';
   goPayStep(2);
-  setTimeout(()=>document.getElementById('otp0').focus(), 200);
+
+  try {
+    if(!window.functions || !window.fb || !window.fb.httpsCallable) {
+      throw new Error('Firebase Functions লোড হয়নি — ইন্টারনেট সংযোগ চেক করুন');
+    }
+    if(!window.currentSchoolId) {
+      throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল পেমেন্টের জন্য ইমেইল দিয়ে (আসল স্কুল অ্যাকাউন্ট) লগইন করতে হবে');
+    }
+    const initiatePayment = window.fb.httpsCallable(window.functions, 'initiatePayment');
+    const result = await initiatePayment({
+      schoolId: window.currentSchoolId,
+      studentId: sRoll,
+      amount,
+      studentName: sName,
+      phone,
+      feeType: feeText,
+    });
+    if(result && result.data && result.data.paymentUrl) {
+      // অভিভাবককে SSLCommerz-এর নিজস্ব পেজে পাঠানো হলো — টাকা ওখানেই ওদের নিরাপদ সিস্টেমে দেওয়া হবে
+      window.location.href = result.data.paymentUrl;
+    } else {
+      throw new Error('গেটওয়ে থেকে পেমেন্ট লিংক পাওয়া যায়নি');
+    }
+  } catch(e) {
+    console.error('পেমেন্ট শুরু করতে সমস্যা:', e);
+    goPayStep(1);
+    const err = document.getElementById('pay-err');
+    err.textContent = 'পেমেন্ট শুরু করা যায়নি। কারণ: '+(e.message||'অজানা সমস্যা')+'। (Store ID/Password ও Functions ডিপ্লয় ঠিক আছে কিনা চেক করুন)';
+    err.style.display='block';
+  }
 }
-function otpNext(el, nextIdx) {
-  if(el.value && nextIdx>=0) document.getElementById('otp'+nextIdx)?.focus();
+
+// পেমেন্ট গেটওয়ে থেকে ফিরে আসার পর (success/fail/cancel) এই ফাংশন URL-এর প্যারামিটার
+// পড়ে অভিভাবককে জানায় কী হলো, এবং সফল হলে ফি স্ট্যাটাস রিফ্রেশ করে।
+async function handlePaymentReturn() {
+  const params = new URLSearchParams(window.location.search);
+  const payment = params.get('payment');
+  const tranId = params.get('tran_id');
+  const schoolIdFromUrl = params.get('school_id');
+  if(!payment) return;
+  window.history.replaceState({}, '', window.location.pathname); // URL পরিষ্কার করা, রিফ্রেশে যেন আবার না চলে
+
+  if(payment==='success') {
+    showToast('✅ পেমেন্ট সফল হয়েছে! ট্রানজেকশন যাচাই করা হচ্ছে...');
+    try {
+      const sid = schoolIdFromUrl || window.currentSchoolId;
+      if(tranId && sid && window.fb && window.db) {
+        const snap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', sid, 'payments', tranId));
+        if(snap.exists()) {
+          const data = snap.data();
+          if(data.status==='paid') {
+            showToast('✅ পেমেন্ট নিশ্চিত হয়েছে! ৳'+toBnNum(data.amount||'')+' গৃহীত হয়েছে।');
+          } else {
+            showToast('⏳ পেমেন্ট এখনো প্রসেস হচ্ছে, একটু পর আবার চেক করুন।','error');
+          }
+        }
+      }
+    } catch(e) { console.error('পেমেন্ট যাচাই এরর:', e); }
+    if(document.getElementById('page-parent-portal')?.classList.contains('active')) renderParentPortal();
+  } else if(payment==='fail') {
+    showToast('❌ পেমেন্ট ব্যর্থ হয়েছে, আবার চেষ্টা করুন।','error');
+  } else if(payment==='cancel') {
+    showToast('পেমেন্ট বাতিল করা হয়েছে।','error');
+  }
 }
-function goPayStep3() {
-  const otp = [0,1,2,3,4,5].map(i=>document.getElementById('otp'+i).value).join('');
-  if(otp.length<6 || !/^\d+$/.test(otp)) { showToast('৬ সংখ্যার OTP দিন','error'); return; }
-  // Mock: success
-  payTxId = 'TXN'+Date.now().toString().slice(-8);
-  const sel = document.getElementById('pay-fee-type');
-  const feeText = sel.options[sel.selectedIndex].text.split('—')[0].trim();
-  const amt = sel.options[sel.selectedIndex].value;
-  const phone = document.getElementById('pay-phone').value;
-  const names = {bkash:'বিকাশ',nagad:'নগদ',rocket:'রকেট',bank:'ব্যাংক'};
-  const now = new Date();
-  const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-  document.getElementById('pay-receipt-detail').innerHTML = [
-    ['পেমেন্ট পদ্ধতি', names[selectedPayMethod]],
-    ['ফি ধরন', feeText],
-    ['পরিমাণ', '৳'+toBnNum(amt)],
-    ['মোবাইল', phone],
-    ['Transaction ID', payTxId],
-    ['সময়', todayBn()+' '+timeStr],
-    ['অবস্থা', '✅ সফল'],
-  ].map(([l,v])=>`<div class="pay-receipt-row"><span class="lbl">${l}</span><span class="val">${v}</span></div>`).join('');
-  // Update fee record (mock)
-  const sName = currentUser?.studentName || currentUser?.name;
-  const feeIdx = fees.findIndex(f=>f.student===sName && (f.status==='বকেয়া'||f.status==='আংশিক'));
-  if(feeIdx>=0) fees[feeIdx].status = 'পরিশোধিত';
-  goPayStep(3);
-  showToast('পেমেন্ট সফল! ৳'+toBnNum(amt)+' গৃহীত হয়েছে।');
-  // refresh portal
-  setTimeout(renderParentPortal, 500);
-}
+
 function printPayReceipt() {
   const content = document.getElementById('pay-receipt-detail').innerHTML;
   const w = window.open('','_blank','width=400,height=500');
