@@ -38,10 +38,13 @@ service cloud.firestore {
       return belongsToSchool(schoolId) && myIndex().role == 'admin';
     }
 
-    // ===== superAdmins/{uid} — শুধু Firebase Console থেকে ম্যানুয়ালি
-    // লেখা হবে, ক্লায়েন্ট থেকে কখনো লেখা/পড়া যাবে না =====
+    // ===== superAdmins/{uid} — নিজের ডকুমেন্ট নিজে read করতে পারবে
+    // (লগইনের সময় isSuperAdmin কিনা যাচাই করতে ক্লায়েন্ট থেকেই দরকার হয়)।
+    // write সবসময় বন্ধ থাকবে — শুধু Firebase Console থেকে ম্যানুয়ালি
+    // বানানো/মোছা যাবে =====
     match /superAdmins/{uid} {
-      allow read, write: if false;
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
     }
 
     // ===== userIndex/{uid} — কোন ইউজার কোন স্কুলের, কী রোল — এই লুকআপ
@@ -83,11 +86,33 @@ service cloud.firestore {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
 
-      // ===== schools/{schoolId}/settings/{docId} — স্পর্শকাতর সেটিংস (যেমন
-      // পেমেন্ট গেটওয়ে Store ID/Password) — শুধু ঐ স্কুলের admin (অন্য রোল না)
-      // এটা পড়তে/লিখতে পারবে, সাধারণ data/{docId} এর চেয়ে বেশি কড়াকড়ি =====
+      // ===== schools/{schoolId}/backups/{backupId} — ম্যানুয়াল/অটো ব্যাকআপ
+      // পয়েন্টের ক্লাউড কপি (JSON স্ন্যাপশট)। backups/_meta ডকুমেন্টে শেষ
+      // ব্যাকআপের সময়/ধরন থাকে, যা সুপার-অ্যাডমিন প্যানেল থেকে সব স্কুলের
+      // ব্যাকআপ স্বাস্থ্য (মনিটরিং) দেখতে ব্যবহার হয় =====
+      match /backups/{backupId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
+
+      // ===== schools/{schoolId}/settings/{docId} — স্কুলের নিজস্ব সেটিংস
+      // (যেমন settings/payment = SSLCommerz Store ID/Password)। Store
+      // Password-এর মতো sensitive তথ্য থাকে বলে শুধু ওই স্কুলের admin
+      // (বা সুপার-অ্যাডমিন) read/write করতে পারবে — সাধারণ শিক্ষক/অভিভাবক
+      // এটা পড়তেও পারবে না =====
       match /settings/{docId} {
         allow read, write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+      }
+
+      // ===== schools/{schoolId}/payments/{paymentId} — SSLCommerz/bKash
+      // পেমেন্টের রেকর্ড কপি। অটো (SSLCommerz) ফ্লোতে এটা মূলত Cloud
+      // Function (admin SDK) থেকে লেখা হয়, যা এই rules বাইপাস করে —
+      // client-write শুধু স্কুল-অ্যাডমিন/সুপার-অ্যাডমিনের ম্যানুয়াল
+      // এন্ট্রির (bKash অ্যাপ্রুভাল কপি, member.html) জন্য খোলা রাখা হলো।
+      // read স্কুলের যে কেউ (অভিভাবক সহ) করতে পারবে — পেমেন্ট গেটওয়ে
+      // থেকে ফিরে এসে নিজের পেমেন্ট স্ট্যাটাস যাচাই করতে দরকার হয় =====
+      match /payments/{paymentId} {
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if isSchoolAdmin(schoolId) || isSuperAdmin();
       }
     }
 
