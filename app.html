@@ -1847,7 +1847,7 @@
         <div class="card" style="margin-bottom:18px">
           <div class="card-header">
             <div class="card-title">👥 সকল ইউজার অ্যাকাউন্ট</div>
-            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openModal('add-user-modal')">+ নতুন ইউজার</button>
+            <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openAddUserModal()">+ নতুন ইউজার</button>
           </div>
           <div class="card-body" style="padding:0" id="user-list-body"></div>
         </div>
@@ -2050,13 +2050,17 @@
             <div class="form-group"><label class="form-label">পাসওয়ার্ড *</label><input class="form-input" id="nu-pass" placeholder="৪+ অক্ষর" type="text"></div>
           </div>
           <div class="form-group"><label class="form-label">রোল *</label>
-            <select class="form-select" id="nu-role">
+            <select class="form-select" id="nu-role" onchange="toggleNuStudentField()">
               <option value="admin">অ্যাডমিন</option>
               <option value="principal">প্রধান শিক্ষক</option>
               <option value="teacher" selected>শিক্ষক</option>
               <option value="parent">অভিভাবক</option>
               <option value="student">ছাত্র</option>
             </select>
+          </div>
+          <div class="form-group" id="nu-student-group" style="display:none">
+            <label class="form-label">কোন ছাত্রের সাথে যুক্ত হবে? *</label>
+            <select class="form-select" id="nu-student-select"><option value="">-- ছাত্র নির্বাচন করুন --</option></select>
           </div>
           <div class="form-error" id="nu-error"></div>
           <div class="modal-footer">
@@ -7995,6 +7999,27 @@ function renderUserList() {
     </div>`).join('');
 }
 
+// মোডাল খোলার আগে ছাত্র-নির্বাচন ড্রপডাউন সবসময় সবশেষ ছাত্র তালিকা দিয়ে রিফ্রেশ করে নেয়
+function openAddUserModal() {
+  populateNuStudentSelect();
+  toggleNuStudentField();
+  openModal('add-user-modal');
+}
+
+function populateNuStudentSelect() {
+  const sel = document.getElementById('nu-student-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- ছাত্র নির্বাচন করুন --</option>' +
+    students.map((s,i)=>`<option value="${i}">${s.name} — রোল: ${s.roll} — ${s.cls}${s.section?' - '+s.section:''}</option>`).join('');
+}
+
+// অভিভাবক/ছাত্র রোল বাছাই করলেই ছাত্র-নির্বাচন ঘরটা দেখানো হয়, অন্য রোলের জন্য লুকানো থাকে
+function toggleNuStudentField() {
+  const role = document.getElementById('nu-role').value;
+  const group = document.getElementById('nu-student-group');
+  group.style.display = (role==='parent'||role==='student') ? 'block' : 'none';
+}
+
 function addNewUser() {
   const name = document.getElementById('nu-name').value.trim();
   const uid = document.getElementById('nu-uid').value.trim();
@@ -8005,8 +8030,16 @@ function addNewUser() {
   if(!name||!uid||!pass) { err.textContent='সকল ঘর পূরণ করুন।'; err.style.display='block'; return; }
   if(users[uid]) { err.textContent='এই আইডি ইতিমধ্যে আছে।'; err.style.display='block'; return; }
   if(pass.length<4) { err.textContent='পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।'; err.style.display='block'; return; }
+  // অভিভাবক/ছাত্র হলে অবশ্যই একজন ছাত্রের সাথে লিংক করতে হবে — নাহলে পোর্টালে ভুল/ডিফল্ট তথ্য দেখাবে
+  let studentLink = {};
+  if(role==='parent' || role==='student') {
+    const sIdx = document.getElementById('nu-student-select').value;
+    if(sIdx==='') { err.textContent='কোন ছাত্রের সাথে যুক্ত হবে তা নির্বাচন করুন।'; err.style.display='block'; return; }
+    const s = students[Number(sIdx)];
+    studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls + (s.section?' - '+s.section:'') };
+  }
   const avatar = name.trim().charAt(0);
-  users[uid] = {pass, role, name, avatar};
+  users[uid] = {pass, role, name, avatar, ...studentLink};
   document.getElementById('nu-name').value='';
   document.getElementById('nu-uid').value='';
   document.getElementById('nu-pass').value='';
@@ -8077,7 +8110,7 @@ function renderParentPortal() {
   const sCls = currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
-    ? 'আব্দুল করিম — অভিভাবক পোর্টাল'
+    ? currentUser.name + ' — অভিভাবক পোর্টাল'
     : sName + ' — ছাত্র পোর্টাল';
   document.getElementById('pp-student-info').textContent = `সন্তান: ${sName} | রোল: ${sRoll} | শ্রেণি: ${sCls}`;
   document.getElementById('pp-date').textContent = todayBn();
@@ -8925,6 +8958,35 @@ async function startRealPayment() {
 
 // পেমেন্ট গেটওয়ে থেকে ফিরে আসার পর (success/fail/cancel) এই ফাংশন URL-এর প্যারামিটার
 // পড়ে অভিভাবককে জানায় কী হলো, এবং সফল হলে ফি স্ট্যাটাস রিফ্রেশ করে।
+// অনলাইনে পেমেন্ট সফল হওয়ার পর ফি ম্যানেজমেন্ট (fees) ও ছাত্র তালিকা (students.feeStatus)
+// — দুই জায়গাতেই আপডেট করে দেয়, যাতে ড্যাশবোর্ড/ছাত্র তালিকায় সাথে সাথে "পরিশোধিত" দেখায়।
+function applyPaidStatusForStudent(sName, sCls, amount, method) {
+  const now = new Date();
+  const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const dateStr = `${toBnNum(now.getDate())} ${months[now.getMonth()]}`;
+
+  // ১) fees তালিকায় থাকা এই ছাত্রের বকেয়া এন্ট্রিগুলো "পরিশোধিত" করে দেওয়া হলো
+  const dueEntries = fees.filter(f=>f.student===sName && f.status==='বকেয়া');
+  if(dueEntries.length>0) {
+    dueEntries.forEach(f=>{ f.status='পরিশোধিত'; f.date=dateStr; f.month=now.getMonth(); f.method=method||f.method; });
+  } else {
+    // কোনো বকেয়া এন্ট্রি না থাকলেও, পেমেন্ট হয়েছে এমন একটা নতুন রেকর্ড যোগ করা হলো
+    fees.unshift({ student:sName, cls:sCls||'', type:'মাসিক বেতন', amount:amount||0, date:dateStr, month:now.getMonth(), method:method||'অনলাইন', status:'পরিশোধিত', receiptNo:receiptCounter++ });
+  }
+
+  // ২) ছাত্র তালিকায় (students) এই ছাত্রের feeStatus আপডেট — বাকি কোনো বকেয়া না থাকলে "পরিশোধিত"
+  const stu = students.find(s=>s.name===sName);
+  if(stu) {
+    const stillDue = fees.some(f=>f.student===sName && f.status==='বকেয়া');
+    stu.feeStatus = stillDue ? 'আংশিক' : 'পরিশোধিত';
+  }
+
+  // ৩) যে যে পেজ এখন খোলা আছে, সেগুলো রিফ্রেশ করে দেওয়া হলো যাতে সাথে সাথে দেখা যায়
+  if(document.getElementById('page-students')?.classList.contains('active')) renderStudents();
+  if(document.getElementById('page-fees')?.classList.contains('active')) renderFees();
+  if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
 async function handlePaymentReturn() {
   const params = new URLSearchParams(window.location.search);
   const payment = params.get('payment');
@@ -8943,6 +9005,9 @@ async function handlePaymentReturn() {
           const data = snap.data();
           if(data.status==='paid') {
             showToast('✅ পেমেন্ট নিশ্চিত হয়েছে! ৳'+toBnNum(data.amount||'')+' গৃহীত হয়েছে।');
+            const sName = (currentUser && (currentUser.studentName||currentUser.name)) || data.studentName;
+            const sCls = currentUser && currentUser.studentCls;
+            applyPaidStatusForStudent(sName, sCls, data.amount, data.method);
           } else {
             showToast('⏳ পেমেন্ট এখনো প্রসেস হচ্ছে, একটু পর আবার চেক করুন।','error');
           }
