@@ -561,9 +561,9 @@
 
   <!-- ===== Firebase SDK (যোগ করা হয়েছে) ===== -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
     const firebaseConfig = {
@@ -592,8 +592,10 @@
     window.fb = {
       doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit,
       signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged,
-      httpsCallable
+      httpsCallable,
+      initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword
     };
+    window.firebaseConfig = firebaseConfig;
 
     // নেট স্ট্যাটাস দেখানো
     window.addEventListener('online',  () => console.log("🟢 ইন্টারনেট সংযুক্ত"));
@@ -8033,7 +8035,7 @@ function toggleNuStudentField() {
   group.style.display = (role==='parent'||role==='student') ? 'block' : 'none';
 }
 
-function addNewUser() {
+async function addNewUser() {
   const name = document.getElementById('nu-name').value.trim();
   const uid = document.getElementById('nu-uid').value.trim();
   const pass = document.getElementById('nu-pass').value;
@@ -8042,7 +8044,6 @@ function addNewUser() {
   err.style.display='none';
   if(!name||!uid||!pass) { err.textContent='সকল ঘর পূরণ করুন।'; err.style.display='block'; return; }
   if(users[uid]) { err.textContent='এই আইডি ইতিমধ্যে আছে।'; err.style.display='block'; return; }
-  if(pass.length<4) { err.textContent='পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।'; err.style.display='block'; return; }
   // অভিভাবক/ছাত্র হলে অবশ্যই একজন ছাত্রের সাথে লিংক করতে হবে — নাহলে পোর্টালে ভুল/ডিফল্ট তথ্য দেখাবে
   let studentLink = {};
   if(role==='parent' || role==='student') {
@@ -8052,6 +8053,67 @@ function addNewUser() {
     studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls + (s.section?' - '+s.section:'') };
   }
   const avatar = name.trim().charAt(0);
+
+  // ✅ বাগ-ফিক্স: আগে ইমেইল-ফরম্যাট আইডি দিয়ে অভিভাবক/ছাত্র ইউজার বানালেও
+  // সেটা শুধু local users অবজেক্টে (ডেমো-স্টাইল) থেকে যেত, আসল Firebase
+  // Auth অ্যাকাউন্ট তৈরি হতো না। ফলে লগইন করা গেলেও window.currentSchoolId
+  // কখনো সেট হতো না, তাই "ডেমো/অফলাইন মোডে লগইন করা আছে" এরর দেখিয়ে
+  // পেমেন্ট (SSLCommerz) সবসময় ব্যর্থ হতো। এখন — আসল স্কুল সেশনে (real
+  // Firebase লগইন) থেকে ইমেইল-ফরম্যাট আইডি দিয়ে ইউজার বানালে একটা আসল
+  // Firebase Auth অ্যাকাউন্টও তৈরি করা হবে, যাতে পরে সেই ইমেইল/পাসওয়ার্ড
+  // দিয়ে সত্যিকারের লগইন (এবং পেমেন্ট) কাজ করে।
+  const canCreateRealAccount = !!(window.currentSchoolId && uid.includes('@') && window.fb && window.fb.createUserWithEmailAndPassword);
+  if (canCreateRealAccount) {
+    if (pass.length < 6) { err.textContent='ইমেইল দিয়ে ইউজার বানাতে পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে (Firebase Auth-এর নিয়ম)।'; err.style.display='block'; return; }
+    const btn = document.querySelector('#add-user-modal .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...'; }
+    // আলাদা ("সেকেন্ডারি") Firebase অ্যাপ ইনস্ট্যান্স দিয়ে বানানো হচ্ছে,
+    // যাতে createUserWithEmailAndPassword এই মুহূর্তে লগইন থাকা
+    // অ্যাডমিনের নিজের সেশনকে সাইন-আউট/প্রতিস্থাপন না করে দেয়।
+    const secondaryApp = window.fb.initializeApp(window.firebaseConfig, 'secondary-' + Date.now());
+    const secondaryAuth = window.fb.getAuth(secondaryApp);
+    try {
+      const cred = await window.fb.createUserWithEmailAndPassword(secondaryAuth, uid, pass);
+      const newUid = cred.user.uid;
+      await window.fb.signOut(secondaryAuth);
+
+      await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'users', newUid), {
+        name, email: uid, role, ...studentLink
+      });
+      await window.fb.setDoc(window.fb.doc(window.db, 'userIndex', newUid), {
+        schoolId: window.currentSchoolId, role, email: uid
+      });
+
+      // Settings → ইউজার তালিকায় দেখানোর জন্য স্থানীয় users অবজেক্টেও একটা
+      // এন্ট্রি রাখা হলো (কিন্তু এবার key হিসেবে ইমেইল না, আসল Firebase UID
+      // ব্যবহার হচ্ছে, আর pass রাখা হচ্ছে না — কারণ পাসওয়ার্ড এখন Firebase
+      // Auth-ই সামলাবে, তাই লগইনের সময় এটা আর "লোকাল" পথে যাবে না, বরং
+      // ইমেইল/পাসওয়ার্ড দিয়ে আসল Firebase লগইনে (doRealLogin) যাবে)
+      users[newUid] = { role, name, avatar, email: uid, ...studentLink };
+
+      document.getElementById('nu-name').value='';
+      document.getElementById('nu-uid').value='';
+      document.getElementById('nu-pass').value='';
+      closeModal('add-user-modal');
+      renderUserList();
+      logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
+      showToast('নতুন ইউজার তৈরি হয়েছে! (আসল লগইন — এই ইমেইল/পাসওয়ার্ড দিয়ে এখন সত্যিকারের লগইন ও পেমেন্ট দুটোই কাজ করবে)');
+      saveTenantData();
+    } catch (e) {
+      console.error('ইউজার তৈরির এরর:', e);
+      err.textContent = 'ইউজার তৈরি করা যায়নি: ' + (e.message || 'অজানা সমস্যা');
+      err.style.display = 'block';
+    } finally {
+      try { await window.fb.deleteApp(secondaryApp); } catch(e2) {}
+      if (btn) { btn.disabled = false; btn.textContent = 'তৈরি করুন'; }
+    }
+    return;
+  }
+
+  // ডেমো/অফলাইন মোড বা ইমেইল-ছাড়া সাধারণ ইউজারনেম — আগের মতোই শুধু
+  // local users অবজেক্টে সেভ হবে (এই অ্যাকাউন্টে পেমেন্ট/রিয়েল-টাইম সিঙ্ক
+  // কাজ করবে না, শুধু এই ব্রাউজারে/ডেমো ডেটাতে লগইন করা যাবে)
+  if(pass.length<4) { err.textContent='পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।'; err.style.display='block'; return; }
   users[uid] = {pass, role, name, avatar, ...studentLink};
   document.getElementById('nu-name').value='';
   document.getElementById('nu-uid').value='';
@@ -8916,7 +8978,12 @@ function goPayStep(n) {
 //   ২) SSLCOMMERZ_STORE_ID ও SSLCOMMERZ_STORE_PASSWORD এনভায়রনমেন্ট কনফিগে সেট থাকতে হবে
 //   ৩) index.js-এ success_url/fail_url/cancel_url সঠিক ডোমেইনে বসাতে হবে
 async function startRealPayment() {
-  const phone = document.getElementById('pay-phone').value.trim();
+  // ✅ বাগ-ফিক্স: ফোনের ঘরে বাংলা সংখ্যায় (০১৮...) নম্বর লিখলে আগে
+  // এটা ভুল ধরে বাতিল করে দিত, কারণ regex-এর \d শুধু ইংরেজি 0-9 ধরে,
+  // বাংলা অঙ্ক (০-৯) ধরে না। এখন যাচাইয়ের আগেই bnDigitsToEn() দিয়ে
+  // ইংরেজি সংখ্যায় রূপান্তর করে নেওয়া হচ্ছে (SSLCommerz-কেও ইংরেজি
+  // সংখ্যাতেই নম্বর পাঠাতে হয়, তাই এটা পরের ধাপগুলোর জন্যও দরকার)।
+  const phone = bnDigitsToEn(document.getElementById('pay-phone').value.trim());
   if(!/^01[3-9]\d{8}$/.test(phone)) {
     const err = document.getElementById('pay-err');
     err.textContent='সঠিক মোবাইল নম্বর দিন (যেমন: ০১৭XXXXXXXX)';
