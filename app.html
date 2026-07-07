@@ -7771,17 +7771,29 @@ async function loginWithAuthUser(authUser, errEl) {
   }
 
   // ইউজার প্রোফাইল লোড
+  // ✅ বাগ-ফিক্স: আগে এখানে শুধু 'name' ফিল্ডটা পড়া হতো, কিন্তু ছাত্র-লিংক
+  // (studentName/studentRoll/studentCls) ফিল্ডগুলো Firestore-এ সেভ থাকা
+  // সত্ত্বেও currentUser-এ যোগ হতো না। ফলে অভিভাবক/ছাত্র লগইন করলে
+  // অভিভাবক পোর্টালে ভুল/ডিফল্ট ছাত্রের তথ্য (এমনকি অভিভাবকের নিজের নাম)
+  // দেখাত, এবং ফি/নোটিশও ছাত্রের নাম না মেলায় দেখাত না। এখন পুরো
+  // ইউজার ডকুমেন্টটাই uObj-এ ছড়িয়ে (spread) দেওয়া হচ্ছে যাতে
+  // studentName/studentRoll/studentCls ঠিকভাবে লগইনের সময় লোড হয়।
   let displayName = authUser.displayName || authUser.email;
+  let userDocData = {};
   try {
     const userSnap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', schoolId, 'users', authUser.uid));
-    if (userSnap.exists()) displayName = userSnap.data().name || displayName;
+    if (userSnap.exists()) {
+      userDocData = userSnap.data();
+      displayName = userDocData.name || displayName;
+    }
   } catch(e) { /* profile doc optional */ }
 
   window.currentSchoolId = schoolId;
   const uObj = {
-    role: idx.role || 'admin',
+    ...userDocData,
+    role: idx.role || userDocData.role || 'admin',
     name: displayName,
-    avatar: (displayName || '?').trim().charAt(0)
+    avatar: userDocData.avatar || (displayName || '?').trim().charAt(0)
   };
 
   await loadTenantData(schoolId);
