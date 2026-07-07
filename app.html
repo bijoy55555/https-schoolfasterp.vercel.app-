@@ -7698,18 +7698,28 @@ async function doLogin() {
   const errEl = document.getElementById('login-err');
   errEl.textContent = '';
 
-  // ইমেইল ফরম্যাট (যেমন admin@myschool.com) হলে আসল Firebase একাউন্ট দিয়ে লগইন হবে।
-  // (সাধারণ ইউজারনেম হলে নিচের ডেমো/অফলাইন মোড ব্যবহার হবে — টেস্টের জন্য)
+  // ✅ বাগ-ফিক্স: আগে idInput-এ "@" থাকলেই সরাসরি আসল Firebase Auth
+  // লগইন (doRealLogin) চেষ্টা করা হতো — কিন্তু "সেটিংস → নতুন ইউজার" দিয়ে
+  // বানানো অভিভাবক/ছাত্র অ্যাকাউন্ট আসলে Firebase Auth-এ তৈরিই হয় না,
+  // শুধু স্থানীয় users অবজেক্টে (Firestore মূল ডকুমেন্টে) সেভ হয়। ফলে
+  // ID-তে ইমেইল ফরম্যাট ব্যবহার করলে লগআউটের পর আর কখনোই লগইন করা যেত
+  // না, কারণ Firebase Auth-এ ওই নামে কোনো আসল অ্যাকাউন্টই নেই। এখন আগে
+  // স্থানীয় users তালিকায় খোঁজা হয়; সেখানে না পেলে এবং ID-তে "@" থাকলে
+  // তবেই আসল Firebase Auth লগইন চেষ্টা করা হবে।
+  const localUser = users[idInput];
+  if (localUser) {
+    if (localUser.pass !== pw) {
+      errEl.textContent='ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
+      return;
+    }
+    return finishLoginUI(localUser, idInput);
+  }
+
   if (idInput.includes('@')) {
     return doRealLogin(idInput, pw, errEl);
   }
 
-  const u = users[idInput];
-  if(!u||u.pass!==pw) {
-    errEl.textContent='ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
-    return;
-  }
-  finishLoginUI(u, idInput);
+  errEl.textContent='ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
 }
 
 async function doRealLogin(email, pw, errEl) {
