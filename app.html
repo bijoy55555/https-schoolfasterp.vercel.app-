@@ -7834,6 +7834,7 @@ async function loadTenantData(schoolId) {
     if (d.transportRoutes) transportRoutes = d.transportRoutes;
     if (d.smsLog) smsLog = d.smsLog;
     if (d.leaveBalances) leaveBalances = d.leaveBalances;
+    if (d.users) users = d.users; // ✅ বাগ-ফিক্স: এতদিন ইউজার লিস্ট Firestore-এ সেভ/লোড হতো না, তাই লগআউট-লগইন করলে নতুন তৈরি করা ইউজার (যেমন অভিভাবক/ছাত্র আইডি) হারিয়ে যেত এবং ডেমো ডিফল্ট ইউজার ফিরে আসত
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
 
     ['renderDashboard','renderStudents','renderTeachers','renderFees','renderResults','renderNotices']
@@ -7851,6 +7852,7 @@ async function saveTenantData() {
       students, teachers, fees, results, notices, attendance,
       payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule, questionPapers,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
+      users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
@@ -7900,6 +7902,7 @@ function changePassword() {
   document.getElementById('pw-new').value='';
   document.getElementById('pw-confirm').value='';
   showToast('পাসওয়ার্ড সফলভাবে পরিবর্তিত হয়েছে!');
+  saveTenantData(); // ✅ বাগ-ফিক্স: পাসওয়ার্ড পরিবর্তনও সাথে সাথে Firestore-এ সেভ করা হচ্ছে
 }
 
 // ===== Settings tab switch =====
@@ -8047,6 +8050,7 @@ function addNewUser() {
   renderUserList();
   logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
   showToast('নতুন ইউজার তৈরি হয়েছে!');
+  saveTenantData(); // ✅ বাগ-ফিক্স: সাথে সাথেই Firestore-এ সেভ করা হচ্ছে, যাতে লগআউট/রিলোডে হারিয়ে না যায়
 }
 
 function deleteUser(uid) {
@@ -8055,6 +8059,7 @@ function deleteUser(uid) {
   renderUserList();
   logAudit(`ইউজার মুছে ফেলেছেন: ${uid}`);
   showToast('ইউজার মুছে ফেলা হয়েছে।');
+  saveTenantData(); // ✅ বাগ-ফিক্স: মোছার পরও সাথে সাথে সেভ করা হচ্ছে
 }
 
 // ===== Permission matrix =====
