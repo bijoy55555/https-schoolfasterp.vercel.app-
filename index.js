@@ -4,7 +4,7 @@
 // secret key এখানে রাখা নিরাপদ। এটাই আসল "ব্যাকএন্ড"।
 // ===================================================================
 
-const { onCall } = require("firebase-functions/v2/https");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { onRequest } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const admin = require("firebase-admin");
@@ -26,10 +26,10 @@ exports.initiatePayment = onCall(async (request) => {
   const { studentId, amount, studentName, phone, email, feeType, schoolId } = request.data;
 
   if (!studentId || !amount) {
-    throw new Error("studentId এবং amount দেওয়া বাধ্যতামূলক");
+    throw new HttpsError("invalid-argument", "studentId এবং amount দেওয়া বাধ্যতামূলক");
   }
   if (!schoolId) {
-    throw new Error("schoolId দেওয়া বাধ্যতামূলক — কোন স্কুলের পেমেন্ট তা জানা দরকার");
+    throw new HttpsError("invalid-argument", "schoolId দেওয়া বাধ্যতামূলক — কোন স্কুলের পেমেন্ট তা জানা দরকার");
   }
 
   // ⚠️ মডেল ২: প্রতিটা স্কুলের নিজস্ব SSLCommerz Store ID/Password —
@@ -39,7 +39,7 @@ exports.initiatePayment = onCall(async (request) => {
   const schoolRef = db.collection("schools").doc(schoolId);
   const paymentSettingsSnap = await schoolRef.collection("settings").doc("payment").get();
   if (!paymentSettingsSnap.exists) {
-    throw new Error("এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
+    throw new HttpsError("failed-precondition", "এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
   }
   const paymentSettings = paymentSettingsSnap.data();
   const STORE_ID = paymentSettings.sslcommerzStoreId;
@@ -47,7 +47,7 @@ exports.initiatePayment = onCall(async (request) => {
   const IS_LIVE = !!paymentSettings.sslcommerzIsLive; // স্কুল নিজেই সেটিংসে টিক দিয়ে sandbox/live বেছে নেবে
 
   if (!STORE_ID || !STORE_PASSWORD) {
-    throw new Error("এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
+    throw new HttpsError("failed-precondition", "এই স্কুলের জন্য এখনো পেমেন্ট সেটআপ করা হয়নি। অ্যাডমিন প্যানেল → পেমেন্ট সেটিংস-এ গিয়ে SSLCommerz Store ID/Password বসান।");
   }
 
   const sslczUrl = IS_LIVE
@@ -92,7 +92,7 @@ exports.initiatePayment = onCall(async (request) => {
 
     if (!response.data || response.data.status !== "SUCCESS") {
       console.error("SSLCommerz প্রত্যাখ্যান করেছে:", response.data);
-      throw new Error(response.data?.failedreason || "SSLCommerz পেমেন্ট শুরু করতে রাজি হয়নি — Store ID/Password ঠিক আছে কিনা চেক করুন");
+      throw new HttpsError("internal", response.data?.failedreason || "SSLCommerz পেমেন্ট শুরু করতে রাজি হয়নি — Store ID/Password ঠিক আছে কিনা চেক করুন");
     }
 
     // ✅ লেনদেনের রেকর্ড স্কুলের নিজস্ব সাব-কালেকশনে সেভ করা হলো (schools/{schoolId}/payments/{tranId})
@@ -110,7 +110,7 @@ exports.initiatePayment = onCall(async (request) => {
     return { paymentUrl: response.data.GatewayPageURL, tranId };
   } catch (error) {
     console.error("পেমেন্ট ইনিশিয়েট এরর:", error.message);
-    throw new Error(error.message || "পেমেন্ট শুরু করা যায়নি, আবার চেষ্টা করুন");
+    throw new HttpsError("internal", error.message || "পেমেন্ট শুরু করা যায়নি, আবার চেষ্টা করুন");
   }
 });
 
