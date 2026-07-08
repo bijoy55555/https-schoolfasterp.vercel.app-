@@ -1021,6 +1021,7 @@
                 </div>
                 <button class="btn btn-primary" onclick="sendDueSMS()" style="width:100%">📤 নির্বাচিতদের SMS পাঠান</button>
                 <button class="btn" style="background:#fdebd0;color:var(--accent);width:100%" onclick="sendAllDueSMS()">📢 সবাইকে একসাথে পাঠান</button>
+                <button class="btn" style="background:#d6eaf8;color:var(--primary);width:100%" onclick="sendPortalMessage()">📩 পোর্টালে বার্তা পাঠান (SMS ছাড়া)</button>
               </div>
             </div>
             <!-- SMS History -->
@@ -2154,6 +2155,17 @@
         </div>
         <div class="card-body" id="pp-hw-list">
           <div style="text-align:center;color:var(--text-muted);padding:20px">হোমওয়ার্ক লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- Personal Messages (school → this student's guardian) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <div class="card-title">📩 আমার বার্তা</div>
+          <span class="badge badge-blue" id="pp-msg-badge"></span>
+        </div>
+        <div class="card-body" id="pp-msg-list">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">কোনো বার্তা নেই</div>
         </div>
       </div>
 
@@ -4722,6 +4734,7 @@ let expenses = [
   {desc:'ফার্নিচার মেরামত', amount:4500, cat:'মেরামত', month:5, date:'১৫ জুন'},
 ];
 let dueSMSLog = [];
+let parentMessages = []; // { student, cls, msg, time, createdAt, type } — শুধু অভিভাবক পোর্টালে দেখানোর জন্য, আসল SMS না
 let receiptCounter = 1001;
 
 function switchFeeTab(tab) {
@@ -5028,6 +5041,29 @@ function sendDueSMS() {
 function sendAllDueSMS() {
   selectAllDue();
   sendDueSMS();
+}
+
+// ✅ SMS গেটওয়ে যুক্ত না থাকায় আসল SMS পাঠানো হয় না — এই ফাংশনটা বার্তাটা
+// সরাসরি অভিভাবক পোর্টালে ("আমার বার্তা" সেকশনে) দেখানোর জন্য সেভ করে।
+async function sendPortalMessage() {
+  const selected = [...document.querySelectorAll('.due-cb:checked')].map(c=>parseInt(c.value));
+  const students_list = window._dueSMSStudents||[];
+  if(selected.length===0){showToast('প্রথমে ছাত্র নির্বাচন করুন','error');return;}
+  const msg = document.getElementById('due-sms-text').value.trim();
+  if(!msg){showToast('বার্তা লিখুন','error');return;}
+  selected.forEach(i => {
+    const s = students_list[i];
+    if(s) parentMessages.unshift({
+      student: s.student, cls: s.cls, msg,
+      time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+      createdAt: new Date().toISOString(),
+      type: 'বকেয়া'
+    });
+  });
+  try { await saveTenantData(); } catch(e){ console.error('বার্তা সেভ এরর:', e); }
+  showToast(`${toBnNum(selected.length)} জনের অভিভাবক পোর্টালে বার্তা পাঠানো হয়েছে ✅ (এখনো আসল SMS না, শুধু পোর্টালে দেখাবে)`);
+  document.querySelectorAll('.due-cb').forEach(c=>c.checked=false);
+  document.getElementById('due-selected-count').textContent='০ জন নির্বাচিত';
 }
 
 function renderDueSMSHistory() {
@@ -6242,7 +6278,7 @@ async function trimCloudBackups(){
 
 function buildBackupPayload(){
   return {
-    students, teachers, fees, results, notices, attendance,
+    students, teachers, fees, results, notices, attendance, parentMessages,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
     lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
@@ -6302,6 +6338,7 @@ function applyRestoreData(data){
   if(data.results) results = data.results;
   if(data.notices) notices = data.notices;
   if(data.attendance) attendance = data.attendance;
+  if(data.parentMessages) parentMessages = data.parentMessages;
   if(data.books) books = data.books;
   if(data.bookIssues) bookIssues = data.bookIssues;
   if(data.vehicles) vehicles = data.vehicles;
@@ -8023,6 +8060,7 @@ async function loadTenantData(schoolId) {
     if (d.attendance) attendance = d.attendance;
     if (d.payrollStatus) payrollStatus = d.payrollStatus;
     if (d.dueSMSLog) dueSMSLog = d.dueSMSLog;
+    if (d.parentMessages) parentMessages = d.parentMessages;
     if (d.classesList) classesList = d.classesList;
     if (d.onlineClasses) onlineClasses = d.onlineClasses;
     if (d.examSchedule) examSchedule = d.examSchedule;
@@ -8050,7 +8088,7 @@ async function saveTenantData() {
   try {
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
       students, teachers, fees, results, notices, attendance,
-      payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule, questionPapers,
+      payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
       schoolConfig: window._schoolCfg || {},
@@ -8514,6 +8552,17 @@ function renderParentPortal() {
       <div class="notice-dot" style="background:${n.type==='জরুরি'?'#c0392b':n.type==='ইভেন্ট'?'#1e8449':'#2e86c1'}"></div>
       <div><div class="notice-title">${n.title}</div><div class="notice-date">${n.date} • ${n.type}</div></div>
     </div>`).join('');
+
+  // আমার বার্তা — শুধু এই ছাত্রকে লক্ষ্য করে পাঠানো বার্তা (নাম মিলিয়ে)
+  const myMessages = (parentMessages||[]).filter(m=>m.student===sName);
+  document.getElementById('pp-msg-badge').textContent = myMessages.length>0 ? toBnNum(myMessages.length) : '';
+  document.getElementById('pp-msg-list').innerHTML = myMessages.length===0
+    ? '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো বার্তা নেই</div>'
+    : myMessages.slice(0,10).map(m=>`
+      <div class="notice-item">
+        <div class="notice-dot" style="background:#2e86c1"></div>
+        <div><div class="notice-title">${m.msg}</div><div class="notice-date">${m.time||''} • ${m.type||'বিদ্যালয়'}</div></div>
+      </div>`).join('');
 
   // Fee table
   document.getElementById('pp-fee-tbody').innerHTML = studentFees.length>0
