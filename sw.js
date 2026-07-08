@@ -1,8 +1,9 @@
-const CACHE_NAME = "schoolfasterp-cache-v1";
+const CACHE_NAME = "schoolfasterp-cache-v2"; // ✅ ভার্সন বাম্প করা হলো, যাতে পুরনো ক্যাশ রিফ্রেশ হয়ে নতুন প্রিক্যাশ লিস্ট কার্যকর হয়
 
 const PRECACHE_URLS = [
   "/",
   "/index.html",
+  "/app.html", // ✅ বাগ-ফিক্স: আগে মূল অ্যাপ ফাইলটাই প্রিক্যাশ লিস্টে ছিল না, প্রথমবার অনলাইনে না খুললে অফলাইনে অ্যাপই লোড হতো না
   "/manifest.json",
   "/icon-48.png",
   "/icon-72.png",
@@ -48,12 +49,28 @@ self.addEventListener("fetch", (event) => {
   // Only handle GET requests
   if (request.method !== "GET") return;
 
-  // Never intercept API/Firebase calls — let them go straight to the network
+  // Never intercept API/Firebase backend calls — let them go straight to the network.
+  // ব্যতিক্রম: gstatic.com থেকে আসা Firebase SDK-এর স্ট্যাটিক JS ফাইলগুলো (firebasejs/...) —
+  // এগুলো নিরাপদে ক্যাশ করা যায় (এগুলো কোনো ইউজার-ডেটা API কল না, শুধু লাইব্রেরি কোড),
+  // ✅ বাগ-ফিক্স: আগে এগুলো ক্যাশ হতো না, তাই ইন্টারনেট ছাড়া অ্যাপ খুললে Firebase SDK-ই লোড হতো না
   const url = new URL(request.url);
-  if (
-    url.origin !== self.location.origin ||
-    url.pathname.startsWith("/api/")
-  ) {
+  const isFirebaseSdkScript = url.hostname === "www.gstatic.com" && url.pathname.includes("/firebasejs/");
+  if (!isFirebaseSdkScript && (url.origin !== self.location.origin || url.pathname.startsWith("/api/"))) {
+    return;
+  }
+  if (isFirebaseSdkScript) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        });
+      })
+    );
     return;
   }
 

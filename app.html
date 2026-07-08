@@ -5534,9 +5534,11 @@ let sectionsList = [
   {name:'ক', cls:'নবম'},{name:'খ', cls:'নবম'},{name:'গ', cls:'নবম'},
   {name:'ক', cls:'দশম'},{name:'খ', cls:'দশম'},{name:'গ', cls:'দশম'},
 ];
-let subjectsList = [
-  {name:'বাংলা', code:'101'},{name:'ইংরেজি', code:'107'},{name:'গণিত', code:'109'},{name:'বিজ্ঞান', code:'127'},{name:'ইতিহাস', code:'153'},{name:'ধর্ম', code:'147'},
-];
+// ✅ আগে এখানে মাত্র ৬টা বিষয় হার্ডকোড করা ছিল (বাংলা/ইংরেজি/গণিত/বিজ্ঞান/ইতিহাস/ধর্ম),
+// যেটার কারণে প্রশ্নপত্র ফিল্টার, মাস্টার ডেটা ইত্যাদি জায়গায় প্লে থেকে দশম পর্যন্ত বাকি সব
+// বিষয় (১ম/২য় পত্র, পদার্থবিজ্ঞান, হিসাববিজ্ঞান ইত্যাদি) অনুপস্থিত থাকতো। এখন কেন্দ্রীয়
+// বিষয়-কনফিগারেশন (classTierSubjects) থেকে সব বিষয় একসাথে (ডুপ্লিকেট বাদে) তৈরি হয়।
+let subjectsList = Object.keys(allSubjectLabels).map((key,i)=>({name: allSubjectLabels[key], code: String(101+i)}));
 let groupsList = [
   {name:'বিজ্ঞান'},{name:'মানবিক'},{name:'ব্যবসায় শিক্ষা'},
 ];
@@ -6373,6 +6375,7 @@ function buildBackupPayload(){
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
     lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
+    payrollStatus, dueSMSLog, teacherAtt, smsLog, leaveBalances,
     users, permissions, exportedAt: new Date().toISOString()
   };
 }
@@ -6446,6 +6449,12 @@ function applyRestoreData(data){
   if(data.questionPapers) questionPapers = data.questionPapers;
   if(data.vouchers) vouchers = data.vouchers;
   if(data.expenses) expenses = data.expenses;
+  if(data.classesList) classesList = data.classesList;
+  if(data.sectionsList) sectionsList = data.sectionsList;
+  if(data.subjectsList) subjectsList = data.subjectsList;
+  if(data.groupsList) groupsList = data.groupsList;
+  if(data.payrollStatus) payrollStatus = data.payrollStatus;
+  if(data.dueSMSLog) dueSMSLog = data.dueSMSLog;
   if(data.users) users = data.users;
   if(data.permissions) permissions = data.permissions;
   migrateAttendance();
@@ -8163,6 +8172,22 @@ async function loadTenantData(schoolId) {
     if (d.smsLog) smsLog = d.smsLog;
     if (d.leaveBalances) leaveBalances = d.leaveBalances;
     if (d.users) users = d.users; // ✅ বাগ-ফিক্স: এতদিন ইউজার লিস্ট Firestore-এ সেভ/লোড হতো না, তাই লগআউট-লগইন করলে নতুন তৈরি করা ইউজার (যেমন অভিভাবক/ছাত্র আইডি) হারিয়ে যেত এবং ডেমো ডিফল্ট ইউজার ফিরে আসত
+    // ✅ বাগ-ফিক্স: নিচের এই ডেটাগুলো আগে শুধু ম্যানুয়াল ব্যাকআপ ফাইলে যেত, কিন্তু প্রতিদিনের
+    // অটো-সেভ/লোডে যেত না — তাই লগআউট বা রিফ্রেশ করলে রুটিন/সিলেবাস/হোমওয়ার্ক ইত্যাদি হারিয়ে যেত।
+    if (d.vehicles) vehicles = d.vehicles;
+    if (d.routines) routines = d.routines;
+    if (d.syllabuses) syllabuses = d.syllabuses;
+    if (d.homeworks) homeworks = d.homeworks;
+    if (d.sessions) sessions = d.sessions;
+    if (d.sectionsList) sectionsList = d.sectionsList;
+    if (d.subjectsList) subjectsList = d.subjectsList;
+    if (d.groupsList) groupsList = d.groupsList;
+    if (d.lessonPlans) lessonPlans = d.lessonPlans;
+    if (d.assignments) assignments = d.assignments;
+    if (d.academicEvents) academicEvents = d.academicEvents;
+    if (d.vouchers) vouchers = d.vouchers;
+    if (d.expenses) expenses = d.expenses;
+    if (d.permissions) permissions = d.permissions;
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
     migrateAttendance();
 
@@ -8182,6 +8207,10 @@ async function saveTenantData() {
       payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
+      // ✅ বাগ-ফিক্স: আগে এগুলো Firestore-এ সেভ হতো না (শুধু ম্যানুয়াল ব্যাকআপে যেত) —
+      // ফলে রুটিন/সিলেবাস/হোমওয়ার্ক/লেসন প্ল্যান/অ্যাসাইনমেন্ট/মাস্টার ডেটা লগআউটের পর হারিয়ে যেত
+      vehicles, routines, syllabuses, homeworks, sessions, sectionsList, subjectsList, groupsList,
+      lessonPlans, assignments, academicEvents, vouchers, expenses, permissions,
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
