@@ -3304,13 +3304,11 @@
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="sy-class">
+          <select class="form-select" id="sy-class" onchange="wireDynamicSubjectSelect('sy-class','sy-subject')">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="sy-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option><option>ধর্ম</option>
-          </select>
+          <select class="form-select" id="sy-subject"></select>
         </div>
       </div>
       <div class="form-group"><label class="form-label">অধ্যায় / টপিক *</label><input class="form-input" id="sy-topic" placeholder="যেমন: অধ্যায় ৩ - সংখ্যাতত্ত্ব"></div>
@@ -3338,14 +3336,12 @@
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="hw-class">
+          <select class="form-select" id="hw-class" onchange="wireDynamicSubjectSelect('hw-class','hw-subject')">
             <option value="">নির্বাচন করুন</option>
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="hw-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option>
-          </select>
+          <select class="form-select" id="hw-subject"></select>
         </div>
       </div>
       <div class="form-group"><label class="form-label">হোমওয়ার্কের বিবরণ *</label><textarea class="form-input" id="hw-desc" rows="3" placeholder="কী করতে হবে লিখুন..." style="resize:vertical"></textarea></div>
@@ -3406,13 +3402,11 @@
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="lp-class">
+          <select class="form-select" id="lp-class" onchange="wireDynamicSubjectSelect('lp-class','lp-subject')">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="lp-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option>
-          </select>
+          <select class="form-select" id="lp-subject"></select>
         </div>
       </div>
       <div class="form-group"><label class="form-label">টপিক / অধ্যায় *</label><input class="form-input" id="lp-topic" placeholder="যেমন: অধ্যায় ৩ - জ্যামিতি"></div>
@@ -3440,14 +3434,12 @@
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="asg-class">
+          <select class="form-select" id="asg-class" onchange="wireDynamicSubjectSelect('asg-class','asg-subject')">
             <option value="">নির্বাচন করুন</option>
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="asg-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option>
-          </select>
+          <select class="form-select" id="asg-subject"></select>
         </div>
       </div>
       <div class="form-group"><label class="form-label">শিরোনাম *</label><input class="form-input" id="asg-title" placeholder="অ্যাসাইনমেন্টের শিরোনাম"></div>
@@ -3478,13 +3470,11 @@
     <div class="modal-body">
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="oc-class">
+          <select class="form-select" id="oc-class" onchange="wireDynamicSubjectSelect('oc-class','oc-subject')">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="oc-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option>
-          </select>
+          <select class="form-select" id="oc-subject"></select>
         </div>
       </div>
       <div class="form-group"><label class="form-label">শিক্ষক</label><input class="form-input" id="oc-teacher" placeholder="শিক্ষকের নাম"></div>
@@ -3566,12 +3556,10 @@
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">বিষয় *</label>
-          <select class="form-select" id="ex-subject">
-            <option>বাংলা</option><option>ইংরেজি</option><option>গণিত</option><option>বিজ্ঞান</option><option>ইতিহাস</option><option>ধর্ম</option>
-          </select>
+          <select class="form-select" id="ex-subject"></select>
         </div>
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="ex-class">
+          <select class="form-select" id="ex-class" onchange="wireDynamicSubjectSelect('ex-class','ex-subject')">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
       </div>
@@ -4002,12 +3990,20 @@ function getRoutineSubjectOptions(cls) {
   return classTierSubjects[tier] || classTierSubjects.class3_5;
 }
 function renderRoutineSubjectOptions() {
-  const cls = document.getElementById('rt-class').value;
-  const sel = document.getElementById('rt-subject');
-  const prev = sel.value;
+  wireDynamicSubjectSelect('rt-class','rt-subject');
+}
+// সাধারণ ফাংশন — যেকোনো "শ্রেণি" ড্রপডাউনের সাথে "বিষয়" ড্রপডাউনকে যুক্ত করে দেয়,
+// যাতে ক্লাস বদলালে বিষয়ের তালিকাও ঠিক সেই ক্লাসের বাস্তবসম্মত বিষয় অনুযায়ী বদলে যায়।
+// (সিলেবাস, হোমওয়ার্ক, লেসন প্ল্যান, অ্যাসাইনমেন্ট, অনলাইন ক্লাস, পরীক্ষার রুটিন — সব জায়গায় ব্যবহৃত)
+function wireDynamicSubjectSelect(classId, subjectId) {
+  const classSel = document.getElementById(classId);
+  const subjSel = document.getElementById(subjectId);
+  if(!classSel || !subjSel) return;
+  const cls = classSel.value;
+  const prev = subjSel.value;
   const subs = getRoutineSubjectOptions(cls);
-  sel.innerHTML = subs.map(s=>`<option value="${s.label}">${s.label}</option>`).join('');
-  if(subs.some(s=>s.label===prev)) sel.value = prev;
+  subjSel.innerHTML = subs.map(s=>`<option value="${s.label}">${s.label}</option>`).join('');
+  if(subs.some(s=>s.label===prev)) subjSel.value = prev;
 }
 // ফলাফল ফর্মে ক্লাস/গ্রুপ অনুযায়ী বিষয়ের ইনপুট বক্স ডাইনামিকভাবে বানায়
 function renderResultSubjectFields() {
@@ -4109,6 +4105,12 @@ function openModal(id) {
   ['s-error','t-error','f-error','r-error','n-error','book-error','issue-error','vehicle-error','route-error','ai-key-error'].forEach(e=>{const el=document.getElementById(e);if(el)el.style.display='none';});
   if(id==='result-modal') renderResultSubjectFields();
   if(id==='routine-modal') renderRoutineSubjectOptions();
+  if(id==='syllabus-modal') wireDynamicSubjectSelect('sy-class','sy-subject');
+  if(id==='homework-modal') wireDynamicSubjectSelect('hw-class','hw-subject');
+  if(id==='lp-modal') wireDynamicSubjectSelect('lp-class','lp-subject');
+  if(id==='assignment-modal') wireDynamicSubjectSelect('asg-class','asg-subject');
+  if(id==='oc-modal') wireDynamicSubjectSelect('oc-class','oc-subject');
+  if(id==='exam-modal') wireDynamicSubjectSelect('ex-class','ex-subject');
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e=>{
