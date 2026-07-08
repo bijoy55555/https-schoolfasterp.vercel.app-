@@ -1026,8 +1026,16 @@
             </div>
             <!-- SMS History -->
             <div class="card">
-              <div class="card-header"><div class="card-title">📋 পাঠানো রিমাইন্ডার</div></div>
+              <div class="card-header"><div class="card-title">📋 পাঠানো রিমাইন্ডার (SMS)</div></div>
               <div class="card-body" style="padding:0;max-height:220px;overflow-y:auto" id="due-sms-history"></div>
+            </div>
+            <!-- Portal Messages History -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">📩 পাঠানো পোর্টাল বার্তা</div>
+                <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="clearOldPortalMessages()">🧹 ৩০ দিনের পুরনোগুলো মুছুন</button>
+              </div>
+              <div class="card-body" style="padding:0;max-height:260px;overflow-y:auto" id="portal-msg-history"></div>
             </div>
           </div>
         </div>
@@ -4748,6 +4756,7 @@ function switchFeeTab(tab) {
 
 function renderFees(list) {
   generateAutoFees(); // ফি ম্যানেজমেন্ট পেজ খোলার সময়ও সবশেষ অটো-বকেয়া তৈরি করে নেয়
+  autoExpireParentMessages(); // পুরনো (৩০+ দিন) বা সমাধান হয়ে যাওয়া বার্তা চুপচাপ মুছে দেয়
   const data = list || fees;
   const tbody = document.getElementById('fee-tbody');
   tbody.innerHTML = data.map((f,i)=>`<tr>
@@ -5064,6 +5073,7 @@ async function sendPortalMessage() {
   showToast(`${toBnNum(selected.length)} জনের অভিভাবক পোর্টালে বার্তা পাঠানো হয়েছে ✅ (এখনো আসল SMS না, শুধু পোর্টালে দেখাবে)`);
   document.querySelectorAll('.due-cb').forEach(c=>c.checked=false);
   document.getElementById('due-selected-count').textContent='০ জন নির্বাচিত';
+  renderPortalMsgHistory();
 }
 
 function renderDueSMSHistory() {
@@ -5075,6 +5085,66 @@ function renderDueSMSHistory() {
         <div style="color:var(--text-muted);margin-top:2px">${l.msg.substring(0,60)}${l.msg.length>60?'...':''}</div>
         <div class="due-sms-log-time">✅ পাঠানো হয়েছে — ${l.time}</div>
       </div>`).join('');
+  renderPortalMsgHistory();
+}
+
+// ✅ অ্যাডমিন যেন দেখতে ও প্রয়োজনে মুছতে পারে — কোন পোর্টাল-বার্তা কাকে পাঠানো হয়েছে
+function renderPortalMsgHistory() {
+  const el = document.getElementById('portal-msg-history');
+  if(!el) return;
+  el.innerHTML = (parentMessages||[]).length===0
+    ? '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">কোনো পোর্টাল বার্তা পাঠানো হয়নি</div>'
+    : parentMessages.slice(0,30).map((l,i)=>`<div class="due-sms-log-item" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <div style="flex:1">
+          <div style="font-weight:700">${l.student} <span style="font-weight:400;color:var(--text-muted)">— ${l.cls}</span></div>
+          <div style="color:var(--text-muted);margin-top:2px">${l.msg.substring(0,60)}${l.msg.length>60?'...':''}</div>
+          <div class="due-sms-log-time">📩 পোর্টালে পাঠানো হয়েছে — ${l.time}</div>
+        </div>
+        <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;color:#b03030" onclick="deletePortalMessage(${i})" title="মুছুন">🗑️</button>
+      </div>`).join('');
+}
+async function deletePortalMessage(i) {
+  if(!confirm('এই বার্তাটা মুছে ফেলতে চান? অভিভাবক পোর্টাল থেকেও সরে যাবে।')) return;
+  parentMessages.splice(i,1);
+  renderPortalMsgHistory();
+  try { await saveTenantData(); showToast('বার্তা মুছে ফেলা হয়েছে'); } catch(e){ showToast('মুছতে সমস্যা হয়েছে','error'); }
+}
+// ✅ ব্যাকগ্রাউন্ডে চুপচাপ চলে — কোনো কনফার্মেশন লাগে না, অ্যাডমিনকে বাটনে চাপার দরকার নেই:
+// ১) ৩০ দিনের বেশি পুরনো যেকোনো বার্তা মুছে ফেলে (নিরাপত্তা হিসেবে, কোনো কারণ বাদ পড়ে গেলেও)
+// ২) "বকেয়া" টাইপের বার্তা — যদি ঐ ছাত্রের বকেয়া ফি ইতিমধ্যে পরিশোধ হয়ে গিয়ে থাকে, তাহলে সমস্যাটা
+//    সমাধান হয়ে গেছে ধরে নিয়ে বার্তাটা নিজে থেকেই মুছে দেয়
+async function autoExpireParentMessages() {
+  if(!parentMessages || parentMessages.length===0) return;
+  const cutoff = Date.now() - 30*24*60*60*1000;
+  const before = parentMessages.length;
+  parentMessages = parentMessages.filter(m => {
+    const t = m.createdAt ? new Date(m.createdAt).getTime() : Date.now();
+    if(t < cutoff) return false; // ৩০ দিনের বেশি পুরনো — মুছে যাক
+    if(m.type==='বকেয়া') {
+      const stillDue = fees.some(f=>f.student===m.student && f.status==='বকেয়া');
+      if(!stillDue) return false; // ফি পরিশোধ হয়ে গেছে — এই বার্তার আর দরকার নেই
+    }
+    return true;
+  });
+  if(parentMessages.length !== before) {
+    try { await saveTenantData(); } catch(e){ console.error('বার্তা অটো-এক্সপায়ার সেভ এরর:', e); }
+    if(document.getElementById('portal-msg-history')) renderPortalMsgHistory();
+  }
+}
+
+async function clearOldPortalMessages() {
+  const cutoff = Date.now() - 30*24*60*60*1000; // ৩০ দিন
+  const before = parentMessages.length;
+  parentMessages = parentMessages.filter(m => {
+    const t = m.createdAt ? new Date(m.createdAt).getTime() : Date.now();
+    return t >= cutoff;
+  });
+  const removed = before - parentMessages.length;
+  renderPortalMsgHistory();
+  try {
+    await saveTenantData();
+    showToast(removed>0 ? `${toBnNum(removed)}টা পুরনো বার্তা মুছে ফেলা হয়েছে` : 'মোছার মতো ৩০ দিনের বেশি পুরনো বার্তা নেই');
+  } catch(e){ showToast('মুছতে সমস্যা হয়েছে','error'); }
 }
 
 // ============ NOTICES ============
@@ -8412,6 +8482,7 @@ function savePermissions() {
 function renderParentPortal() {
   if(!currentUser) return;
   generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
+  autoExpireParentMessages(); // পুরনো (৩০+ দিন) বা সমাধান হয়ে যাওয়া বার্তা চুপচাপ মুছে দেয়
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentCls ভুলভাবে সেভ হয়েছিল (যেমন "নবম - ক - ক",
@@ -9316,7 +9387,9 @@ function applyPaidStatusForStudent(sName, sCls, amount, method) {
     stu.feeStatus = stillDue ? 'আংশিক' : 'পরিশোধিত';
   }
 
-  // ৩) যে যে পেজ এখন খোলা আছে, সেগুলো রিফ্রেশ করে দেওয়া হলো যাতে সাথে সাথে দেখা যায়
+  // ৪) এই ছাত্রের বকেয়া নিয়ে আগে যদি পোর্টাল-বার্তা পাঠানো হয়ে থাকে, ফি এখন পরিশোধ হয়ে যাওয়ায়
+  //    সেই বার্তাটা আর দরকার নেই — অটোমেটিক মুছে ফেলা হলো
+  autoExpireParentMessages();
   if(document.getElementById('page-students')?.classList.contains('active')) renderStudents();
   if(document.getElementById('page-fees')?.classList.contains('active')) renderFees();
   if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
