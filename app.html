@@ -2193,6 +2193,12 @@
           <tbody id="pp-fee-tbody"></tbody></table></div>
         </div>
       </div>
+
+      <!-- Academic Calendar (read-only for parents/students) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
+        <div class="card-body" style="padding:0" id="pp-academic-cal"></div>
+      </div>
     </div>
 
     <!-- ===== ONLINE PAYMENT MODAL ===== -->
@@ -8707,6 +8713,26 @@ function renderParentPortal() {
       </tr>`;
       }).join('')
     : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো ফি রেকর্ড নেই</td></tr>';
+
+  // একাডেমিক ক্যালেন্ডার — শুধু দেখার জন্য (রিড-অনলি), আজ থেকে আসন্ন ইভেন্টগুলো তারিখ অনুযায়ী সাজানো
+  const acEl = document.getElementById('pp-academic-cal');
+  if(acEl) {
+    const todayStr = dateKey();
+    const upcoming = (academicEvents||[])
+      .filter(ev => !ev.start || ev.start >= todayStr || (ev.end && ev.end >= todayStr))
+      .sort((a,b)=>(a.start||'').localeCompare(b.start||''))
+      .slice(0,8);
+    acEl.innerHTML = upcoming.length===0
+      ? '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো আসন্ন ইভেন্ট নেই</div>'
+      : upcoming.map(ev=>`
+        <div class="notice-item">
+          <div class="notice-dot" style="background:${ev.type==='ছুটি'?'#e67e22':ev.type==='পরীক্ষা'?'#c0392b':'#2e86c1'}"></div>
+          <div>
+            <div class="notice-title">${ev.name} <span class="badge badge-blue" style="font-size:10px;margin-left:4px">${ev.type}</span></div>
+            <div class="notice-date">${ev.start}${ev.end?(' — '+ev.end):''}${ev.desc?(' • '+ev.desc):''}</div>
+          </div>
+        </div>`).join('');
+  }
 
   // Homework list
   const clsHWList = homeworks ? homeworks.filter(h=>h.cls===sCls) : [];
