@@ -14,8 +14,8 @@
     --border: #d5e8f5; --sidebar-width: 240px;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
-  .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
+  body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; min-height:100dvh; }
+  .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; height:100dvh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
   .sidebar-close { display:none; }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
   .sidebar-overlay.active { display:block; }
@@ -32,7 +32,7 @@
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:rgba(46,134,193,0.18); color:#fff; border-left-color:var(--accent); font-weight:600; }
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
-  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; }
   .hamburger { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
   @media(max-width:1024px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
@@ -10535,6 +10535,28 @@ function setHelpLang(lang) {
   document.getElementById('help-content-en').style.display = lang==='en' ? '' : 'none';
   document.getElementById('help-lang-bn').className = lang==='bn' ? 'btn btn-primary' : 'btn btn-outline';
   document.getElementById('help-lang-en').className = lang==='en' ? 'btn btn-primary' : 'btn btn-outline';
+}
+
+// ✅ বাগ-ফিক্স: মোবাইলে (বিশেষ করে Android Chrome-এ) URL বার/কিবোর্ড শো-হাইড হওয়ার সময়
+// viewport height (100vh) হঠাৎ বদলে গেলে position:sticky টপবার সহ .main/.sidebar
+// পুরনো উচ্চতা নিয়ে আটকে থাকে — এতে টপবারের নিচে বড় ফাঁকা জায়গা দেখা যায় এবং
+// আসল কন্টেন্ট নিচে নেমে যায়। ভিউপোর্ট সাইজ বদলালে জোর করে একটা রিফ্লো ঘটিয়ে
+// এই গ্লিচ ঠিক করা হচ্ছে।
+function forceLayoutReflow() {
+  document.body.style.display = 'none';
+  // eslint-disable-next-line no-unused-expressions
+  document.body.offsetHeight; // reflow trigger
+  document.body.style.display = 'flex';
+}
+let _reflowTimer = null;
+function scheduleReflow() {
+  clearTimeout(_reflowTimer);
+  _reflowTimer = setTimeout(forceLayoutReflow, 60);
+}
+window.addEventListener('resize', scheduleReflow);
+window.addEventListener('orientationchange', scheduleReflow);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', scheduleReflow);
 }
 
 // On load, show login
