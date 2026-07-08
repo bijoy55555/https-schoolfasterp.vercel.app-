@@ -8121,7 +8121,10 @@ async function addNewUser() {
     const sIdx = document.getElementById('nu-student-select').value;
     if(sIdx==='') { err.textContent='কোন ছাত্রের সাথে যুক্ত হবে তা নির্বাচন করুন।'; err.style.display='block'; return; }
     const s = students[Number(sIdx)];
-    studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls + (s.section?' - '+s.section:'') };
+    // ✅ বাগ-ফিক্স: s.cls-এই ইতিমধ্যে "শ্রেণি - সেকশন" (যেমন "নবম - ক") পূর্ণ ফরম্যাটে থাকে,
+    // আগে এখানে s.section আবার জোড়া লাগানো হতো (studentCls হয়ে যেত "নবম - ক - ক"),
+    // যার ফলে অভিভাবক পোর্টাল/উপস্থিতি ডেটার সাথে ক্লাসের নাম মিলত না।
+    studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls };
   }
   const avatar = name.trim().charAt(0);
 
@@ -8255,7 +8258,12 @@ function renderParentPortal() {
   generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const sCls = currentUser.studentCls || 'দশম - ক';
+  // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentCls ভুলভাবে সেভ হয়েছিল (যেমন "নবম - ক - ক",
+  // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
+  // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
+  // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
+  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
     ? currentUser.name + ' — অভিভাবক পোর্টাল'
