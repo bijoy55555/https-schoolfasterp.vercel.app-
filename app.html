@@ -865,6 +865,7 @@
       <div class="page-actions">
         <select class="form-select" id="att-class-select" style="max-width:180px;padding:9px 12px" onchange="renderAttendanceTable()">
           <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
+        <input type="date" class="form-select" id="att-date-select" style="max-width:170px;padding:9px 12px" onchange="renderAttendanceTable()">
         <button class="btn btn-primary" onclick="saveAttendance()">✅ উপস্থিতি সেভ করুন</button>
         <button class="btn btn-outline" onclick="markAll('P')">সবাই উপস্থিত</button>
         <button class="btn btn-outline" onclick="markAll('A')">সবাই অনুপস্থিত</button>
@@ -3835,7 +3836,7 @@ let notices = [
   {title:'বার্ষিক ক্রীড়া প্রতিযোগিতা ২০২৫',type:'ইভেন্ট',dept:'ক্রীড়া বিভাগ',body:'আগামী ১৫ জুলাই বার্ষিক ক্রীড়া প্রতিযোগিতা অনুষ্ঠিত হবে। আগ্রহী ছাত্রছাত্রীরা শ্রেণিশিক্ষকের কাছে নাম নথিভুক্ত করুন।',date:'২২ জুন ২০২৫'},
 ];
 
-let attendance = {}; // { 'শ্রেণি': { studentName: 'P'|'A'|'L' } }
+let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: 'P'|'A'|'L' } } }
 
 // ============ UTILS ============
 const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
@@ -4396,22 +4397,62 @@ function printSalarySlip(idx, month, year) {
 }
 
 // ============ ATTENDANCE ============
+// ডেটা স্ট্রাকচার: attendance[cls][dateKey][studentName] = 'P'|'A'|'L'
+// dateKey ফরম্যাট: 'YYYY-MM-DD'
 function getClassStudents(cls) {
   return students.filter(s=>s.cls===cls);
 }
+function dateKey(d) {
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+// পুরনো ফরম্যাট attendance[cls][studentName]='P' থেকে নতুন date-wise ফরম্যাটে মাইগ্রেট করে,
+// যাতে আগের ডেটা হারিয়ে না যায়। পুরনো ডেটাকে আজকের তারিখে বসানো হয়।
+function migrateAttendance() {
+  if(!attendance) { attendance = {}; return; }
+  Object.keys(attendance).forEach(cls=>{
+    const rec = attendance[cls];
+    if(!rec || typeof rec !== 'object') { attendance[cls] = {}; return; }
+    const keys = Object.keys(rec);
+    const looksOld = keys.length>0 && keys.every(k=>typeof rec[k] === 'string');
+    if(looksOld) {
+      attendance[cls] = { [dateKey()]: rec };
+    }
+  });
+}
+// নির্দিষ্ট শ্রেণি ও তারিখের জন্য রেকর্ড রিটার্ন করে (না থাকলে সব ছাত্রকে 'P' দিয়ে তৈরি করে)
+function getAttForDate(cls, dk) {
+  if(!attendance[cls]) attendance[cls] = {};
+  if(!attendance[cls][dk]) {
+    attendance[cls][dk] = {};
+    getClassStudents(cls).forEach(s=>{ attendance[cls][dk][s.name]='P'; });
+  }
+  return attendance[cls][dk];
+}
+function isAbsentToday(cls, name) {
+  const rec = (attendance[cls]||{})[dateKey()];
+  return !!(rec && rec[name]==='A');
+}
+function getSelectedAttDate() {
+  const el = document.getElementById('att-date-select');
+  if(el && !el.value) el.value = dateKey();
+  return el ? (el.value || dateKey()) : dateKey();
+}
 function renderAttendanceTable() {
   const cls = document.getElementById('att-class-select').value;
+  const dk = getSelectedAttDate();
   const clsStudents = getClassStudents(cls);
-  if(!attendance[cls]) {
-    attendance[cls]={};
-    clsStudents.forEach(s=>{ attendance[cls][s.name]='P'; });
-  }
+  const rec = getAttForDate(cls, dk);
+  clsStudents.forEach(s=>{ if(!rec[s.name]) rec[s.name]='P'; });
   document.getElementById('att-table-title').textContent = `উপস্থিতি — ${cls}`;
-  document.getElementById('att-date-label').textContent = todayBn();
+  document.getElementById('att-date-label').textContent = dk===dateKey() ? todayBn() : dk;
   const tbody = document.getElementById('att-tbody');
-  if(clsStudents.length===0){tbody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">এই শ্রেণিতে কোনো ছাত্র নেই</td></tr>';updateAttStats(cls);return;}
+  if(clsStudents.length===0){tbody.innerHTML='<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text-muted)">এই শ্রেণিতে কোনো ছাত্র নেই</td></tr>';updateAttStats(cls,dk);return;}
   tbody.innerHTML = clsStudents.map((s,i)=>{
-    const st = attendance[cls][s.name]||'P';
+    const st = rec[s.name]||'P';
     return `<tr>
       <td>${s.roll}</td><td><b>${s.name}</b></td>
       <td>
@@ -4421,22 +4462,25 @@ function renderAttendanceTable() {
       </td>
     </tr>`;
   }).join('');
-  updateAttStats(cls);
+  updateAttStats(cls,dk);
 }
 function setAtt(cls, name, val, btn) {
-  attendance[cls][name] = val;
+  const dk = getSelectedAttDate();
+  getAttForDate(cls, dk)[name] = val;
   const row = btn.closest('tr');
   row.querySelectorAll('.att-status-btn').forEach(b=>b.className='att-status-btn');
   btn.className = `att-status-btn ${val==='P'?'att-p':val==='A'?'att-a':'att-l'}`;
-  updateAttStats(cls);
+  updateAttStats(cls,dk);
 }
 function markAll(val) {
   const cls = document.getElementById('att-class-select').value;
-  getClassStudents(cls).forEach(s=>{ attendance[cls][s.name]=val; });
+  const dk = getSelectedAttDate();
+  const rec = getAttForDate(cls, dk);
+  getClassStudents(cls).forEach(s=>{ rec[s.name]=val; });
   renderAttendanceTable();
 }
-function updateAttStats(cls) {
-  const data = attendance[cls]||{};
+function updateAttStats(cls, dk) {
+  const data = (attendance[cls]||{})[dk||getSelectedAttDate()]||{};
   const vals = Object.values(data);
   const p = vals.filter(v=>v==='P').length;
   const a = vals.filter(v=>v==='A').length;
@@ -4447,9 +4491,20 @@ function updateAttStats(cls) {
   document.getElementById('att-late-count').textContent = toBnNum(l);
   document.getElementById('att-rate').textContent = total>0 ? toBnNum(Math.round((p/total)*100))+'%' : '০%';
 }
-function saveAttendance() {
+async function saveAttendance() {
   const cls = document.getElementById('att-class-select').value;
-  showToast(`${cls} শ্রেণির উপস্থিতি সেভ হয়েছে!`);
+  const btn = event ? event.target : null;
+  const origText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'সেভ হচ্ছে...'; }
+  try {
+    await saveTenantData(); // তাৎক্ষণিকভাবে Firestore-এ লেখা হয়, ২০ সেকেন্ডের অটো-সেভের জন্য অপেক্ষা করে না
+    showToast(`${cls} শ্রেণির উপস্থিতি সেভ হয়েছে!`);
+  } catch(e) {
+    console.error('উপস্থিতি সেভ এরর:', e);
+    showToast('উপস্থিতি সেভ করতে সমস্যা হয়েছে, আবার চেষ্টা করুন', 'error');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = origText; }
+  }
 }
 
 // ============ RESULTS ============
@@ -6147,6 +6202,7 @@ function applyRestoreData(data){
   if(data.expenses) expenses = data.expenses;
   if(data.users) users = data.users;
   if(data.permissions) permissions = data.permissions;
+  migrateAttendance();
 }
 
 function restoreData(){
@@ -6402,15 +6458,16 @@ function buildAnalysisDataSummary(type){
     return `মোট রেজাল্ট এন্ট্রি: ${results.length}\nনমুনা ডেটা:\n${rows||'কোনো ডেটা নেই'}`;
   }
   if(type==='attendance'){
+    const dk = dateKey();
     const classes = Object.keys(attendance||{});
     let summary = '';
     classes.forEach(cls=>{
-      const rec = attendance[cls]||{};
+      const rec = (attendance[cls]||{})[dk]||{};
       const names = Object.keys(rec);
       const present = names.filter(n=>rec[n]==='P').length;
-      summary += `${cls}: মোট ${names.length} জন, উপস্থিত ${present} জন\n`;
+      if(names.length>0) summary += `${cls}: মোট ${names.length} জন, উপস্থিত ${present} জন (${dk})\n`;
     });
-    return summary || 'কোনো উপস্থিতি ডেটা নেই';
+    return summary || 'আজকের কোনো উপস্থিতি ডেটা নেই';
   }
   if(type==='fees'){
     const paid = fees.filter(f=>f.status==='পরিশোধিত').length;
@@ -7860,6 +7917,7 @@ async function loadTenantData(schoolId) {
     if (d.leaveBalances) leaveBalances = d.leaveBalances;
     if (d.users) users = d.users; // ✅ বাগ-ফিক্স: এতদিন ইউজার লিস্ট Firestore-এ সেভ/লোড হতো না, তাই লগআউট-লগইন করলে নতুন তৈরি করা ইউজার (যেমন অভিভাবক/ছাত্র আইডি) হারিয়ে যেত এবং ডেমো ডিফল্ট ইউজার ফিরে আসত
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
+    migrateAttendance();
 
     ['renderDashboard','renderStudents','renderTeachers','renderFees','renderResults','renderNotices']
       .forEach(fn => { try { if (typeof window[fn] === 'function') window[fn](); } catch(e){} });
@@ -7882,6 +7940,7 @@ async function saveTenantData() {
     });
   } catch (e) {
     console.error('টেন্যান্ট ডেটা সেভ এরর:', e);
+    throw e;
   }
 }
 
@@ -8271,32 +8330,37 @@ function renderParentPortal() {
   const clsHW = homeworks ? homeworks.filter(h=>h.cls===sCls&&h.status==='সক্রিয়').length : 0;
   document.getElementById('pp-hw-count').textContent = toBnNum(clsHW||2);
 
-  // Calendar — mock June 2025 attendance
-  const calData = [
-    null,null,null,null,null,null,null, // padding (June starts on Sunday for offset 0)
-    'P','P','P','P','P','H','H',
-    'P','A','P','P','P','H','H',
-    'P','P','L','P','P','H','H',
-    'P','P','P','P','P','H','H',
-  ];
-  // Count
-  const pCount = calData.filter(d=>d==='P').length;
-  const aCount = calData.filter(d=>d==='A').length;
-  const total = pCount+aCount+calData.filter(d=>d==='L').length;
+  // Calendar — আসল সংরক্ষিত উপস্থিতি ডেটা থেকে (তারিখ-ভিত্তিক) বর্তমান মাস রেন্ডার করা হয়
+  const ppMonthNames = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const bnDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  const bnYear = (y)=>String(y).split('').map(ch=>bnDigits[ch]||ch).join('');
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const firstDow = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const clsAttForMonth = attendance[sCls]||{};
+  const calData = [];
+  for(let i=0;i<firstDow;i++) calData.push(null);
+  let pCount=0, aCount=0, lCount=0;
+  for(let d=1; d<=daysInMonth; d++){
+    const dk = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayRec = clsAttForMonth[dk];
+    const st = dayRec ? dayRec[sName] : undefined;
+    if(st==='P') pCount++; else if(st==='A') aCount++; else if(st==='L') lCount++;
+    calData.push({day:d, status: st||null});
+  }
+  const total = pCount+aCount+lCount;
   const pct = total>0?Math.round((pCount/total)*100):0;
   document.getElementById('pp-att-pct').textContent = toBnNum(pct)+'%';
-  document.getElementById('pp-att-label').textContent = 'জুন ২০২৫';
+  document.getElementById('pp-att-label').textContent = `${ppMonthNames[m]} ${bnYear(y)}`;
 
-  const today = new Date().getDate();
+  const todayDate = now.getDate();
   const calGrid = document.getElementById('pp-calendar');
-  calGrid.innerHTML = calData.map((d,i)=>{
-    const day = i>=7?i-6:null; // rough day numbers
-    const dayNum = i>=7?i-6:null;
-    const isToday = dayNum===today;
+  calGrid.innerHTML = calData.map((d)=>{
     if(d===null) return `<div class="cal-cell cal-empty"></div>`;
-    const cls = d==='P'?'cal-present':d==='A'?'cal-absent':d==='H'?'cal-empty':'cal-late';
-    const dayLabel = dayNum||'';
-    return `<div class="cal-cell ${cls}${isToday?' cal-today':''}">${dayLabel||''}</div>`;
+    const isToday = d.day===todayDate;
+    const cls = d.status==='P'?'cal-present':d.status==='A'?'cal-absent':d.status==='L'?'cal-late':'cal-empty';
+    return `<div class="cal-cell ${cls}${isToday?' cal-today':''}">${toBnNum(d.day)}</div>`;
   }).join('');
 
   // Result body
@@ -8623,28 +8687,27 @@ function openStudentProfile(idx) {
     ['ভর্তির তারিখ', s.admissionDate||'—'],
   ].map(([l,v])=>`<div class="profile-field"><div class="profile-field-label">${l}</div><div class="profile-field-val">${v}</div></div>`).join('');
 
-  // Mini attendance calendar (current month)
+  // Mini attendance calendar (current month) — আসল সংরক্ষিত তারিখ-ভিত্তিক ডেটা থেকে
   const days = ['র','সো','ম','বু','বৃ','শু','শ'];
   const daysLong = ['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি'];
   let calHTML = days.map(d=>`<div class="profile-att-label">${d}</div>`).join('');
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
   const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
-  const attData = (attendance[s.cls]||{})[s.name]||'P';
-  // generate mock per-day attendance for demo
-  const seed = s.roll.charCodeAt(0)+s.name.length;
+  const clsAttMonth = attendance[s.cls]||{};
   for(let i=0;i<firstDay;i++) calHTML+=`<div class="profile-att-cell"></div>`;
   let present=0,absent=0,late=0;
   for(let d=1;d<=daysInMonth;d++) {
-    const dow = (firstDay+d-1)%7;
-    if(dow===5){calHTML+=`<div class="profile-att-cell mcc-off" style="background:#f0f4f8;color:#bbb">${toBnNum(d)}</div>`;continue;}
     const isFuture = d > now.getDate();
     if(isFuture){calHTML+=`<div class="profile-att-cell" style="background:#f9f9f9;color:#ccc">${toBnNum(d)}</div>`;continue;}
-    const r = (seed*d*7+d*13)%20;
-    let cls2, status;
-    if(r<1){cls2='att-absent';status='A';absent++;}
-    else if(r<2){cls2='att-holiday';status='L';late++;}
-    else{cls2='att-present';status='P';present++;}
+    const dk = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayRec = clsAttMonth[dk];
+    const status = dayRec ? dayRec[s.name] : null;
+    if(!status){calHTML+=`<div class="profile-att-cell mcc-off" style="background:#f0f4f8;color:#bbb">${toBnNum(d)}</div>`;continue;}
+    let cls2;
+    if(status==='A'){cls2='att-absent';absent++;}
+    else if(status==='L'){cls2='att-holiday';late++;}
+    else{cls2='att-present';present++;}
     calHTML+=`<div class="profile-att-cell ${cls2}" title="${status==='P'?'উপস্থিত':status==='A'?'অনুপস্থিত':'দেরি'}">${toBnNum(d)}</div>`;
   }
   document.getElementById('profile-att-cal').innerHTML = calHTML;
@@ -8738,7 +8801,7 @@ function renderSMSPage() {
   const sent = smsLog.length;
   const absentToday = students.filter(s=>{
     const cls = s.cls;
-    return attendance[cls]&&attendance[cls][s.name]==='A';
+    return isAbsentToday(cls, s.name);
   }).length;
   const dueStudents = students.filter(s=>s.feeStatus==='বকেয়া').length;
   document.getElementById('sms-stats-row').innerHTML = [
@@ -8783,7 +8846,7 @@ function renderSMSPage() {
   // Quick absent alert
   const absentStudents = students.filter(s=>{
     const cls = s.cls;
-    return attendance[cls]&&attendance[cls][s.name]==='A';
+    return isAbsentToday(cls, s.name);
   });
   document.getElementById('sms-absent-quick').innerHTML = absentStudents.length===0
     ? '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:12px">আজ কোনো ছাত্র অনুপস্থিত নেই ✅</div>'
@@ -8859,15 +8922,15 @@ function renderMonthlyReport() {
   const daysInMonth = new Date(target.getFullYear(), target.getMonth()+1, 0).getDate();
   const firstDow = new Date(target.getFullYear(), target.getMonth(), 1).getDay();
 
-  // Generate per-student per-day mock attendance
+  // ছাত্র ও দিন অনুযায়ী আসল সংরক্ষিত উপস্থিতি ডেটা থেকে পড়া হয় (তারিখ-ভিত্তিক)
   const getStudentDayAtt = (s, day) => {
     const dow = (firstDow + day - 1) % 7;
     if(dow===5) return 'H'; // Friday = holiday
-    const seed = s.roll.charCodeAt(0)+s.name.length;
-    const r = (seed*day*7+day*13)%20;
-    if(r<1) return 'A';
-    if(r<2) return 'L';
-    return 'P';
+    const dk = `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const clsRec = attendance[s.cls];
+    const dayRec = clsRec ? clsRec[dk] : null;
+    const st = dayRec ? dayRec[s.name] : null;
+    return st || null; // null মানে ঐ দিনের জন্য উপস্থিতি নেওয়াই হয়নি
   };
 
   // Summary stats
@@ -8877,7 +8940,7 @@ function renderMonthlyReport() {
     const maxDay = (target.getMonth()===now.getMonth()&&target.getFullYear()===now.getFullYear()) ? now.getDate() : daysInMonth;
     for(let d=1;d<=maxDay;d++){
       const st=getStudentDayAtt(s,d);
-      if(st==='H') continue;
+      if(st==='H' || st===null) continue; // ছুটি বা যে দিন উপস্থিতি নেওয়াই হয়নি তা বাদ
       work++;
       if(st==='P') p++;
       else if(st==='A') a++;
@@ -8912,17 +8975,20 @@ function renderMonthlyReport() {
     if(dow===5){calHTML+=`<div class="monthly-cal-cell mcc-off" title="শুক্রবার">${toBnNum(d)}</div>`;continue;}
     if(d>maxDay2){calHTML+=`<div class="monthly-cal-cell mcc-empty" style="color:#ccc">${toBnNum(d)}</div>`;continue;}
     // Avg pct of all students for this day
-    let dayP=0,dayTotal=0;
+    let dayP=0,dayTotal=0,dayMarked=0;
     filteredStudents.forEach(s=>{
       const st=getStudentDayAtt(s,d);
       if(st==='H') return;
+      if(st===null) return; // উপস্থিতি নেওয়া হয়নি
+      dayMarked++;
       dayTotal++;
       if(st==='P') dayP++;
     });
-    const pct2 = dayTotal>0?Math.round((dayP/dayTotal)*100):100;
-    const cls2 = pct2===100?'mcc-full':pct2>=80?'mcc-good':pct2>=60?'mcc-warn':'mcc-bad';
+    const cls2 = dayMarked===0 ? 'mcc-empty' : (dayTotal>0 && Math.round((dayP/dayTotal)*100)===100?'mcc-full':Math.round((dayP/dayTotal)*100)>=80?'mcc-good':Math.round((dayP/dayTotal)*100)>=60?'mcc-warn':'mcc-bad');
+    const pct2 = dayTotal>0?Math.round((dayP/dayTotal)*100):0;
     const isToday = d===now.getDate()&&target.getMonth()===now.getMonth()&&target.getFullYear()===now.getFullYear();
-    calHTML+=`<div class="monthly-cal-cell ${cls2}" title="${toBnNum(pct2)}% উপস্থিত" style="${isToday?'box-shadow:0 0 0 2px var(--primary)':''}">${toBnNum(d)}</div>`;
+    const titleTxt = dayMarked===0 ? 'উপস্থিতি নেওয়া হয়নি' : `${toBnNum(pct2)}% উপস্থিত`;
+    calHTML+=`<div class="monthly-cal-cell ${cls2}" title="${titleTxt}" style="${isToday?'box-shadow:0 0 0 2px var(--primary)':''}">${toBnNum(d)}</div>`;
   }
   document.getElementById('monthly-cal-grid').innerHTML = calHTML;
   document.getElementById('monthly-cal-legend').innerHTML = [
@@ -9408,7 +9474,7 @@ function renderPrincipalDash() {
   // Alerts
   const alerts = [];
   if(dueCount>0) alerts.push({type:'warning', icon:'💰', title:`${toBnNum(dueCount)} জন ছাত্রের ফি বকেয়া`, sub:'দ্রুত পদক্ষেপ নেওয়া দরকার'});
-  const absent = students.filter(s=>{const c=s.cls;return attendance[c]&&attendance[c][s.name]==='A';});
+  const absent = students.filter(s=>isAbsentToday(s.cls, s.name));
   if(absent.length>0) alerts.push({type:'danger', icon:'❌', title:`আজ ${toBnNum(absent.length)} জন ছাত্র অনুপস্থিত`, sub:absent.slice(0,3).map(s=>s.name).join(', ')+(absent.length>3?'...':'')});
   const onLeave = teachers.filter(t=>t.status==='ছুটিতে');
   if(onLeave.length>0) alerts.push({type:'info', icon:'👨‍🏫', title:`${toBnNum(onLeave.length)} জন শিক্ষক ছুটিতে`, sub:onLeave.map(t=>t.name).join(', ')});
