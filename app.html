@@ -1537,6 +1537,7 @@
     <!-- ===== TEACHER ATTENDANCE ===== -->
     <div class="page" id="page-teacher-att">
       <div class="page-actions">
+        <input type="date" class="form-select" id="tatt-date-select" style="max-width:170px;padding:9px 12px" onchange="renderTeacherAtt()">
         <button class="btn btn-primary" onclick="saveTeacherAtt()">✅ উপস্থিতি সেভ</button>
         <button class="btn btn-outline" onclick="markAllTeacher('P')">সবাই উপস্থিত</button>
         <button class="btn btn-outline" onclick="markAllTeacher('A')">সবাই অনুপস্থিত</button>
@@ -2352,9 +2353,15 @@
           <div class="report-sub" id="report-school-sub">আদর্শ উচ্চ বিদ্যালয় • ক্লাস অনুযায়ী বিশ্লেষণ</div>
         </div>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:4px;background:rgba(255,255,255,0.15);padding:4px;border-radius:8px">
+            <button type="button" class="report-view-btn active" id="rv-btn-student" onclick="setReportView('student')" style="border:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:#fff;color:var(--primary)">👨‍🎓 ছাত্র</button>
+            <button type="button" class="report-view-btn" id="rv-btn-teacher" onclick="setReportView('teacher')" style="border:none;padding:7px 14px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:#fff">👨‍🏫 শিক্ষক</button>
+          </div>
+          <span id="report-class-sel-wrap">
           <select class="form-select" id="report-class-sel" style="background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.4);color:#fff;padding:8px 12px;font-size:13px" onchange="renderMonthlyReport()">
             <option value="">সব শ্রেণি</option>
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
+          </span>
           <div class="report-month-nav">
             <button class="month-nav-btn" onclick="changeReportMonth(-1)">◀</button>
             <div class="report-month-label" id="report-month-label">জুন ২০২৫</div>
@@ -2371,7 +2378,7 @@
         </div>
         <div class="monthly-cal-grid" id="monthly-cal-grid"></div>
       </div>
-      <div class="card">
+      <div class="card" id="monthly-student-section">
         <div class="card-header">
           <div class="card-title">👨‍🎓 ছাত্রভিত্তিক মাসিক উপস্থিতি</div>
           <span class="badge badge-blue" id="report-total-badge"></span>
@@ -2379,6 +2386,16 @@
         <div class="monthly-student-table-wrap">
           <table><thead><tr><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>উপস্থিত দিন</th><th>অনুপস্থিত</th><th>দেরি</th><th>মোট কার্যদিন</th><th>হার</th></tr></thead>
           <tbody id="monthly-student-tbody"></tbody></table>
+        </div>
+      </div>
+      <div class="card" id="monthly-teacher-section" style="display:none">
+        <div class="card-header">
+          <div class="card-title">👨‍🏫 শিক্ষকভিত্তিক মাসিক উপস্থিতি</div>
+          <span class="badge badge-blue" id="report-teacher-total-badge"></span>
+        </div>
+        <div class="monthly-student-table-wrap">
+          <table><thead><tr><th>#</th><th>নাম</th><th>বিষয়</th><th>উপস্থিত দিন</th><th>অনুপস্থিত</th><th>দেরি</th><th>মোট কার্যদিন</th><th>হার</th></tr></thead>
+          <tbody id="monthly-teacher-tbody"></tbody></table>
         </div>
       </div>
     </div>
@@ -5608,7 +5625,7 @@ let questionPapers = [
 let qpDraft = null;
 let qpEditingId = null;
 
-let teacherAtt = {}; // { name: 'P'|'A'|'L' }
+let teacherAtt = {}; // { dateKey: { name: 'P'|'A'|'L' } } — dateKey ফরম্যাট: 'YYYY-MM-DD'
 
 // ============ ROUTINE ============
 function renderRoutine() {
@@ -6464,6 +6481,7 @@ function applyRestoreData(data){
   if(data.users) users = data.users;
   if(data.permissions) permissions = data.permissions;
   migrateAttendance();
+  migrateTeacherAtt();
 }
 
 function restoreData(){
@@ -7709,14 +7727,32 @@ function renderMerit() {
 }
 
 // ============ TEACHER ATTENDANCE (Phase 3) ============
-function renderTeacherAtt() {
-  document.getElementById('tatt-date').textContent = todayBn();
-  if(Object.keys(teacherAtt).length===0) {
-    teachers.forEach(t=>{ teacherAtt[t.name]='P'; });
+// পুরনো ফরম্যাট teacherAtt[name]='P' থেকে নতুন date-wise ফরম্যাট teacherAtt[dateKey][name]='P' এ মাইগ্রেট করে
+function migrateTeacherAtt() {
+  if(!teacherAtt) { teacherAtt = {}; return; }
+  const keys = Object.keys(teacherAtt);
+  const looksOld = keys.length>0 && keys.every(k=>typeof teacherAtt[k] === 'string');
+  if(looksOld) {
+    teacherAtt = { [dateKey()]: teacherAtt };
   }
+}
+function getSelectedTattDate() {
+  const el = document.getElementById('tatt-date-select');
+  if(el && !el.value) el.value = dateKey();
+  return el ? (el.value || dateKey()) : dateKey();
+}
+function getTeacherAttForDate(dk) {
+  if(!teacherAtt[dk]) teacherAtt[dk] = {};
+  teachers.forEach(t=>{ if(!teacherAtt[dk][t.name]) teacherAtt[dk][t.name]='P'; });
+  return teacherAtt[dk];
+}
+function renderTeacherAtt() {
+  const dk = getSelectedTattDate();
+  document.getElementById('tatt-date').textContent = dk===dateKey() ? todayBn() : dk;
+  const rec = getTeacherAttForDate(dk);
   const tbody = document.getElementById('tatt-tbody');
   tbody.innerHTML = teachers.map((t,i)=>{
-    const st = teacherAtt[t.name]||'P';
+    const st = rec[t.name]||'P';
     return `<tr>
       <td>${toBnNum(i+1)}</td><td><b>${t.name}</b></td><td>${t.subject}</td>
       <td>
@@ -7730,18 +7766,23 @@ function renderTeacherAtt() {
 }
 
 function setTeacherAtt(name, val, btn) {
-  teacherAtt[name] = val;
+  const dk = getSelectedTattDate();
+  getTeacherAttForDate(dk)[name] = val;
   const row = btn.closest('tr');
   row.querySelectorAll('.att-status-btn').forEach(b=>b.className='att-status-btn');
   btn.className = 'att-status-btn ' + (val==='P'?'att-p':val==='A'?'att-a':'att-l');
   updateTeacherAttStats();
 }
 function markAllTeacher(val) {
-  teachers.forEach(t=>{ teacherAtt[t.name]=val; });
+  const dk = getSelectedTattDate();
+  const rec = getTeacherAttForDate(dk);
+  teachers.forEach(t=>{ rec[t.name]=val; });
   renderTeacherAtt();
 }
 function updateTeacherAttStats() {
-  const vals = Object.values(teacherAtt);
+  const dk = getSelectedTattDate();
+  const rec = getTeacherAttForDate(dk);
+  const vals = Object.values(rec);
   const p=vals.filter(v=>v==='P').length, a=vals.filter(v=>v==='A').length, l=vals.filter(v=>v==='L').length;
   document.getElementById('tatt-present').textContent=toBnNum(p);
   document.getElementById('tatt-absent').textContent=toBnNum(a);
@@ -8196,6 +8237,7 @@ async function loadTenantData(schoolId) {
     if (d.permissions) permissions = d.permissions;
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
     migrateAttendance();
+    migrateTeacherAtt();
 
     ['renderDashboard','renderStudents','renderTeachers','renderFees','renderResults','renderNotices']
       .forEach(fn => { try { if (typeof window[fn] === 'function') window[fn](); } catch(e){} });
@@ -9224,13 +9266,36 @@ function quickSendAbsent(name, guardian, cls) {
 
 // ============ MONTHLY ATTENDANCE REPORT ============
 let reportMonthOffset = 0;
+let reportView = 'student'; // 'student' | 'teacher'
 const bnMonths = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
 
 function changeReportMonth(dir) {
   reportMonthOffset += dir;
   renderMonthlyReport();
 }
+function setReportView(view) {
+  reportView = view;
+  const btnS = document.getElementById('rv-btn-student');
+  const btnT = document.getElementById('rv-btn-teacher');
+  if(btnS && btnT) {
+    btnS.style.background = view==='student' ? '#fff' : 'transparent';
+    btnS.style.color = view==='student' ? 'var(--primary)' : '#fff';
+    btnT.style.background = view==='teacher' ? '#fff' : 'transparent';
+    btnT.style.color = view==='teacher' ? 'var(--primary)' : '#fff';
+  }
+  const clsWrap = document.getElementById('report-class-sel-wrap');
+  const studentSec = document.getElementById('monthly-student-section');
+  const teacherSec = document.getElementById('monthly-teacher-section');
+  if(clsWrap) clsWrap.style.display = view==='student' ? '' : 'none';
+  if(studentSec) studentSec.style.display = view==='student' ? '' : 'none';
+  if(teacherSec) teacherSec.style.display = view==='teacher' ? '' : 'none';
+  renderMonthlyReport();
+}
 function renderMonthlyReport() {
+  if(reportView==='teacher') { renderTeacherMonthlyReport(); return; }
+  renderStudentMonthlyReport();
+}
+function renderStudentMonthlyReport() {
   const now = new Date();
   const target = new Date(now.getFullYear(), now.getMonth()+reportMonthOffset, 1);
   const monthName = bnMonths[target.getMonth()];
@@ -9335,6 +9400,112 @@ function renderMonthlyReport() {
             <div style="display:flex;align-items:center;gap:6px">
               <div style="flex:1"><div class="att-pct-bar"><div class="att-pct-fill" style="width:${s.pct}%;background:${barColor}"></div></div></div>
               <span style="font-size:12px;font-weight:700;color:${barColor}">${toBnNum(s.pct)}%</span>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+}
+
+function renderTeacherMonthlyReport() {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth()+reportMonthOffset, 1);
+  const monthName = bnMonths[target.getMonth()];
+  const year = target.getFullYear();
+  const label = `${monthName} ${year}`;
+  document.getElementById('report-month-label').textContent = label;
+  document.getElementById('monthly-cal-title').textContent = `${label} — শিক্ষক উপস্থিতি ক্যালেন্ডার`;
+
+  const daysInMonth = new Date(target.getFullYear(), target.getMonth()+1, 0).getDate();
+  const firstDow = new Date(target.getFullYear(), target.getMonth(), 1).getDay();
+  const maxDay = (target.getMonth()===now.getMonth()&&target.getFullYear()===now.getFullYear()) ? now.getDate() : daysInMonth;
+
+  // শিক্ষক ও দিন অনুযায়ী আসল সংরক্ষিত উপস্থিতি ডেটা থেকে পড়া হয় (তারিখ-ভিত্তিক)
+  const getTeacherDayAtt = (t, day) => {
+    const dow = (firstDow + day - 1) % 7;
+    if(dow===5) return 'H'; // Friday = holiday
+    const dk = `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const dayRec = teacherAtt[dk];
+    const st = dayRec ? dayRec[t.name] : null;
+    return st || null; // null মানে ঐ দিনের জন্য উপস্থিতি নেওয়াই হয়নি
+  };
+
+  // Summary stats
+  let totalA=0,totalWorkDays=0;
+  const teacherStats = teachers.map(t=>{
+    let p=0,a=0,l=0,work=0;
+    for(let d=1;d<=maxDay;d++){
+      const st=getTeacherDayAtt(t,d);
+      if(st==='H' || st===null) continue;
+      work++;
+      if(st==='P') p++;
+      else if(st==='A') a++;
+      else l++;
+    }
+    totalA+=a; totalWorkDays=Math.max(totalWorkDays,work);
+    return {...t, p, a, l, work, pct: work>0?Math.round((p/work)*100):0};
+  });
+
+  // Summary cards
+  const totalTeachers = teachers.length;
+  const avgPct = teacherStats.length>0 ? Math.round(teacherStats.reduce((s,r)=>s+r.pct,0)/teacherStats.length) : 0;
+  document.getElementById('monthly-summary-grid').innerHTML = [
+    ['👨‍🏫', 'মোট শিক্ষক', toBnNum(totalTeachers), 'var(--primary)'],
+    ['✅', 'গড় উপস্থিতি', toBnNum(avgPct)+'%', 'var(--success)'],
+    ['❌', 'মোট অনুপস্থিতি', toBnNum(totalA), 'var(--danger)'],
+    ['📅', 'মোট কার্যদিন', toBnNum(totalWorkDays), 'var(--accent)'],
+  ].map(([icon,lbl,val,color])=>`
+    <div class="monthly-summary-card">
+      <div style="font-size:20px;margin-bottom:4px">${icon}</div>
+      <div class="monthly-summary-val" style="color:${color}">${val}</div>
+      <div class="monthly-summary-lbl">${lbl}</div>
+    </div>`).join('');
+
+  // Calendar grid
+  const dayLabels = ['র','সো','ম','বু','বৃ','শু','শ'];
+  let calHTML = dayLabels.map(d=>`<div class="monthly-cal-day-label">${d}</div>`).join('');
+  for(let i=0;i<firstDow;i++) calHTML+=`<div class="monthly-cal-cell mcc-empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dow=(firstDow+d-1)%7;
+    if(dow===5){calHTML+=`<div class="monthly-cal-cell mcc-off" title="শুক্রবার">${toBnNum(d)}</div>`;continue;}
+    if(d>maxDay){calHTML+=`<div class="monthly-cal-cell mcc-empty" style="color:#ccc">${toBnNum(d)}</div>`;continue;}
+    let dayP=0,dayTotal=0,dayMarked=0;
+    teachers.forEach(t=>{
+      const st=getTeacherDayAtt(t,d);
+      if(st==='H') return;
+      if(st===null) return;
+      dayMarked++;
+      dayTotal++;
+      if(st==='P') dayP++;
+    });
+    const cls2 = dayMarked===0 ? 'mcc-empty' : (dayTotal>0 && Math.round((dayP/dayTotal)*100)===100?'mcc-full':Math.round((dayP/dayTotal)*100)>=80?'mcc-good':Math.round((dayP/dayTotal)*100)>=60?'mcc-warn':'mcc-bad');
+    const pct2 = dayTotal>0?Math.round((dayP/dayTotal)*100):0;
+    const isToday = d===now.getDate()&&target.getMonth()===now.getMonth()&&target.getFullYear()===now.getFullYear();
+    const titleTxt = dayMarked===0 ? 'উপস্থিতি নেওয়া হয়নি' : `${toBnNum(pct2)}% উপস্থিত`;
+    calHTML+=`<div class="monthly-cal-cell ${cls2}" title="${titleTxt}" style="${isToday?'box-shadow:0 0 0 2px var(--primary)':''}">${toBnNum(d)}</div>`;
+  }
+  document.getElementById('monthly-cal-grid').innerHTML = calHTML;
+  document.getElementById('monthly-cal-legend').innerHTML = [
+    ['mcc-full','১০০%'],['mcc-good','৮০-৯৯%'],['mcc-warn','৬০-৭৯%'],['mcc-bad','<৬০%'],['mcc-off','ছুটি'],
+  ].map(([c,l])=>`<span class="monthly-cal-cell ${c}" style="padding:2px 8px;font-size:10px;border-radius:4px">${l}</span>`).join('');
+
+  // Teacher table
+  document.getElementById('report-teacher-total-badge').textContent = `মোট ${toBnNum(totalTeachers)} জন`;
+  document.getElementById('monthly-teacher-tbody').innerHTML = teacherStats.length===0
+    ? '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-muted)">কোনো শিক্ষক নেই</td></tr>'
+    : teacherStats.sort((a,b)=>b.pct-a.pct).map((t,i)=>{
+        const barColor = t.pct>=90?'#1e8449':t.pct>=75?'#2e86c1':t.pct>=60?'#e67e22':'#c0392b';
+        return `<tr>
+          <td>${toBnNum(i+1)}</td>
+          <td><b>${t.name}</b></td>
+          <td>${t.subject||'-'}</td>
+          <td style="color:var(--success);font-weight:700">${toBnNum(t.p)}</td>
+          <td style="color:var(--danger);font-weight:700">${toBnNum(t.a)}</td>
+          <td style="color:var(--accent);font-weight:700">${toBnNum(t.l)}</td>
+          <td>${toBnNum(t.work)}</td>
+          <td style="min-width:100px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <div style="flex:1"><div class="att-pct-bar"><div class="att-pct-fill" style="width:${t.pct}%;background:${barColor}"></div></div></div>
+              <span style="font-size:12px;font-weight:700;color:${barColor}">${toBnNum(t.pct)}%</span>
             </div>
           </td>
         </tr>`;
