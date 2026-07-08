@@ -3193,21 +3193,22 @@
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="r-class">
+          <select class="form-select" id="r-class" onchange="renderResultSubjectFields()">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">পরীক্ষার ধরন</label>
           <select class="form-select" id="r-exam"><option>অর্ধবার্ষিক</option><option>বার্ষিক</option><option>প্রাক-নির্বাচনী</option><option>মাসিক</option></select>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div class="form-group"><label class="form-label">বাংলা /১০০</label><input class="form-input" id="r-bangla" type="number" min="0" max="100" placeholder="০"></div>
-        <div class="form-group"><label class="form-label">ইংরেজি /১০০</label><input class="form-input" id="r-english" type="number" min="0" max="100" placeholder="০"></div>
-        <div class="form-group"><label class="form-label">গণিত /১০০</label><input class="form-input" id="r-math" type="number" min="0" max="100" placeholder="০"></div>
-        <div class="form-group"><label class="form-label">বিজ্ঞান /১০০</label><input class="form-input" id="r-science" type="number" min="0" max="100" placeholder="০"></div>
-        <div class="form-group"><label class="form-label">ইতিহাস /১০০</label><input class="form-input" id="r-history" type="number" min="0" max="100" placeholder="০"></div>
-        <div class="form-group"><label class="form-label">ধর্ম /১০০</label><input class="form-input" id="r-religion" type="number" min="0" max="100" placeholder="০"></div>
+      <div class="form-group" id="r-group-wrap" style="display:none">
+        <label class="form-label">গ্রুপ (৯ম-১০ম শ্রেণির জন্য)</label>
+        <select class="form-select" id="r-group" onchange="renderResultSubjectFields()">
+          <option value="science">বিজ্ঞান</option>
+          <option value="business">ব্যবসায় শিক্ষা</option>
+          <option value="humanities">মানবিক</option>
+        </select>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px" id="result-subjects-fields"></div>
       <div class="form-error" id="r-error"></div>
       <div class="modal-footer">
         <button class="btn btn-outline" style="flex:1" onclick="closeModal('result-modal')">বাতিল</button>
@@ -3871,6 +3872,118 @@ function gradeColor(g) {
   const map = {'A+':'#1e8449','A':'#1e8449','A-':'#d4ac0d','B':'#d4ac0d','C':'#e67e22','D':'#c0392b','F':'#c0392b'};
   return map[g]||'#555';
 }
+
+// ============ ক্লাস-ভিত্তিক বিষয় কনফিগারেশন ============
+// প্লে থেকে দশম শ্রেণি পর্যন্ত বাস্তবসম্মত বিষয় তালিকা — ক্লাস অনুযায়ী বদলায়,
+// ৯ম-১০ম শ্রেণিতে গ্রুপ (বিজ্ঞান/ব্যবসায় শিক্ষা/মানবিক) অনুযায়ীও বদলায়।
+const classTierSubjects = {
+  playNursery: [
+    {key:'oral', label:'মৌখিক দক্ষতা'},
+    {key:'writing', label:'লেখা'},
+    {key:'drawing', label:'ছবি আঁকা'},
+    {key:'numeracy', label:'সংখ্যা চেনা ও গণনা'},
+  ],
+  class1_2: [
+    {key:'bangla', label:'বাংলা'},
+    {key:'english', label:'ইংরেজি'},
+    {key:'math', label:'গণিত'},
+    {key:'bgs', label:'বাংলাদেশ ও বিশ্বপরিচয়'},
+    {key:'religion', label:'ধর্ম'},
+  ],
+  class3_5: [
+    {key:'bangla', label:'বাংলা'},
+    {key:'english', label:'ইংরেজি'},
+    {key:'math', label:'গণিত'},
+    {key:'science', label:'বিজ্ঞান'},
+    {key:'bgs', label:'বাংলাদেশ ও বিশ্বপরিচয়'},
+    {key:'religion', label:'ধর্ম'},
+    {key:'ict', label:'তথ্য ও যোগাযোগ প্রযুক্তি'},
+  ],
+  class6_8: [
+    {key:'bangla1', label:'বাংলা ১ম পত্র'},
+    {key:'bangla2', label:'বাংলা ২য় পত্র'},
+    {key:'english1', label:'ইংরেজি ১ম পত্র'},
+    {key:'english2', label:'ইংরেজি ২য় পত্র'},
+    {key:'math', label:'গণিত'},
+    {key:'science', label:'বিজ্ঞান'},
+    {key:'bgs', label:'বাংলাদেশ ও বিশ্বপরিচয়'},
+    {key:'religion', label:'ধর্ম ও নৈতিক শিক্ষা'},
+    {key:'ict', label:'তথ্য ও যোগাযোগ প্রযুক্তি'},
+  ],
+  class9_10_common: [
+    {key:'bangla1', label:'বাংলা ১ম পত্র'},
+    {key:'bangla2', label:'বাংলা ২য় পত্র'},
+    {key:'english1', label:'ইংরেজি ১ম পত্র'},
+    {key:'english2', label:'ইংরেজি ২য় পত্র'},
+    {key:'math', label:'সাধারণ গণিত'},
+    {key:'religion', label:'ধর্ম ও নৈতিক শিক্ষা'},
+    {key:'ict', label:'তথ্য ও যোগাযোগ প্রযুক্তি'},
+  ],
+  class9_10_group: {
+    science: [
+      {key:'physics', label:'পদার্থবিজ্ঞান'},
+      {key:'chemistry', label:'রসায়ন'},
+      {key:'biology', label:'জীববিজ্ঞান'},
+      {key:'higherMath', label:'উচ্চতর গণিত'},
+    ],
+    business: [
+      {key:'accounting', label:'হিসাববিজ্ঞান'},
+      {key:'bizEntrepreneurship', label:'ব্যবসায় উদ্যোগ'},
+      {key:'financeBanking', label:'ফিন্যান্স ও ব্যাংকিং'},
+    ],
+    humanities: [
+      {key:'history', label:'ইতিহাস'},
+      {key:'civics', label:'পৌরনীতি ও সুশাসন'},
+      {key:'economics', label:'অর্থনীতি'},
+    ],
+  },
+};
+const groupLabels = {science:'বিজ্ঞান', business:'ব্যবসায় শিক্ষা', humanities:'মানবিক'};
+
+// ক্লাসের নাম দেখে কোন "টিয়ার"-এ পড়ে সেটা বের করে
+function getClassTier(cls) {
+  if(!cls) return 'class3_5';
+  if(cls.startsWith('প্লে') || cls.startsWith('নার্সারি')) return 'playNursery';
+  if(cls.startsWith('প্রথম') || cls.startsWith('দ্বিতীয়')) return 'class1_2';
+  if(cls.startsWith('তৃতীয়') || cls.startsWith('চতুর্থ') || cls.startsWith('পঞ্চম')) return 'class3_5';
+  if(cls.startsWith('ষষ্ঠ') || cls.startsWith('সপ্তম') || cls.startsWith('অষ্টম')) return 'class6_8';
+  if(cls.startsWith('নবম') || cls.startsWith('দশম')) return 'class9_10';
+  return 'class3_5';
+}
+function isGroupClass(cls) { return getClassTier(cls)==='class9_10'; }
+// নির্দিষ্ট ক্লাস (ও ৯ম-১০ম হলে গ্রুপ) অনুযায়ী বিষয় তালিকা রিটার্ন করে
+function getSubjectsForClass(cls, group) {
+  const tier = getClassTier(cls);
+  if(tier==='class9_10') {
+    const g = (group && classTierSubjects.class9_10_group[group]) ? group : 'science';
+    return classTierSubjects.class9_10_common.concat(classTierSubjects.class9_10_group[g]);
+  }
+  return classTierSubjects[tier] || classTierSubjects.class3_5;
+}
+// সব টিয়ার/গ্রুপ মিলিয়ে key→label ম্যাপ (রেজাল্ট দেখানোর সময় ব্যবহার হয়)
+const allSubjectLabels = (function(){
+  const map = {};
+  Object.keys(classTierSubjects).forEach(k=>{
+    const v = classTierSubjects[k];
+    if(Array.isArray(v)) v.forEach(s=>{ map[s.key]=s.label; });
+    else Object.values(v).forEach(arr=>arr.forEach(s=>{ map[s.key]=s.label; }));
+  });
+  return map;
+})();
+function subjectLabel(key) { return allSubjectLabels[key] || key; }
+// ফলাফল ফর্মে ক্লাস/গ্রুপ অনুযায়ী বিষয়ের ইনপুট বক্স ডাইনামিকভাবে বানায়
+function renderResultSubjectFields() {
+  const cls = document.getElementById('r-class').value;
+  const groupWrap = document.getElementById('r-group-wrap');
+  const showGroup = isGroupClass(cls);
+  groupWrap.style.display = showGroup ? 'block' : 'none';
+  const group = showGroup ? document.getElementById('r-group').value : null;
+  const subs = getSubjectsForClass(cls, group);
+  const container = document.getElementById('result-subjects-fields');
+  container.innerHTML = subs.map(s=>
+    `<div class="form-group"><label class="form-label">${s.label} /১০০</label><input class="form-input r-subject-input" data-key="${s.key}" type="number" min="0" max="100" placeholder="০"></div>`
+  ).join('');
+}
 function todayBn() {
   const days = ['রবিবার','সোমবার','মঙ্গলবার','বুধবার','বৃহস্পতিবার','শুক্রবার','শনিবার'];
   const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
@@ -3956,6 +4069,7 @@ function showPage(id, el) {
 function openModal(id) {
   document.getElementById(id).classList.add('open');
   ['s-error','t-error','f-error','r-error','n-error','book-error','issue-error','vehicle-error','route-error','ai-key-error'].forEach(e=>{const el=document.getElementById(e);if(el)el.style.display='none';});
+  if(id==='result-modal') renderResultSubjectFields();
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e=>{
@@ -4521,7 +4635,7 @@ function renderResults(list) {
     const gpaStr = avgGPA>=4.5?'৫.০০':avgGPA>=4?'৪.০০':avgGPA>=3.5?'৩.৫০':avgGPA>=3?'৩.০০':'২.০০';
     const gradeStr = avgGPA>=4.5?'A+':avgGPA>=4?'A':avgGPA>=3.5?'A-':'B';
     const passed = Object.values(subs).every(m=>m>=33);
-    const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+    const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
     return `
     <div style="margin-bottom:20px">
       <div class="result-header">
@@ -4573,17 +4687,21 @@ function saveResult() {
   if(!name){showErr('r-error','ছাত্রের নাম লিখুন');return;}
   if(!roll){showErr('r-error','রোল নম্বর লিখুন');return;}
   hideErr('r-error');
-  const getVal = id => parseInt(document.getElementById(id).value)||0;
-  results.push({
-    name, roll,
-    cls: document.getElementById('r-class').value,
-    exam: document.getElementById('r-exam').value,
-    subjects: {
-      bangla:getVal('r-bangla'), english:getVal('r-english'), math:getVal('r-math'),
-      science:getVal('r-science'), history:getVal('r-history'), religion:getVal('r-religion'),
-    }
+  const cls = document.getElementById('r-class').value;
+  const group = isGroupClass(cls) ? document.getElementById('r-group').value : null;
+  const subjects = {};
+  document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>{
+    subjects[inp.dataset.key] = parseInt(inp.value) || 0;
   });
-  ['r-name','r-roll','r-bangla','r-english','r-math','r-science','r-history','r-religion'].forEach(id=>document.getElementById(id).value='');
+  results.push({
+    name, roll, cls,
+    exam: document.getElementById('r-exam').value,
+    group,
+    subjects
+  });
+  document.getElementById('r-name').value='';
+  document.getElementById('r-roll').value='';
+  document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>inp.value='');
   closeModal('result-modal');
   renderResults();
   showToast('ফলাফল সফলভাবে যোগ হয়েছে!');
@@ -6846,7 +6964,7 @@ function renderTabulation() {
   const cls = document.getElementById('tab-class').value;
   const exam = document.getElementById('tab-exam').value;
   document.getElementById('tab-title').textContent = `ট্যাবুলেশন শিট — ${cls} (${exam})`;
-  const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+  const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   const data = results.filter(r=>r.cls===cls && r.exam===exam);
   const thead = document.getElementById('tab-thead');
   const tbody = document.getElementById('tab-tbody');
@@ -7338,7 +7456,7 @@ function renderMarksheet() {
   if(cls) data = data.filter(r=>r.cls===cls);
   if(exam) data = data.filter(r=>r.exam===exam);
   const school = document.getElementById('s-school-name')?.value||'আদর্শ উচ্চ বিদ্যালয়';
-  const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+  const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   const container = document.getElementById('marksheet-list');
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো ফলাফল নেই</div></div>';return;}
   container.innerHTML = data.map((r,idx)=>{
@@ -7390,7 +7508,7 @@ function printSingleMarksheet(idx) {
   const school = document.getElementById('s-school-name')?.value||'আদর্শ উচ্চ বিদ্যালয়';
   const addr = document.getElementById('s-address')?.value||'ঢাকা, বাংলাদেশ';
   const subs = r.subjects;
-  const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+  const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   const total = Object.values(subs).reduce((a,b)=>a+b,0);
   const max = Object.keys(subs).length*100;
   const avgGPA = Object.values(subs).reduce((a,m)=>a+getGPA(m),0)/Object.keys(subs).length;
@@ -7424,7 +7542,7 @@ function renderMerit() {
   });
   const container = document.getElementById('merit-list');
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো ফলাফল নেই</div></div>';return;}
-  const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+  const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   container.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">🏆 মেরিট লিস্ট ${cls?'— '+cls:''} ${exam?'('+exam+')':''}</div><button class="btn btn-outline no-print" style="font-size:12px;padding:5px 12px" onclick="window.print()">🖨️ প্রিন্ট</button></div>
   <div class="card-body" style="padding:0"><table>
   <thead><tr><th>স্থান</th><th>নাম</th><th>রোল</th><th>শ্রেণি</th><th>মোট নম্বর</th><th>GPA</th><th>গ্রেড</th><th>ফলাফল</th></tr></thead>
@@ -8375,7 +8493,7 @@ function renderParentPortal() {
   const resultEl = document.getElementById('pp-result-body');
   if(sr.length>0){
     const r = sr[sr.length-1];
-    const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+    const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
     resultEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">পরীক্ষা: ${r.exam}</div>`+
       Object.entries(r.subjects).map(([k,m])=>{
         const g = getGrade(m);
@@ -8729,7 +8847,7 @@ function openStudentProfile(idx) {
 
   // Latest result
   const studentResult = results.find(r=>r.name===s.name||r.roll===s.roll);
-  const subjectNames = {bangla:'বাংলা',english:'ইংরেজি',math:'গণিত',science:'বিজ্ঞান',history:'ইতিহাস',religion:'ধর্ম'};
+  const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   if(studentResult) {
     document.getElementById('profile-results-mini').innerHTML = Object.entries(studentResult.subjects).map(([key,mark])=>{
       const color = mark>=80?'#1e8449':mark>=60?'#2e86c1':mark>=40?'#e67e22':'#c0392b';
