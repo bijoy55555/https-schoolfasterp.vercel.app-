@@ -2313,42 +2313,6 @@
         </div>
       </div>
 
-      <!-- প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) — ছাত্র নিজের ছবি ও ইমার্জেন্সি যোগাযোগের তথ্য নিজে আপডেট করতে পারবে -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-header"><div class="card-title">👤 প্রোফাইল এডিট</div></div>
-        <div class="card-body">
-          <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
-            <div style="text-align:center;flex-shrink:0">
-              <div id="sp-profile-photo-box" style="width:100px;height:110px;border-radius:10px;border:2px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-size:34px;color:var(--text-muted)">🧑‍🎓</div>
-              <label class="btn btn-outline" style="margin-top:8px;font-size:11px;padding:6px 10px;display:inline-block;cursor:pointer">
-                📷 ছবি পরিবর্তন
-                <input type="file" accept="image/*" id="sp-profile-photo-input" style="display:none" onchange="handleProfilePhotoSelect(this)">
-              </label>
-            </div>
-            <div style="flex:1;min-width:220px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
-              <div class="form-group" style="margin-bottom:0">
-                <label class="form-label">ইমার্জেন্সি কন্টাক্টের নাম</label>
-                <input class="form-input" id="sp-profile-em-name" placeholder="যেমন: আব্দুল করিম">
-              </div>
-              <div class="form-group" style="margin-bottom:0">
-                <label class="form-label">সম্পর্ক</label>
-                <select class="form-select" id="sp-profile-em-relation">
-                  <option>পিতা</option><option>মাতা</option><option>অভিভাবক</option><option>ভাই/বোন</option><option>অন্যান্য</option>
-                </select>
-              </div>
-              <div class="form-group" style="margin-bottom:0;grid-column:1/-1">
-                <label class="form-label">ইমার্জেন্সি ফোন নম্বর</label>
-                <input class="form-input" id="sp-profile-em-phone" placeholder="যেমন: ০১৭XXXXXXXX" maxlength="14">
-              </div>
-            </div>
-          </div>
-          <div class="form-error" id="sp-profile-error" style="margin-top:10px"></div>
-          <div style="margin-top:14px">
-            <button class="btn btn-primary" onclick="saveStudentProfile()">✓ প্রোফাইল সংরক্ষণ করুন</button>
-          </div>
-        </div>
-      </div>
-
       <!-- পরিবহন তথ্য (রুট ও সময়) — বিদ্যালয়ের সকল পরিবহন রুট, পিকআপ পয়েন্ট, সময়সূচি ও ফি রিড-অনলি আকারে দেখাবে -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-header"><div class="card-title">🚌 পরিবহন তথ্য (রুট ও সময়)</div></div>
@@ -9217,9 +9181,6 @@ function renderStudentPortal() {
   checkAndNotifyResults(sName, sRoll, sCls);
   renderNotifBadge();
 
-  // ===== প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) =====
-  renderStudentProfileEdit(matchedStudent);
-
   // ===== পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) =====
   renderStudentTransport();
 
@@ -9348,65 +9309,6 @@ function renderStudentPortal() {
       </div>`;
     }).join('');
   }
-}
-
-// ============ ছাত্র পোর্টাল: প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) ============
-let _spPendingPhoto = null; // নতুন নির্বাচিত ছবি (সেভ করার আগ পর্যন্ত অস্থায়ী)
-
-function renderStudentProfileEdit(matchedStudent) {
-  _spPendingPhoto = null;
-  const box = document.getElementById('sp-profile-photo-box');
-  const photo = matchedStudent && matchedStudent.photo;
-  if(box) box.innerHTML = photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover">` : '🧑\u200d🎓';
-  const nameEl = document.getElementById('sp-profile-em-name');
-  const relEl = document.getElementById('sp-profile-em-relation');
-  const phoneEl = document.getElementById('sp-profile-em-phone');
-  if(nameEl) nameEl.value = (matchedStudent && matchedStudent.emergencyName) || '';
-  if(relEl) relEl.value = (matchedStudent && matchedStudent.emergencyRelation) || 'পিতা';
-  if(phoneEl) phoneEl.value = (matchedStudent && matchedStudent.emergencyPhone) || '';
-  hideErr('sp-profile-error');
-}
-
-function handleProfilePhotoSelect(input) {
-  const file = input.files[0];
-  if(!file) return;
-  if(file.size > 800*1024) {
-    showErr('sp-profile-error', 'ছবির সাইজ বড় হয়ে গেছে — ৮০০ কেবির মধ্যে ছবি দাও');
-    input.value = '';
-    return;
-  }
-  hideErr('sp-profile-error');
-  const reader = new FileReader();
-  reader.onload = function(e){
-    _spPendingPhoto = e.target.result;
-    const box = document.getElementById('sp-profile-photo-box');
-    if(box) box.innerHTML = `<img src="${_spPendingPhoto}" style="width:100%;height:100%;object-fit:cover">`;
-  };
-  reader.readAsDataURL(file);
-}
-
-function saveStudentProfile() {
-  if(!currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
-  if(!matchedStudent) { showErr('sp-profile-error', 'তোমার ছাত্র রেকর্ড খুঁজে পাওয়া যায়নি'); return; }
-  const emName = document.getElementById('sp-profile-em-name').value.trim();
-  const emRelation = document.getElementById('sp-profile-em-relation').value;
-  const emPhone = document.getElementById('sp-profile-em-phone').value.trim();
-  if(emPhone && !/^0\d{9,10}$/.test(emPhone.replace(/[^0-9]/g,''))) {
-    showErr('sp-profile-error', 'সঠিক ফোন নম্বর দাও (যেমন: ০১৭XXXXXXXX)');
-    return;
-  }
-  hideErr('sp-profile-error');
-  if(_spPendingPhoto) matchedStudent.photo = _spPendingPhoto;
-  matchedStudent.emergencyName = emName;
-  matchedStudent.emergencyRelation = emRelation;
-  matchedStudent.emergencyPhone = emPhone;
-  _spPendingPhoto = null;
-  if(typeof saveTenantData === 'function') saveTenantData().catch(()=>{});
-  showToast('প্রোফাইল সংরক্ষণ করা হয়েছে!');
-  renderStudentProfileEdit(matchedStudent);
 }
 
 // ============ ছাত্র পোর্টাল: পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) ============
