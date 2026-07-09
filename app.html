@@ -8263,6 +8263,10 @@ window.currentSchoolId = null;
 function renderSubscriptionBadge(school){
   const el = document.getElementById('subscription-badge');
   if(!el) return;
+  // ✅ সাবস্ক্রিপশন/মেয়াদের তথ্য শুধু এডমিন/প্রধান শিক্ষকের জন্য প্রাসঙ্গিক —
+  // অভিভাবক ও ছাত্র পোর্টালে এই ব্যাজ দেখানোর দরকার নেই
+  const role = currentUser && currentUser.role;
+  if(role==='parent' || role==='student'){ el.style.display = 'none'; return; }
   if(!school || !school.expiryDate){ el.style.display = 'none'; return; }
   window._schoolDoc = school; // ✅ প্যাকেজ কেনার পেজে ফোন নম্বর প্রি-ফিল করার জন্য সংরক্ষণ
   const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
