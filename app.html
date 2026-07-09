@@ -750,39 +750,86 @@
         </div>
       </div>
 
-      <div id="profile-subscription-card" class="card" style="margin-top:16px">
-        <div class="card-header"><div class="card-title">💳 সাবস্ক্রিপশন</div></div>
-        <div class="card-body">
-          <div id="profile-sub-status" style="font-size:14px;font-weight:600;margin-bottom:6px">—</div>
-          <div id="profile-sub-detail" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">—</div>
-          <button class="btn btn-primary" onclick="openPackagePurchasePage()">💳 প্যাকেজ কিনুন / নবায়ন করুন</button>
+      <!-- ===== শুধু এডমিন/প্রধান শিক্ষকের জন্য: সাবস্ক্রিপশন, বিদ্যালয়ের তথ্য ও পরিসংখ্যান ===== -->
+      <div id="profile-admin-cards">
+        <div id="profile-subscription-card" class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">💳 সাবস্ক্রিপশন</div></div>
+          <div class="card-body">
+            <div id="profile-sub-status" style="font-size:14px;font-weight:600;margin-bottom:6px">—</div>
+            <div id="profile-sub-detail" style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">—</div>
+            <button class="btn btn-primary" onclick="openPackagePurchasePage()">💳 প্যাকেজ কিনুন / নবায়ন করুন</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">🏫 বিদ্যালয়ের তথ্য</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-school-name" style="padding:9px 0;font-weight:600">—</div></div>
+              <div class="form-group"><label class="form-label">ঠিকানা</label><div id="profile-school-address" style="padding:9px 0">—</div></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">ফোন</label><div id="profile-school-phone" style="padding:9px 0">—</div></div>
+              <div class="form-group"><label class="form-label">রেজিস্টার্ড (ওনার) ফোন</label><div id="profile-school-owner-phone" style="padding:9px 0">—</div></div>
+            </div>
+            <button class="btn btn-outline" onclick="navGo('settings')">⚙️ সেটিংসে গিয়ে তথ্য পরিবর্তন করুন</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:16px">
+          <div class="card-header"><div class="card-title">📊 এক নজরে</div></div>
+          <div class="card-body">
+            <div class="stats-grid">
+              <div class="stat-card"><div class="stat-icon blue">👨‍🎓</div><div><div class="stat-value" id="profile-stat-students">০</div><div class="stat-label">মোট ছাত্রছাত্রী</div></div></div>
+              <div class="stat-card"><div class="stat-icon green">👨‍🏫</div><div><div class="stat-value" id="profile-stat-teachers">০</div><div class="stat-label">মোট শিক্ষক</div></div></div>
+              <div class="stat-card"><div class="stat-icon orange">📝</div><div><div class="stat-value" id="profile-stat-notices">০</div><div class="stat-label">নোটিশ</div></div></div>
+              <div class="stat-card"><div class="stat-icon purple">📄</div><div><div class="stat-value" id="profile-stat-qp">০</div><div class="stat-label">প্রশ্নপত্র তৈরি</div></div></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px">
-        <div class="card-header"><div class="card-title">🏫 বিদ্যালয়ের তথ্য</div></div>
+      <!-- ===== শুধু শিক্ষকের জন্য: কর্মস্থলের তথ্য (সাবস্ক্রিপশন/স্কুল-প্রশাসনিক ডিটেইলস ছাড়া) ===== -->
+      <div id="profile-teacher-card" class="card" style="margin-top:16px;display:none">
+        <div class="card-header"><div class="card-title">👨‍🏫 কর্মস্থলের তথ্য</div></div>
         <div class="card-body">
           <div class="form-row">
-            <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-school-name" style="padding:9px 0;font-weight:600">—</div></div>
-            <div class="form-group"><label class="form-label">ঠিকানা</label><div id="profile-school-address" style="padding:9px 0">—</div></div>
+            <div class="form-group"><label class="form-label">পদবি</label><div id="profile-teacher-designation" style="padding:9px 0;font-weight:600">—</div></div>
+            <div class="form-group"><label class="form-label">বিষয়</label><div id="profile-teacher-subject" style="padding:9px 0">—</div></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label class="form-label">ফোন</label><div id="profile-school-phone" style="padding:9px 0">—</div></div>
-            <div class="form-group"><label class="form-label">রেজিস্টার্ড (ওনার) ফোন</label><div id="profile-school-owner-phone" style="padding:9px 0">—</div></div>
+            <div class="form-group"><label class="form-label">দায়িত্বপ্রাপ্ত শ্রেণি</label><div id="profile-teacher-cls" style="padding:9px 0">—</div></div>
+            <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-teacher-school" style="padding:9px 0">—</div></div>
           </div>
-          <button class="btn btn-outline" onclick="navGo('settings')">⚙️ সেটিংসে গিয়ে তথ্য পরিবর্তন করুন</button>
         </div>
       </div>
 
-      <div class="card" style="margin-top:16px">
-        <div class="card-header"><div class="card-title">📊 এক নজরে</div></div>
+      <!-- ===== শুধু অভিভাবকের জন্য: সন্তানের সংক্ষিপ্ত তথ্য ===== -->
+      <div id="profile-parent-card" class="card" style="margin-top:16px;display:none">
+        <div class="card-header"><div class="card-title">👨‍👩‍👧 সন্তানের তথ্য</div></div>
         <div class="card-body">
-          <div class="stats-grid">
-            <div class="stat-card"><div class="stat-icon blue">👨‍🎓</div><div><div class="stat-value" id="profile-stat-students">০</div><div class="stat-label">মোট ছাত্রছাত্রী</div></div></div>
-            <div class="stat-card"><div class="stat-icon green">👨‍🏫</div><div><div class="stat-value" id="profile-stat-teachers">০</div><div class="stat-label">মোট শিক্ষক</div></div></div>
-            <div class="stat-card"><div class="stat-icon orange">📝</div><div><div class="stat-value" id="profile-stat-notices">০</div><div class="stat-label">নোটিশ</div></div></div>
-            <div class="stat-card"><div class="stat-icon purple">📄</div><div><div class="stat-value" id="profile-stat-qp">০</div><div class="stat-label">প্রশ্নপত্র তৈরি</div></div></div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">সন্তানের নাম</label><div id="profile-child-name" style="padding:9px 0;font-weight:600">—</div></div>
+            <div class="form-group"><label class="form-label">রোল</label><div id="profile-child-roll" style="padding:9px 0">—</div></div>
           </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">শ্রেণি</label><div id="profile-child-cls" style="padding:9px 0">—</div></div>
+            <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-child-school" style="padding:9px 0">—</div></div>
+          </div>
+          <button class="btn btn-primary" onclick="navGo('parent-portal')">👨‍👩‍👧 অভিভাবক পোর্টালে যান</button>
+        </div>
+      </div>
+
+      <!-- ===== শুধু ছাত্রের জন্য: নিজের সংক্ষিপ্ত তথ্য ===== -->
+      <div id="profile-student-card" class="card" style="margin-top:16px;display:none">
+        <div class="card-header"><div class="card-title">🎓 আমার তথ্য</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">রোল</label><div id="profile-my-roll" style="padding:9px 0;font-weight:600">—</div></div>
+            <div class="form-group"><label class="form-label">শ্রেণি</label><div id="profile-my-cls" style="padding:9px 0">—</div></div>
+          </div>
+          <div class="form-group"><label class="form-label">বিদ্যালয়ের নাম</label><div id="profile-my-school" style="padding:9px 0">—</div></div>
+          <button class="btn btn-primary" onclick="navGo('student-portal')">🎓 ছাত্র পোর্টালে যান</button>
         </div>
       </div>
     </div>
@@ -8262,41 +8309,78 @@ function renderProfilePage(){
   const loginEmail = (window.auth && window.auth.currentUser && window.auth.currentUser.email) || '';
   document.getElementById('profile-email').textContent = loginEmail ? `📧 ${loginEmail}` : '';
 
-  // ===== সাবস্ক্রিপশন তথ্য =====
+  // ===== রোল অনুযায়ী কোন কার্ড দেখানো হবে তা নির্ধারণ =====
+  // সাবস্ক্রিপশন, বিদ্যালয়ের প্রশাসনিক তথ্য (ফোন/ওনার ফোন) ও স্কুল-ব্যাপী পরিসংখ্যান শুধু
+  // এডমিন/প্রধান শিক্ষকের জন্য প্রাসঙ্গিক — শিক্ষক/অভিভাবক/ছাত্রের জন্য এগুলোর দরকার নেই।
+  const isSchoolAdmin = (u.role==='admin' || u.role==='principal');
+  document.getElementById('profile-admin-cards').style.display = isSchoolAdmin ? '' : 'none';
+  document.getElementById('profile-teacher-card').style.display = (u.role==='teacher') ? '' : 'none';
+  document.getElementById('profile-parent-card').style.display = (u.role==='parent') ? '' : 'none';
+  document.getElementById('profile-student-card').style.display = (u.role==='student') ? '' : 'none';
+
   const school = window._schoolDoc || null;
-  const subCard = document.getElementById('profile-subscription-card');
-  const statusEl = document.getElementById('profile-sub-status');
-  const detailEl = document.getElementById('profile-sub-detail');
-  if(!school || !school.expiryDate){
-    subCard.style.display = 'none'; // ডেমো/অফলাইন মোডে সাবস্ক্রিপশন প্রযোজ্য না
-  } else {
-    subCard.style.display = '';
-    const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
-    const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
-    const pkg = school.package || 'Standard';
-    if(pkg === 'Trial'){
-      statusEl.textContent = daysLeft > 0 ? `🎁 ফ্রি ট্রায়াল চলছে` : `⛔ ফ্রি ট্রায়াল শেষ হয়ে গেছে`;
-      statusEl.style.color = daysLeft > 0 ? '#1a5276' : '#b03030';
+  const schoolName = document.getElementById('s-school-name')?.value || (school && school.name) || 'বিদ্যালয়';
+
+  if(isSchoolAdmin){
+    // ===== সাবস্ক্রিপশন তথ্য =====
+    const subCard = document.getElementById('profile-subscription-card');
+    const statusEl = document.getElementById('profile-sub-status');
+    const detailEl = document.getElementById('profile-sub-detail');
+    if(!school || !school.expiryDate){
+      subCard.style.display = 'none'; // ডেমো/অফলাইন মোডে সাবস্ক্রিপশন প্রযোজ্য না
     } else {
-      statusEl.textContent = daysLeft > 0 ? `✅ সাবস্ক্রিপশন সক্রিয় (${pkg})` : `⛔ সাবস্ক্রিপশনের মেয়াদ শেষ হয়ে গেছে (${pkg})`;
-      statusEl.style.color = daysLeft > 0 ? '#1e7e46' : '#b03030';
+      subCard.style.display = '';
+      const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
+      const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000);
+      const pkg = school.package || 'Standard';
+      if(pkg === 'Trial'){
+        statusEl.textContent = daysLeft > 0 ? `🎁 ফ্রি ট্রায়াল চলছে` : `⛔ ফ্রি ট্রায়াল শেষ হয়ে গেছে`;
+        statusEl.style.color = daysLeft > 0 ? '#1a5276' : '#b03030';
+      } else {
+        statusEl.textContent = daysLeft > 0 ? `✅ সাবস্ক্রিপশন সক্রিয় (${pkg})` : `⛔ সাবস্ক্রিপশনের মেয়াদ শেষ হয়ে গেছে (${pkg})`;
+        statusEl.style.color = daysLeft > 0 ? '#1e7e46' : '#b03030';
+      }
+      detailEl.textContent = daysLeft > 0
+        ? `মেয়াদ শেষ: ${expiry.toLocaleDateString('bn-BD')} (আর ${toBnNum(daysLeft)} দিন বাকি)`
+        : `মেয়াদ শেষ হয়েছে: ${expiry.toLocaleDateString('bn-BD')} — এখনই নবায়ন করুন`;
     }
-    detailEl.textContent = daysLeft > 0
-      ? `মেয়াদ শেষ: ${expiry.toLocaleDateString('bn-BD')} (আর ${toBnNum(daysLeft)} দিন বাকি)`
-      : `মেয়াদ শেষ হয়েছে: ${expiry.toLocaleDateString('bn-BD')} — এখনই নবায়ন করুন`;
+
+    // ===== বিদ্যালয়ের তথ্য (সেটিংস থেকে) =====
+    document.getElementById('profile-school-name').textContent = schoolName;
+    document.getElementById('profile-school-address').textContent = document.getElementById('s-address')?.value || '—';
+    document.getElementById('profile-school-phone').textContent = document.getElementById('s-phone')?.value || '—';
+    document.getElementById('profile-school-owner-phone').textContent = (school && school.ownerPhone) || '—';
+
+    // ===== এক নজরে পরিসংখ্যান =====
+    document.getElementById('profile-stat-students').textContent = toBnNum(students.length);
+    document.getElementById('profile-stat-teachers').textContent = toBnNum(teachers.length);
+    document.getElementById('profile-stat-notices').textContent = toBnNum(notices.length);
+    document.getElementById('profile-stat-qp').textContent = toBnNum(questionPapers.length);
+  } else if(u.role==='teacher'){
+    // ===== শিক্ষকের কর্মস্থলের তথ্য — নিজের নাম মিলিয়ে teachers তালিকা থেকে বের করা =====
+    const t = teachers.find(t=>t.name===u.name);
+    document.getElementById('profile-teacher-designation').textContent = (t && t.designation) || '—';
+    document.getElementById('profile-teacher-subject').textContent = (t && t.subject) || '—';
+    document.getElementById('profile-teacher-cls').textContent = (t && t.cls) || '—';
+    document.getElementById('profile-teacher-school').textContent = schoolName;
+  } else if(u.role==='parent'){
+    // ===== সন্তানের সংক্ষিপ্ত তথ্য =====
+    const sRoll = u.studentRoll || '';
+    const sName = u.studentName || '';
+    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    document.getElementById('profile-child-name').textContent = sName || '—';
+    document.getElementById('profile-child-roll').textContent = sRoll || '—';
+    document.getElementById('profile-child-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
+    document.getElementById('profile-child-school').textContent = schoolName;
+  } else if(u.role==='student'){
+    // ===== নিজের সংক্ষিপ্ত তথ্য =====
+    const sRoll = u.studentRoll || '';
+    const sName = u.studentName || u.name || '';
+    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    document.getElementById('profile-my-roll').textContent = sRoll || '—';
+    document.getElementById('profile-my-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
+    document.getElementById('profile-my-school').textContent = schoolName;
   }
-
-  // ===== বিদ্যালয়ের তথ্য (সেটিংস থেকে) =====
-  document.getElementById('profile-school-name').textContent = document.getElementById('s-school-name')?.value || (school && school.name) || '—';
-  document.getElementById('profile-school-address').textContent = document.getElementById('s-address')?.value || '—';
-  document.getElementById('profile-school-phone').textContent = document.getElementById('s-phone')?.value || '—';
-  document.getElementById('profile-school-owner-phone').textContent = (school && school.ownerPhone) || '—';
-
-  // ===== এক নজরে পরিসংখ্যান =====
-  document.getElementById('profile-stat-students').textContent = toBnNum(students.length);
-  document.getElementById('profile-stat-teachers').textContent = toBnNum(teachers.length);
-  document.getElementById('profile-stat-notices').textContent = toBnNum(notices.length);
-  document.getElementById('profile-stat-qp').textContent = toBnNum(questionPapers.length);
 }
 
 function finishLoginUI(u, uid) {
