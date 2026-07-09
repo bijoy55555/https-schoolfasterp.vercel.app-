@@ -152,6 +152,16 @@
   /* MODAL */
   .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:500; align-items:center; justify-content:center; padding:16px; }
   .modal-overlay.open { display:flex; }
+  .notif-bell-btn { background:rgba(255,255,255,0.18); color:#fff; border:none; position:relative; padding:9px 13px; font-size:17px; border-radius:10px; cursor:pointer; line-height:1; transition:background 0.15s; }
+  .notif-bell-btn:hover { background:rgba(255,255,255,0.3); }
+  .notif-badge { position:absolute; top:-4px; right:-4px; background:var(--danger); color:#fff; font-size:10px; font-weight:700; min-width:17px; height:17px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0 3px; border:2px solid var(--primary); }
+  .notif-item { display:flex; gap:12px; padding:13px 18px; border-bottom:1px solid #f0f4f8; }
+  .notif-item:last-child { border-bottom:none; }
+  .notif-item.unread { background:#f7fafd; }
+  .notif-icon { font-size:20px; flex-shrink:0; }
+  .notif-title { font-size:13px; font-weight:700; }
+  .notif-body { font-size:12px; color:var(--text-muted); margin-top:2px; }
+  .notif-time { font-size:10px; color:#aab7c4; margin-top:4px; }
   .modal-box { background:#fff; border-radius:16px; width:100%; max-width:480px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.2); max-height:90vh; overflow-y:auto; }
   .modal-header { background:var(--primary); color:#fff; padding:18px 22px; display:flex; justify-content:space-between; align-items:center; }
   .modal-header-title { font-size:16px; font-weight:700; }
@@ -700,6 +710,7 @@
       <div class="nav-item" data-page="settings" onclick="showPage('settings',this)"><span class="icon">⚙️</span> সেটিংস</div>
       <div class="nav-item" data-page="help" onclick="showPage('help',this)"><span class="icon">📖</span> ব্যবহার নির্দেশিকা</div>
       <div class="nav-item" id="nav-parent-portal" data-page="parent-portal" onclick="showPage('parent-portal',this)" style="display:none"><span class="icon">👨‍👩‍👧</span> অভিভাবক পোর্টাল</div>
+      <div class="nav-item" id="nav-student-portal" data-page="student-portal" onclick="showPage('student-portal',this)" style="display:none"><span class="icon">🎒</span> ছাত্র পোর্টাল</div>
       <div class="nav-item" data-page="charts" onclick="showPage('charts',this)"><span class="icon">📈</span> চার্ট ও রিপোর্ট</div>
     </div>
   </nav>
@@ -1030,13 +1041,38 @@
               <div class="card-body" style="padding:0;max-height:220px;overflow-y:auto" id="due-sms-history"></div>
             </div>
             <!-- Portal Messages History -->
-            <div class="card">
+            <div class="card" style="margin-bottom:16px">
               <div class="card-header">
                 <div class="card-title">📩 পাঠানো পোর্টাল বার্তা</div>
                 <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="clearOldPortalMessages()">🧹 ৩০ দিনের পুরনোগুলো মুছুন</button>
               </div>
               <div class="card-body" style="padding:0;max-height:260px;overflow-y:auto" id="portal-msg-history"></div>
             </div>
+            <!-- ছাত্র বার্তা ইনবক্স (Two-way: ছাত্র পোর্টাল থেকে আসা বার্তা এখানে দেখা ও উত্তর দেওয়া যাবে) -->
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🗨️ ছাত্র বার্তা ইনবক্স</div>
+                <span class="badge badge-red" id="msg-inbox-badge" style="display:none"></span>
+              </div>
+              <div class="card-body" style="padding:0;max-height:280px;overflow-y:auto" id="msg-inbox-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== মেসেজ থ্রেড মডাল (ছাত্র ↔ শিক্ষক, two-way কথোপকথন) ===== -->
+    <div class="modal-overlay" id="msg-thread-modal">
+      <div class="modal-box" style="max-width:460px">
+        <div class="modal-header" style="background:var(--primary)">
+          <div class="modal-header-title">🗨️ <span id="msg-thread-title">বার্তা</span></div>
+          <button class="modal-close" onclick="closeModal('msg-thread-modal')">×</button>
+        </div>
+        <div class="modal-body" style="padding:0;gap:0">
+          <div id="msg-thread-body" style="max-height:360px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f7fafd"></div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+            <input class="form-input" id="msg-thread-input" placeholder="উত্তর লিখুন..." style="flex:1" onkeydown="if(event.key==='Enter'){sendTeacherReply();}">
+            <button class="btn btn-primary" onclick="sendTeacherReply()">পাঠান</button>
           </div>
         </div>
       </div>
@@ -1213,6 +1249,14 @@
           <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
       </div>
       <div id="assignment-list"></div>
+    </div>
+
+    <!-- ===== অ্যাসাইনমেন্ট জমা দেখা (অ্যাডমিন/শিক্ষক) ===== -->
+    <div class="modal-overlay" id="assignment-submissions-modal">
+      <div class="modal-box" style="max-width:640px">
+        <div class="modal-header"><div class="modal-header-title" id="asm-modal-title">📋 জমাসমূহ</div><button class="modal-close" onclick="closeModal('assignment-submissions-modal')">×</button></div>
+        <div class="modal-body" id="asm-modal-body" style="max-height:60vh;overflow-y:auto"></div>
+      </div>
     </div>
 
     <!-- ===== ONLINE CLASS ===== -->
@@ -2092,9 +2136,12 @@
           <div class="parent-name" id="pp-parent-name">অভিভাবক পোর্টাল</div>
           <div class="parent-sub" id="pp-student-info">সন্তানের তথ্য লোড হচ্ছে...</div>
         </div>
-        <div style="margin-left:auto;text-align:right">
-          <div style="font-size:11px;opacity:0.8">আজকের তারিখ</div>
-          <div style="font-size:14px;font-weight:700" id="pp-date"></div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+          <button class="notif-bell-btn" onclick="openNotifModal()" title="নোটিফিকেশন">🔔<span class="notif-badge" id="pp-notif-badge" style="display:none">০</span></button>
+          <div style="text-align:right">
+            <div style="font-size:11px;opacity:0.8">আজকের তারিখ</div>
+            <div style="font-size:14px;font-weight:700" id="pp-date"></div>
+          </div>
         </div>
       </div>
 
@@ -2199,6 +2246,193 @@
       <div class="card" style="margin-bottom:20px">
         <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
         <div class="card-body" style="padding:0" id="pp-academic-cal"></div>
+      </div>
+    </div>
+
+    <!-- ===== ছাত্র পোর্টাল (আলাদা, অভিভাবক পোর্টাল থেকে স্বতন্ত্র) ===== -->
+    <div class="page" id="page-student-portal">
+      <div class="parent-hero">
+        <div class="parent-avatar">🎒</div>
+        <div>
+          <div class="parent-name" id="sp-student-name">ছাত্র পোর্টাল</div>
+          <div class="parent-sub" id="sp-student-info">তথ্য লোড হচ্ছে...</div>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+          <button class="notif-bell-btn" onclick="openNotifModal()" title="নোটিফিকেশন">🔔<span class="notif-badge" id="sp-notif-badge" style="display:none">০</span></button>
+          <div style="text-align:right">
+            <div style="font-size:11px;opacity:0.8">আজকের তারিখ</div>
+            <div style="font-size:14px;font-weight:700" id="sp-date"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) — ছাত্র নিজের ছবি ও ইমার্জেন্সি যোগাযোগের তথ্য নিজে আপডেট করতে পারবে -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">👤 প্রোফাইল এডিট</div></div>
+        <div class="card-body">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start">
+            <div style="text-align:center;flex-shrink:0">
+              <div id="sp-profile-photo-box" style="width:100px;height:110px;border-radius:10px;border:2px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;background:#f0f4f8;font-size:34px;color:var(--text-muted)">🧑‍🎓</div>
+              <label class="btn btn-outline" style="margin-top:8px;font-size:11px;padding:6px 10px;display:inline-block;cursor:pointer">
+                📷 ছবি পরিবর্তন
+                <input type="file" accept="image/*" id="sp-profile-photo-input" style="display:none" onchange="handleProfilePhotoSelect(this)">
+              </label>
+            </div>
+            <div style="flex:1;min-width:220px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">ইমার্জেন্সি কন্টাক্টের নাম</label>
+                <input class="form-input" id="sp-profile-em-name" placeholder="যেমন: আব্দুল করিম">
+              </div>
+              <div class="form-group" style="margin-bottom:0">
+                <label class="form-label">সম্পর্ক</label>
+                <select class="form-select" id="sp-profile-em-relation">
+                  <option>পিতা</option><option>মাতা</option><option>অভিভাবক</option><option>ভাই/বোন</option><option>অন্যান্য</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;grid-column:1/-1">
+                <label class="form-label">ইমার্জেন্সি ফোন নম্বর</label>
+                <input class="form-input" id="sp-profile-em-phone" placeholder="যেমন: ০১৭XXXXXXXX" maxlength="14">
+              </div>
+            </div>
+          </div>
+          <div class="form-error" id="sp-profile-error" style="margin-top:10px"></div>
+          <div style="margin-top:14px">
+            <button class="btn btn-primary" onclick="saveStudentProfile()">✓ প্রোফাইল সংরক্ষণ করুন</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- পরিবহন তথ্য (রুট ও সময়) — বিদ্যালয়ের সকল পরিবহন রুট, পিকআপ পয়েন্ট, সময়সূচি ও ফি রিড-অনলি আকারে দেখাবে -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🚌 পরিবহন তথ্য (রুট ও সময়)</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table>
+            <thead><tr><th>রুটের নাম</th><th>পিকআপ পয়েন্ট</th><th>পিকআপ সময়</th><th>ছুটির সময়</th><th>গাড়ি ও ড্রাইভার</th><th>মাসিক ফি</th></tr></thead>
+            <tbody id="sp-transport-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- শিক্ষকের সাথে বার্তা (Two-way: ছাত্র বার্তা পাঠাতে পারবে এবং শিক্ষক/বিদ্যালয়ের উত্তরও এখানে দেখা যাবে) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <div class="card-title">🗨️ শিক্ষকের সাথে বার্তা</div>
+          <span class="badge badge-blue" id="sp-msg-badge"></span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div id="sp-msg-thread" style="max-height:320px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f7fafd"></div>
+          <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+            <input class="form-input" id="sp-msg-input" placeholder="শিক্ষক/বিদ্যালয়কে বার্তা লিখুন..." style="flex:1" onkeydown="if(event.key==='Enter'){sendStudentMessage();}">
+            <button class="btn btn-primary" onclick="sendStudentMessage()">পাঠান</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- অ্যাডমিট কার্ড ডাউনলোড (নিজের শ্রেণির প্রকাশিত পরীক্ষাসূচি থেকে স্বয়ংক্রিয়ভাবে তৈরি হয়) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🪪 অ্যাডমিট কার্ড</div></div>
+        <div class="card-body" id="sp-admit-body">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- আইডি কার্ড (নিজের, ছবি/PDF আকারে প্রিন্ট বা ডাউনলোড করা যাবে) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🎫 আইডি কার্ড</div></div>
+        <div class="card-body" style="text-align:center;padding:22px">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:14px">আপনার পরিচয়পত্র দেখুন এবং প্রিন্ট বা PDF হিসেবে সংরক্ষণ করুন</div>
+          <button class="btn btn-primary" onclick="downloadMyIDCard()">🎫 আইডি কার্ড দেখুন / ডাউনলোড</button>
+        </div>
+      </div>
+
+      <!-- ক্লাস রুটিন (অ্যাডমিন যা সেট করেছে, সরাসরি এখানে দেখা যাবে — রিড-অনলি) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🗓️ ক্লাস রুটিন</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table>
+            <thead><tr><th>সময়</th><th>রবি</th><th>সোম</th><th>মঙ্গল</th><th>বুধ</th><th>বৃহ</th><th>শুক্র</th></tr></thead>
+            <tbody id="sp-routine-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- সিলেবাস অগ্রগতি (অ্যাডমিন/শিক্ষক যা আপডেট করেছে — রিড-অনলি) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📚 সিলেবাস অগ্রগতি</div></div>
+        <div class="card-body" id="sp-syllabus-body">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- পরীক্ষার সময়সূচি (ফলাফল থেকে আলাদা — কবে, কোন বিষয়ের পরীক্ষা, কোথায় হবে তা দেখায়) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📝 পরীক্ষার সময়সূচি</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table>
+            <thead><tr><th>তারিখ</th><th>সময়</th><th>বিষয়</th><th>ধরন</th><th>হল/কক্ষ</th></tr></thead>
+            <tbody id="sp-exam-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- লাইব্রেরি — ইস্যু করা বই ও রিটার্ন ডেট (নিজের, রিড-অনলি) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header">
+          <div class="card-title">📚 লাইব্রেরি — ইস্যু করা বই</div>
+          <span class="badge badge-blue" id="sp-lib-badge"></span>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto" id="sp-library-body">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- অ্যাসাইনমেন্ট (ছাত্র নিজে টেক্সট/ফাইল আকারে জমা দিতে পারবে) -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📤 অ্যাসাইনমেন্ট</div></div>
+        <div class="card-body" id="sp-assignment-body">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <!-- অনলাইন ক্লাস লিংক -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🎥 অনলাইন ক্লাস</div></div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table>
+            <thead><tr><th>বিষয়</th><th>শিক্ষক</th><th>প্ল্যাটফর্ম</th><th>তারিখ ও সময়</th><th>লিংক</th><th>অবস্থা</th></tr></thead>
+            <tbody id="sp-oc-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- মার্কশিট / রিপোর্ট কার্ড PDF ডাউনলোড -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📄 মার্কশিট / রিপোর্ট কার্ড</div></div>
+        <div class="card-body" id="sp-marksheet-body">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== পুশ নোটিফিকেশন মোডাল (হোমওয়ার্ক/ফলাফল) — ছাত্র ও অভিভাবক পোর্টাল উভয়ে শেয়ার করা হয় ===== -->
+    <div class="modal-overlay" id="notif-modal">
+      <div class="modal-box" style="max-width:420px">
+        <div class="modal-header" style="background:linear-gradient(135deg,#6c3483,#8e44ad)">
+          <div class="modal-header-title">🔔 নোটিফিকেশন</div>
+          <button class="modal-close" onclick="closeModal('notif-modal')">×</button>
+        </div>
+        <div class="modal-body" style="padding:0;gap:0">
+          <div class="notif-perm-banner" style="display:none;align-items:center;gap:10px;padding:12px 18px;background:#fdf2e3;border-bottom:1px solid var(--border);font-size:12px">
+            <span style="flex:1">📲 হোমওয়ার্ক বা ফলাফল প্রকাশ হলেই সাথে সাথে সিস্টেম নোটিফিকেশন পেতে চালু করো</span>
+            <button class="btn btn-primary" style="font-size:11px;padding:5px 10px;white-space:nowrap" onclick="requestNotifPermission()">চালু করো</button>
+          </div>
+          <div id="notif-list" style="max-height:360px;overflow-y:auto">
+            <div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px">কোনো নোটিফিকেশন নেই</div>
+          </div>
+          <div style="padding:10px 18px;border-top:1px solid var(--border);text-align:right">
+            <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="clearAllNotifs()">🗑️ সব মুছুন</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2643,7 +2877,7 @@
         <div class="card">
           <div class="card-header"><div class="card-title">🗺️ রুট ও পিকআপ পয়েন্ট তালিকা</div></div>
           <div class="card-body" style="padding:0">
-            <table><thead><tr><th>রুটের নাম</th><th>গাড়ি</th><th>পিকআপ পয়েন্ট</th><th>মাসিক ফি (৳)</th><th></th></tr></thead>
+            <table><thead><tr><th>রুটের নাম</th><th>গাড়ি</th><th>পিকআপ পয়েন্ট</th><th>সময়সূচি</th><th>মাসিক ফি (৳)</th><th></th></tr></thead>
             <tbody id="routes-tbody"></tbody></table>
           </div>
         </div>
@@ -2687,6 +2921,10 @@
           </div>
           <div class="form-group"><label class="form-label">পিকআপ পয়েন্ট (কমা দিয়ে আলাদা করুন) *</label>
             <textarea class="form-input" id="route-points" rows="2" placeholder="যেমন: মিরপুর-১০, কাজীপাড়া, ফার্মগেট, উত্তরা"></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">পিকআপ সময় (সকাল)</label><input class="form-input" id="route-pickup-time" type="time"></div>
+            <div class="form-group"><label class="form-label">ছুটির সময় (বিকাল)</label><input class="form-input" id="route-drop-time" type="time"></div>
           </div>
           <div class="form-group"><label class="form-label">মাসিক ফি (৳) *</label><input class="form-input" id="route-fee" type="number" min="0" placeholder="যেমন: ১৫০০"></div>
           <div class="form-error" id="route-error"></div>
@@ -3867,7 +4105,7 @@ let notices = [
 let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: 'P'|'A'|'L' } } }
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -4756,6 +4994,7 @@ function saveResult() {
     subjects[inp.dataset.key] = parseInt(inp.value) || 0;
   });
   results.push({
+    id: 'res_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     name, roll, cls,
     exam: document.getElementById('r-exam').value,
     group,
@@ -5108,7 +5347,7 @@ async function sendPortalMessage() {
       student: s.student, cls: s.cls, msg,
       time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
       createdAt: new Date().toISOString(),
-      type: 'বকেয়া'
+      type: 'বকেয়া', sender: 'school', read: true
     });
   });
   try { await saveTenantData(); } catch(e){ console.error('বার্তা সেভ এরর:', e); }
@@ -5138,12 +5377,13 @@ function renderPortalMsgHistory() {
     ? '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">কোনো পোর্টাল বার্তা পাঠানো হয়নি</div>'
     : parentMessages.slice(0,30).map((l,i)=>`<div class="due-sms-log-item" style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
         <div style="flex:1">
-          <div style="font-weight:700">${l.student} <span style="font-weight:400;color:var(--text-muted)">— ${l.cls}</span></div>
+          <div style="font-weight:700">${l.sender==='student'?'🎒 ':''}${l.student} <span style="font-weight:400;color:var(--text-muted)">— ${l.cls}</span></div>
           <div style="color:var(--text-muted);margin-top:2px">${l.msg.substring(0,60)}${l.msg.length>60?'...':''}</div>
-          <div class="due-sms-log-time">📩 পোর্টালে পাঠানো হয়েছে — ${l.time}</div>
+          <div class="due-sms-log-time">${l.sender==='student'?'🎒 ছাত্র পাঠিয়েছে':'📩 পোর্টালে পাঠানো হয়েছে'} — ${l.time}</div>
         </div>
         <button class="btn btn-outline" style="padding:3px 8px;font-size:11px;color:#b03030" onclick="deletePortalMessage(${i})" title="মুছুন">🗑️</button>
       </div>`).join('');
+  renderMsgInbox();
 }
 async function deletePortalMessage(i) {
   if(!confirm('এই বার্তাটা মুছে ফেলতে চান? অভিভাবক পোর্টাল থেকেও সরে যাবে।')) return;
@@ -5570,8 +5810,18 @@ let lessonPlans = [
 ];
 
 let assignments = [
-  {cls:'দশম - ক', subject:'বিজ্ঞান', title:'প্রজেক্ট: পরিবেশ দূষণ', desc:'পরিবেশ দূষণের কারণ ও প্রতিকার নিয়ে একটি রিপোর্ট তৈরি করো।', given:'২০২৫-০৬-২০', due:'২০২৫-০৭-০৫', marks:20, type:'দলগত', status:'সক্রিয়'},
+  {id:'asg_seed_1', cls:'দশম - ক', subject:'বিজ্ঞান', title:'প্রজেক্ট: পরিবেশ দূষণ', desc:'পরিবেশ দূষণের কারণ ও প্রতিকার নিয়ে একটি রিপোর্ট তৈরি করো।', given:'২০২৫-০৬-২০', due:'২০২৫-০৭-০৫', marks:20, type:'দলগত', status:'সক্রিয়'},
 ];
+
+// ✅ ছাত্রদের অ্যাসাইনমেন্ট জমা (টেক্সট ও/অথবা ফাইল) — প্রতিটা এন্ট্রি একটা নির্দিষ্ট
+// অ্যাসাইনমেন্ট (assignmentId ধরে) ও নির্দিষ্ট ছাত্রর (roll ধরে) সাথে যুক্ত থাকে
+let assignmentSubmissions = [];
+
+// অ্যাসাইনমেন্ট শনাক্তকারী আইডি — অ্যাডমিন প্যানেল ও ছাত্র পোর্টাল দুই জায়গাতেই
+// একই ফাংশন ব্যবহার করা হয়, যাতে জমাগুলো সঠিক অ্যাসাইনমেন্টের সাথে মিলে
+function getAssignmentId(a) {
+  return (a.id || (a.cls+'_'+a.title+'_'+a.due)).toString().replace(/['"<>]/g, '');
+}
 
 let onlineClasses = [
   {cls:'দশম - ক', subject:'ইংরেজি', teacher:'আনিসুর রহমান', platform:'Zoom', date:'২০২৫-০৬-৩০', time:'সকাল ১০:০০', link:'https://zoom.us/j/1234567890', status:'নির্ধারিত'},
@@ -5770,6 +6020,7 @@ function saveHomework() {
   if(!due){showErr('hw-error','জমার তারিখ দিন');return;}
   hideErr('hw-error');
   homeworks.unshift({
+    id: 'hw_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
     cls, desc, due,
     subject: document.getElementById('hw-subject').value,
     given: document.getElementById('hw-given').value || new Date().toISOString().split('T')[0],
@@ -5930,13 +6181,15 @@ function renderAssignments() {
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো অ্যাসাইনমেন্ট নেই</div></div>';return;}
   container.innerHTML = data.map(a=>{
     const idx = assignments.indexOf(a);
+    const aid = getAssignmentId(a);
+    const subCount = assignmentSubmissions.filter(s=>s.assignmentId===aid).length;
     const isOverdue = a.due < today && a.status!=='জমা';
     const isDone = a.status==='জমা';
     const color = dayColors[a.subject]||'var(--primary)';
     return `<div class="hw-card ${isOverdue?'overdue':isDone?'done':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
             <span class="badge badge-blue">${a.cls}</span>
             <span style="display:inline-block;padding:2px 10px;border-radius:50px;font-size:11px;font-weight:600;background:${color}18;color:${color}">${a.subject}</span>
             <span class="badge badge-orange">${a.type||'একক'}</span>
@@ -5946,7 +6199,8 @@ function renderAssignments() {
           <div style="font-size:13px;color:var(--text);margin-bottom:4px">${a.desc}</div>
           <div style="font-size:12px;color:var(--text-muted)">প্রদান: ${a.given||'—'} &nbsp;|&nbsp; জমা: <b>${a.due}</b> &nbsp;|&nbsp; পূর্ণমান: <b>${a.marks||'—'}</b></div>
         </div>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn" style="background:#eef2f7;color:var(--primary);font-size:11px;padding:5px 10px" onclick="viewAssignmentSubmissions('${aid}','${a.title.replace(/'/g,'')}')">📋 জমা দেখুন (${subCount})</button>
           ${!isDone?`<button class="btn" style="background:#d5f5e3;color:var(--success);font-size:11px;padding:5px 10px" onclick="markAssignmentDone(${idx})">✓ জমা</button>`:''}
           <button class="btn btn-danger" onclick="deleteAssignment(${idx})">মুছুন</button>
         </div>
@@ -5966,6 +6220,7 @@ function saveAssignment() {
   if(!due){showErr('asg-error','জমার তারিখ দিন');return;}
   hideErr('asg-error');
   assignments.unshift({
+    id: 'asg_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
     cls, subject, title, desc, due,
     given: document.getElementById('asg-given').value || new Date().toISOString().split('T')[0],
     marks: document.getElementById('asg-marks').value,
@@ -5982,6 +6237,27 @@ function saveAssignment() {
 }
 function markAssignmentDone(idx){ assignments[idx].status='জমা'; renderAssignments(); showToast('অ্যাসাইনমেন্ট জমা চিহ্নিত!'); }
 function deleteAssignment(idx){ assignments.splice(idx,1); renderAssignments(); showToast('মুছা হয়েছে','error'); }
+
+// ============ অ্যাসাইনমেন্ট জমা দেখা (অ্যাডমিন/শিক্ষক) ============
+function viewAssignmentSubmissions(aid, title) {
+  document.getElementById('asm-modal-title').textContent = '📋 জমাসমূহ — ' + (title||'');
+  const subs = assignmentSubmissions.filter(s=>s.assignmentId===aid);
+  const body = document.getElementById('asm-modal-body');
+  if(subs.length===0) {
+    body.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px">এখনো কেউ জমা দেয়নি</div>';
+  } else {
+    body.innerHTML = subs.map(s=>`
+      <div style="border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+          <div style="font-weight:700;font-size:13px">${escHtml(s.studentName)} <span style="font-weight:400;color:var(--text-muted)">(রোল: ${escHtml(s.studentRoll)})</span></div>
+          <div style="font-size:11px;color:var(--text-muted)">${escHtml(s.submittedAt)}</div>
+        </div>
+        ${s.text ? `<div style="font-size:13px;white-space:pre-wrap;margin-bottom:6px">${escHtml(s.text)}</div>` : ''}
+        ${s.fileName ? `<div style="font-size:12px"><a href="${s.fileData}" download="${escHtml(s.fileName)}" style="color:var(--primary-light);font-weight:600">📎 ${escHtml(s.fileName)}</a></div>` : ''}
+      </div>`).join('');
+  }
+  openModal('assignment-submissions-modal');
+}
 
 // ============ ONLINE CLASS ============
 function renderOnlineClasses() {
@@ -6187,7 +6463,7 @@ function renderLost(){
 let vehicles = [
   {number:'ঢাকা-মেট্রো-গ-১১২২', type:'বাস', capacity:40, driver:'মো. কামাল হোসেন', driverPhone:'01711-000000', license:'DL-44521'},
 ];
-let transportRoutes = []; // {name, vehicleNumber, points:[], fee}
+let transportRoutes = []; // {name, vehicleNumber, points:[], fee, pickupTime, dropTime}
 let currentTransportTab = 'vehicle';
 let editVehicleIdx = null;
 
@@ -6239,11 +6515,14 @@ function renderRoutes(){
   const sel = document.getElementById('route-vehicle');
   sel.innerHTML = vehicles.map(v=>`<option value="${v.number}">${v.number} (${v.driver})</option>`).join('');
   const tbody = document.getElementById('routes-tbody');
-  if(transportRoutes.length===0){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো রুট নেই</td></tr>';return;}
-  tbody.innerHTML = transportRoutes.map((r,idx)=>`<tr>
-    <td>${r.name}</td><td>${r.vehicleNumber||'—'}</td><td>${r.points.join(', ')}</td><td>৳${toBnNum(r.fee)}</td>
+  if(transportRoutes.length===0){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো রুট নেই</td></tr>';return;}
+  tbody.innerHTML = transportRoutes.map((r,idx)=>{
+    const sched = (r.pickupTime||r.dropTime) ? `${r.pickupTime?('আসা: '+r.pickupTime):''}${(r.pickupTime&&r.dropTime)?' | ':''}${r.dropTime?('ছুটি: '+r.dropTime):''}` : '—';
+    return `<tr>
+    <td>${r.name}</td><td>${r.vehicleNumber||'—'}</td><td>${r.points.join(', ')}</td><td style="white-space:nowrap;font-size:12px">${sched}</td><td>৳${toBnNum(r.fee)}</td>
     <td class="no-print"><button class="btn btn-danger" onclick="deleteRoute(${idx})">মুছুন</button></td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 function saveRoute(){
   const name = document.getElementById('route-name').value.trim();
@@ -6255,8 +6534,10 @@ function saveRoute(){
   if(!fee){showErr('route-error','মাসিক ফি দিন');return;}
   hideErr('route-error');
   const points = pointsRaw.split(',').map(p=>p.trim()).filter(Boolean);
-  transportRoutes.push({name, vehicleNumber, points, fee});
-  ['route-name','route-points','route-fee'].forEach(id=>document.getElementById(id).value='');
+  const pickupTime = document.getElementById('route-pickup-time').value;
+  const dropTime = document.getElementById('route-drop-time').value;
+  transportRoutes.push({name, vehicleNumber, points, fee, pickupTime, dropTime});
+  ['route-name','route-points','route-fee','route-pickup-time','route-drop-time'].forEach(id=>document.getElementById(id).value='');
   closeModal('route-modal');
   renderRoutes();
   showToast('রুট যুক্ত হয়েছে!');
@@ -6395,7 +6676,7 @@ function buildBackupPayload(){
     students, teachers, fees, results, notices, attendance, parentMessages,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
-    lessonPlans, assignments, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
+    lessonPlans, assignments, assignmentSubmissions, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
     payrollStatus, dueSMSLog, teacherAtt, smsLog, leaveBalances,
     users, permissions, exportedAt: new Date().toISOString()
   };
@@ -6464,6 +6745,7 @@ function applyRestoreData(data){
   if(data.sessions) sessions = data.sessions;
   if(data.lessonPlans) lessonPlans = data.lessonPlans;
   if(data.assignments) assignments = data.assignments;
+  if(data.assignmentSubmissions) assignmentSubmissions = data.assignmentSubmissions;
   if(data.onlineClasses) onlineClasses = data.onlineClasses;
   if(data.academicEvents) academicEvents = data.academicEvents;
   if(data.examSchedule) examSchedule = data.examSchedule;
@@ -6637,7 +6919,7 @@ const navLabelsEn = {
   marksheet:'Marksheet', merit:'Merit List', teachers:'Teachers', payroll:'Payroll', 'teacher-att':'Teacher Attendance',
   leave:'Leave Management', notice:'Notice Board', 'sms-notify':'SMS Notification', 'event-calendar':'Event Calendar',
   'monthly-report':'Monthly Report', 'finance-report':'Finance Report', 'principal-dash':'Principal Dashboard',
-  'parent-portal':'Parent Portal', charts:'Charts & Reports', settings:'Settings', library:'Library', transport:'Transport', 'ai-hub':'Premium AI Features'
+  'parent-portal':'Parent Portal', 'student-portal':'Student Portal', charts:'Charts & Reports', settings:'Settings', library:'Library', transport:'Transport', 'ai-hub':'Premium AI Features'
 };
 const navLabelsBn = {...titles};
 function setLanguage(lang){
@@ -7918,7 +8200,7 @@ function applyNavPermissions() {
   if(!currentUser) return;
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
-    if(page==='parent-portal') return; // handled separately
+    if(page==='parent-portal' || page==='student-portal') return; // handled separately
     if(currentUser.role==='admin') { n.style.display=''; return; }
     if(currentUser.role==='parent' || currentUser.role==='student') { n.style.display='none'; return; }
     const allowed = userHasPerm(page,'view');
@@ -8026,15 +8308,24 @@ function finishLoginUI(u, uid) {
 
   // role-based nav visibility
   const allNavItems = document.querySelectorAll('.nav-item');
-  if(u.role === 'parent' || u.role === 'student') {
+  if(u.role === 'parent') {
     allNavItems.forEach(n=>{
       if(!n.id || n.id !== 'nav-parent-portal') n.style.display='none';
     });
     document.getElementById('nav-parent-portal').style.display='flex';
     showPage('parent-portal', document.getElementById('nav-parent-portal'));
+  } else if(u.role === 'student') {
+    // ✅ ছাত্র পোর্টাল এখন অভিভাবক পোর্টাল থেকে সম্পূর্ণ আলাদা একটা পেজ —
+    // আগে দুইটা রোলই একই page-parent-portal দেখাতো, তাই দুটো পোর্টাল একরকম দেখাচ্ছিল।
+    allNavItems.forEach(n=>{
+      if(!n.id || n.id !== 'nav-student-portal') n.style.display='none';
+    });
+    document.getElementById('nav-student-portal').style.display='flex';
+    showPage('student-portal', document.getElementById('nav-student-portal'));
   } else {
     allNavItems.forEach(n=>{ n.style.display=''; });
     document.getElementById('nav-parent-portal').style.display='none';
+    document.getElementById('nav-student-portal').style.display='none';
     applyNavPermissions();
     // land on first allowed page
     if(u.role!=='admin' && !userHasPerm('dashboard','view')) {
@@ -8229,6 +8520,7 @@ async function loadTenantData(schoolId) {
     if (d.groupsList) groupsList = d.groupsList;
     if (d.lessonPlans) lessonPlans = d.lessonPlans;
     if (d.assignments) assignments = d.assignments;
+    if (d.assignmentSubmissions) assignmentSubmissions = d.assignmentSubmissions;
     if (d.academicEvents) academicEvents = d.academicEvents;
     if (d.vouchers) vouchers = d.vouchers;
     if (d.expenses) expenses = d.expenses;
@@ -8256,7 +8548,7 @@ async function saveTenantData() {
       // ✅ বাগ-ফিক্স: আগে এগুলো Firestore-এ সেভ হতো না (শুধু ম্যানুয়াল ব্যাকআপে যেত) —
       // ফলে রুটিন/সিলেবাস/হোমওয়ার্ক/লেসন প্ল্যান/অ্যাসাইনমেন্ট/মাস্টার ডেটা লগআউটের পর হারিয়ে যেত
       vehicles, routines, syllabuses, homeworks, sessions, sectionsList, subjectsList, groupsList,
-      lessonPlans, assignments, academicEvents, vouchers, expenses, permissions,
+      lessonPlans, assignments, assignmentSubmissions, academicEvents, vouchers, expenses, permissions,
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
@@ -8289,6 +8581,7 @@ async function doLogout() {
   // restore nav
   document.querySelectorAll('.nav-item').forEach(n=>{ n.style.display=''; });
   document.getElementById('nav-parent-portal').style.display='none';
+  document.getElementById('nav-student-portal').style.display='none';
 }
 
 // ===== Functional password change =====
@@ -8594,6 +8887,11 @@ function renderParentPortal() {
   document.getElementById('pp-student-info').textContent = `সন্তান: ${sName} | রোল: ${sRoll} | শ্রেণি: ${sCls}`;
   document.getElementById('pp-date').textContent = todayBn();
 
+  // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল এলে) =====
+  checkAndNotifyHomework(sCls);
+  checkAndNotifyResults(sName, sRoll, sCls);
+  renderNotifBadge();
+
   // Fee status
   const studentFees = fees.filter(f=>f.student===sName);
   const hasDue = studentFees.some(f=>f.status==='বকেয়া');
@@ -8808,6 +9106,756 @@ function renderParentPortal() {
       </div>`;
     }).join('');
   }
+}
+
+// ============ ছাত্র পোর্টাল (STUDENT PORTAL — অভিভাবক পোর্টাল থেকে আলাদা) ============
+// আপাতত এখানে দুইটা জিনিস দেখানো হচ্ছে: ক্লাস রুটিন ও সিলেবাস অগ্রগতি —
+// দুইটাই অ্যাডমিন প্যানেলে (রুটিন/সিলেবাস মডিউল) যা সেট করা আছে তা থেকে সরাসরি
+// ছাত্রর নিজের শ্রেণি অনুযায়ী ফিল্টার করে রিড-অনলি আকারে দেখায়।
+function renderStudentPortal() {
+  if(!currentUser) return;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = currentUser.studentRoll || '০০১';
+  // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
+  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+
+  document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
+  document.getElementById('sp-student-info').textContent = `রোল: ${sRoll} | শ্রেণি: ${sCls}`;
+  document.getElementById('sp-date').textContent = todayBn();
+
+  // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল এলে) =====
+  checkAndNotifyHomework(sCls);
+  checkAndNotifyResults(sName, sRoll, sCls);
+  renderNotifBadge();
+
+  // ===== প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) =====
+  renderStudentProfileEdit(matchedStudent);
+
+  // ===== পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) =====
+  renderStudentTransport();
+
+  // ===== শিক্ষকের সাথে বার্তা (two-way) =====
+  renderStudentMessages(sName, sCls);
+
+  // ===== অ্যাডমিট কার্ড (নিজের শ্রেণির প্রকাশিত পরীক্ষাসূচি থেকে exam-type অনুযায়ী গ্রুপ করে) =====
+  renderStudentAdmitCards(sCls);
+
+  // ===== ক্লাস রুটিন (নিজের শ্রেণির, রিড-অনলি) =====
+  const days = ['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র'];
+  const clsRoutines = routines.filter(r=>r.cls===sCls);
+  const rtBody = document.getElementById('sp-routine-tbody');
+  if(clsRoutines.length===0) {
+    rtBody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--text-muted)">এখনো এই শ্রেণির রুটিন যোগ করা হয়নি</td></tr>';
+  } else {
+    rtBody.innerHTML = clsRoutines.map(r=>{
+      const cols = days.map(d=>{
+        const has = r.days.includes(d);
+        const color = dayColors[r.subject]||'#555';
+        return has ? `<td><div style="background:${color}18;border-left:3px solid ${color};border-radius:6px;padding:6px 10px;"><div style="font-weight:600;font-size:12px;color:${color}">${r.subject}</div><div style="font-size:11px;color:var(--text-muted)">${r.teacher}</div></div></td>` : '<td style="color:#ccc;text-align:center">—</td>';
+      }).join('');
+      return `<tr><td style="font-weight:700;white-space:nowrap">${r.time}</td>${cols}</tr>`;
+    }).join('');
+  }
+
+  // ===== সিলেবাস অগ্রগতি (নিজের শ্রেণির, রিড-অনলি) =====
+  const clsSyl = syllabuses.filter(s=>s.cls===sCls);
+  const subjectGroups = {};
+  clsSyl.forEach(s=>{ if(!subjectGroups[s.subject]) subjectGroups[s.subject]=[]; subjectGroups[s.subject].push(s); });
+  const sylBody = document.getElementById('sp-syllabus-body');
+  if(Object.keys(subjectGroups).length===0) {
+    sylBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো এই শ্রেণির সিলেবাস তথ্য যোগ করা হয়নি</div>';
+  } else {
+    sylBody.innerHTML = Object.entries(subjectGroups).map(([subj,items])=>{
+      const avgProg = Math.round(items.reduce((a,i)=>a+i.progress,0)/items.length);
+      const color = dayColors[subj]||'var(--primary)';
+      return `<div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:12px;height:12px;border-radius:50%;background:${color}"></div>
+            <div style="font-weight:700;font-size:14px">${subj}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:12px;color:${color};font-weight:700">${avgProg}% সম্পন্ন</span>
+            <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${avgProg}%;background:${color}"></div></div>
+          </div>
+        </div>
+        <table><tbody>${items.map(it=>{
+          const badgeCls = it.status==='সম্পন্ন'?'badge-green':it.status==='চলমান'?'badge-orange':'badge-red';
+          return `<tr>
+            <td>${it.topic}</td>
+            <td style="width:160px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:${it.progress}%;background:${color}"></div></div>
+                <span style="font-size:12px;font-weight:700;min-width:30px">${it.progress}%</span>
+              </div>
+            </td>
+            <td><span class="badge ${badgeCls}">${it.status}</span></td>
+          </tr>`;
+        }).join('')}</tbody></table>
+      </div>`;
+    }).join('');
+  }
+
+  // ===== পরীক্ষার সময়সূচি (নিজের শ্রেণির, রিড-অনলি — ফলাফল থেকে সম্পূর্ণ আলাদা সেকশন) =====
+  const clsExams = examSchedule.filter(e=>e.cls===sCls).sort((a,b)=>a.date.localeCompare(b.date));
+  const examBody = document.getElementById('sp-exam-tbody');
+  const todayStr = new Date().toISOString().split('T')[0];
+  if(clsExams.length===0) {
+    examBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted)">এখনো এই শ্রেণির কোনো পরীক্ষার সময়সূচি যোগ করা হয়নি</td></tr>';
+  } else {
+    examBody.innerHTML = clsExams.map(e=>{
+      const isPast = e.date < todayStr;
+      const isToday = e.date === todayStr;
+      return `<tr style="${isToday?'background:#fef9e7':isPast?'opacity:0.6':''}">
+        <td><b>${e.date}</b>${isToday?'<span class="badge badge-orange" style="margin-left:6px">আজ</span>':''}</td>
+        <td>${e.time}</td>
+        <td><b>${e.subject}</b></td>
+        <td><span class="badge badge-blue">${e.type}</span></td>
+        <td>${e.hall||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ===== লাইব্রেরি — ইস্যু করা বই ও রিটার্ন ডেট (নিজের, রিড-অনলি) =====
+  renderStudentLibrary(sName);
+
+  // ===== অ্যাসাইনমেন্ট (নিজের শ্রেণির — জমা দেওয়ার সুবিধাসহ) =====
+  renderStudentAssignments(sCls, sRoll, sName);
+
+  // ===== অনলাইন ক্লাস লিংক (নিজের শ্রেণির) =====
+  const clsOnlineClasses = onlineClasses.filter(o=>o.cls===sCls);
+  const ocBody = document.getElementById('sp-oc-tbody');
+  if(clsOnlineClasses.length===0) {
+    ocBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">এখনো এই শ্রেণির কোনো অনলাইন ক্লাস দেওয়া হয়নি</td></tr>';
+  } else {
+    ocBody.innerHTML = clsOnlineClasses.map(o=>`<tr>
+      <td>${o.subject}</td>
+      <td>${o.teacher||'—'}</td>
+      <td><span class="badge badge-blue">${o.platform}</span></td>
+      <td>${o.date} <br><span style="color:var(--text-muted);font-size:11px">${o.time}</span></td>
+      <td>${o.status==='সম্পন্ন' ? '<span style="color:var(--text-muted);font-size:12px">শেষ হয়ে গেছে</span>' : `<a href="${o.link}" target="_blank" style="color:var(--primary-light);font-weight:600;font-size:12px">লিংকে যোগ দিন ↗</a>`}</td>
+      <td>${o.status==='সম্পন্ন'?'<span class="badge badge-green">সম্পন্ন</span>':'<span class="badge badge-orange">নির্ধারিত</span>'}</td>
+    </tr>`).join('');
+  }
+
+  // ===== মার্কশিট / রিপোর্ট কার্ড (নিজের ফলাফল — PDF ডাউনলোডের জন্য প্রিন্ট-ভিউ ব্যবহার করে) =====
+  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const msBody = document.getElementById('sp-marksheet-body');
+  if(myResults.length===0) {
+    msBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো ফলাফল প্রকাশ করা হয়নি</div>';
+  } else {
+    msBody.innerHTML = myResults.map(r=>{
+      const subs = r.subjects;
+      const avgGPA = Object.values(subs).reduce((a,m)=>a+getGPA(m),0)/Object.keys(subs).length;
+      const gpaStr = avgGPA>=4.5?'৫.০০':avgGPA>=4?'৪.০০':avgGPA>=3.5?'৩.৫০':avgGPA>=3?'৩.০০':'২.০০';
+      const gradeStr = avgGPA>=4.5?'A+':avgGPA>=4?'A':avgGPA>=3.5?'A-':'B';
+      const passed = Object.values(subs).every(m=>m>=33);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px">
+        <div>
+          <div style="font-weight:700;font-size:14px">${r.exam}</div>
+          <div style="font-size:12px;color:var(--text-muted)">GPA: ${gpaStr} (${gradeStr}) &nbsp;|&nbsp; ${passed?'<span style="color:var(--success);font-weight:700">উত্তীর্ণ</span>':'<span style="color:var(--danger);font-weight:700">অকৃতকার্য</span>'}</div>
+        </div>
+        <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="printSingleMarksheet(${results.indexOf(r)})">📥 PDF ডাউনলোড</button>
+      </div>`;
+    }).join('');
+  }
+}
+
+// ============ ছাত্র পোর্টাল: প্রোফাইল এডিট (ছবি, ইমার্জেন্সি কন্টাক্ট) ============
+let _spPendingPhoto = null; // নতুন নির্বাচিত ছবি (সেভ করার আগ পর্যন্ত অস্থায়ী)
+
+function renderStudentProfileEdit(matchedStudent) {
+  _spPendingPhoto = null;
+  const box = document.getElementById('sp-profile-photo-box');
+  const photo = matchedStudent && matchedStudent.photo;
+  if(box) box.innerHTML = photo ? `<img src="${photo}" style="width:100%;height:100%;object-fit:cover">` : '🧑\u200d🎓';
+  const nameEl = document.getElementById('sp-profile-em-name');
+  const relEl = document.getElementById('sp-profile-em-relation');
+  const phoneEl = document.getElementById('sp-profile-em-phone');
+  if(nameEl) nameEl.value = (matchedStudent && matchedStudent.emergencyName) || '';
+  if(relEl) relEl.value = (matchedStudent && matchedStudent.emergencyRelation) || 'পিতা';
+  if(phoneEl) phoneEl.value = (matchedStudent && matchedStudent.emergencyPhone) || '';
+  hideErr('sp-profile-error');
+}
+
+function handleProfilePhotoSelect(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 800*1024) {
+    showErr('sp-profile-error', 'ছবির সাইজ বড় হয়ে গেছে — ৮০০ কেবির মধ্যে ছবি দাও');
+    input.value = '';
+    return;
+  }
+  hideErr('sp-profile-error');
+  const reader = new FileReader();
+  reader.onload = function(e){
+    _spPendingPhoto = e.target.result;
+    const box = document.getElementById('sp-profile-photo-box');
+    if(box) box.innerHTML = `<img src="${_spPendingPhoto}" style="width:100%;height:100%;object-fit:cover">`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveStudentProfile() {
+  if(!currentUser) return;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = currentUser.studentRoll || '০০১';
+  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  if(!matchedStudent) { showErr('sp-profile-error', 'তোমার ছাত্র রেকর্ড খুঁজে পাওয়া যায়নি'); return; }
+  const emName = document.getElementById('sp-profile-em-name').value.trim();
+  const emRelation = document.getElementById('sp-profile-em-relation').value;
+  const emPhone = document.getElementById('sp-profile-em-phone').value.trim();
+  if(emPhone && !/^0\d{9,10}$/.test(emPhone.replace(/[^0-9]/g,''))) {
+    showErr('sp-profile-error', 'সঠিক ফোন নম্বর দাও (যেমন: ০১৭XXXXXXXX)');
+    return;
+  }
+  hideErr('sp-profile-error');
+  if(_spPendingPhoto) matchedStudent.photo = _spPendingPhoto;
+  matchedStudent.emergencyName = emName;
+  matchedStudent.emergencyRelation = emRelation;
+  matchedStudent.emergencyPhone = emPhone;
+  _spPendingPhoto = null;
+  if(typeof saveTenantData === 'function') saveTenantData().catch(()=>{});
+  showToast('প্রোফাইল সংরক্ষণ করা হয়েছে!');
+  renderStudentProfileEdit(matchedStudent);
+}
+
+// ============ ছাত্র পোর্টাল: পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) ============
+function renderStudentTransport() {
+  const tbody = document.getElementById('sp-transport-tbody');
+  if(!tbody) return;
+  if(typeof transportRoutes==='undefined' || transportRoutes.length===0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">এখনো কোনো পরিবহন রুট যোগ করা হয়নি</td></tr>';
+    return;
+  }
+  tbody.innerHTML = transportRoutes.map(r=>{
+    const veh = (typeof vehicles!=='undefined' ? vehicles.find(v=>v.number===r.vehicleNumber) : null);
+    const vehInfo = veh ? `${veh.number}<br><span style="font-size:11px;color:var(--text-muted)">${veh.driver} — ${veh.driverPhone}</span>` : (r.vehicleNumber || '—');
+    return `<tr>
+      <td><b>${r.name}</b></td>
+      <td>${(r.points||[]).join(', ')}</td>
+      <td>${r.pickupTime || '—'}</td>
+      <td>${r.dropTime || '—'}</td>
+      <td>${vehInfo}</td>
+      <td>৳${toBnNum(r.fee)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ পুশ নোটিফিকেশন (হোমওয়ার্ক/ফলাফল এলে) — ছাত্র ও অভিভাবক পোর্টাল উভয়ের জন্য ============
+// ব্রাউজারের Notification API ব্যবহার করে (অনুমতি দিলে) সিস্টেম-লেভেল পপআপ দেখানো হয়,
+// পাশাপাশি প্রতিটা ইউজারের জন্য আলাদা (uid-ভিত্তিক) একটা ইন-অ্যাপ নোটিফিকেশন তালিকাও localStorage-এ
+// সংরক্ষিত থাকে — যাতে ব্রাউজার নোটিফিকেশন সাপোর্ট না থাকলে বা বন্ধ থাকলেও বেল আইকনে দেখা যায়।
+function _notifUid() {
+  return (currentUser && (currentUser.uid || currentUser.name)) || 'guest';
+}
+function _notifKey(suffix) { return `pushNotif_${suffix}_${_notifUid()}`; }
+
+function getNotifList() {
+  try { return JSON.parse(localStorage.getItem(_notifKey('list')) || '[]'); } catch(e) { return []; }
+}
+function setNotifList(list) {
+  try { localStorage.setItem(_notifKey('list'), JSON.stringify(list.slice(0,50))); } catch(e){}
+}
+function _getSeenIds(kind) {
+  const raw = localStorage.getItem(_notifKey('seen_'+kind));
+  return raw===null ? null : JSON.parse(raw); // null মানে এই প্রথমবার — বেসলাইন এখনো সেট হয়নি
+}
+function _setSeenIds(kind, ids) {
+  localStorage.setItem(_notifKey('seen_'+kind), JSON.stringify(ids));
+}
+
+// নতুন একটা নোটিফিকেশন তালিকায় যোগ করে এবং সম্ভব হলে ব্রাউজার সিস্টেম নোটিফিকেশনও দেখায়
+function pushAppNotification(kind, title, body) {
+  const list = getNotifList();
+  list.unshift({
+    id: 'n_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    kind, title, body, time: todayBn()+' '+new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+    read: false,
+  });
+  setNotifList(list);
+  if(('Notification' in window) && Notification.permission==='granted') {
+    try { new Notification(title, {body}); } catch(e) {}
+  }
+  renderNotifBadge();
+}
+
+// নতুন হোমওয়ার্ক এলে নোটিফাই করে (নিজের শ্রেণির জন্য) — প্রথমবার চালু হলে পুরনোগুলোকে
+// নোটিফাই না করে শুধু বেসলাইন হিসেবে সেট করে রাখে
+function checkAndNotifyHomework(sCls) {
+  if(typeof homeworks==='undefined') return;
+  const clsHW = homeworks.filter(h=>h.cls===sCls);
+  const allIds = clsHW.map(h=>h.id).filter(Boolean);
+  const seen = _getSeenIds('hw');
+  if(seen===null) { _setSeenIds('hw', allIds); return; }
+  const newOnes = clsHW.filter(h=>h.id && !seen.includes(h.id));
+  newOnes.forEach(h=>{
+    pushAppNotification('homework', '📘 নতুন হোমওয়ার্ক এসেছে', `${h.subject||'বিষয়'}: ${(h.desc||'').slice(0,70)}${(h.desc||'').length>70?'…':''}`);
+  });
+  if(newOnes.length>0) _setSeenIds('hw', allIds);
+}
+
+// নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
+function checkAndNotifyResults(sName, sRoll, sCls) {
+  if(typeof results==='undefined') return;
+  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const allIds = myResults.map(r=>r.id).filter(Boolean);
+  const seen = _getSeenIds('result');
+  if(seen===null) { _setSeenIds('result', allIds); return; }
+  const newOnes = myResults.filter(r=>r.id && !seen.includes(r.id));
+  newOnes.forEach(r=>{
+    pushAppNotification('result', '📄 নতুন ফলাফল প্রকাশিত হয়েছে', `${r.exam||'পরীক্ষা'}-এর ফলাফল এখন দেখা যাচ্ছে`);
+  });
+  if(newOnes.length>0) _setSeenIds('result', allIds);
+}
+
+// বেল আইকনের উপর অপঠিত সংখ্যার ব্যাজ আপডেট করে (ছাত্র ও অভিভাবক — দুই পোর্টালের বেলেই)
+function renderNotifBadge() {
+  const list = getNotifList();
+  const unread = list.filter(n=>!n.read).length;
+  ['pp-notif-badge','sp-notif-badge'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    if(unread>0) { el.style.display='flex'; el.textContent = toBnNum(unread>99?99:unread); }
+    else el.style.display='none';
+  });
+}
+
+function openNotifModal() {
+  renderNotifList();
+  const granted = ('Notification' in window) && Notification.permission==='granted';
+  document.querySelectorAll('.notif-perm-banner').forEach(el=>{ el.style.display = granted ? 'none' : 'flex'; });
+  openModal('notif-modal');
+  // মোডাল খোলার সাথেই সব অপঠিত পড়া হয়ে গেছে ধরে নেওয়া হয়
+  const list = getNotifList();
+  list.forEach(n=>n.read=true);
+  setNotifList(list);
+  renderNotifBadge();
+}
+
+function renderNotifList() {
+  const el = document.getElementById('notif-list');
+  if(!el) return;
+  const list = getNotifList();
+  if(list.length===0) { el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:30px;font-size:13px">কোনো নোটিফিকেশন নেই</div>'; return; }
+  el.innerHTML = list.map(n=>{
+    const icon = n.kind==='homework' ? '📘' : n.kind==='result' ? '📄' : '🔔';
+    return `<div class="notif-item ${n.read?'':'unread'}">
+      <div class="notif-icon">${icon}</div>
+      <div style="flex:1">
+        <div class="notif-title">${escHtml(n.title)}</div>
+        <div class="notif-body">${escHtml(n.body)}</div>
+        <div class="notif-time">${n.time}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function requestNotifPermission() {
+  if(!('Notification' in window)) { showToast('এই ব্রাউজারে সিস্টেম নোটিফিকেশন সমর্থিত নয়','error'); return; }
+  if(Notification.permission==='granted') { showToast('পুশ নোটিফিকেশন ইতিমধ্যে চালু আছে'); document.querySelectorAll('.notif-perm-banner').forEach(el=>el.style.display='none'); return; }
+  Notification.requestPermission().then(perm=>{
+    if(perm==='granted') { showToast('পুশ নোটিফিকেশন চালু হয়েছে!'); document.querySelectorAll('.notif-perm-banner').forEach(el=>el.style.display='none'); }
+    else showToast('নোটিফিকেশনের অনুমতি দেওয়া হয়নি','error');
+  });
+}
+
+function clearAllNotifs() {
+  setNotifList([]);
+  renderNotifList();
+  renderNotifBadge();
+  showToast('সব নোটিফিকেশন মুছে ফেলা হয়েছে');
+}
+
+// ছোট্ট নিরাপত্তা হেল্পার — ছাত্রর লেখা টেক্সট HTML হিসেবে ইনজেক্ট হওয়া ঠেকাতে
+function escHtml(str) {
+  return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ============ ছাত্র ↔ শিক্ষক দুই-মুখী বার্তা (STUDENT PORTAL SIDE) ============
+// parentMessages অ্যারেই ব্যবহার হয় (আগে শুধু school→parent একমুখী ছিল); এখন প্রতিটা
+// বার্তায় sender ('school' বা 'student') ও read ফ্ল্যাগ যোগ করে দুই দিক থেকেই বার্তা
+// আদান-প্রদান করা যায় এবং একই থ্রেডে (student নাম অনুযায়ী) দেখা যায়।
+function renderStudentMessages(sName, sCls) {
+  const threadEl = document.getElementById('sp-msg-thread');
+  const badgeEl = document.getElementById('sp-msg-badge');
+  if(!threadEl) return;
+  const myMsgs = (parentMessages||[]).filter(m=>m.student===sName)
+    .slice().sort((a,b)=> new Date(a.createdAt||0) - new Date(b.createdAt||0));
+  const unread = myMsgs.filter(m=>m.sender==='school' && m.unreadByStudent).length;
+  if(badgeEl) badgeEl.textContent = unread>0 ? toBnNum(unread)+' নতুন' : '';
+  threadEl.innerHTML = myMsgs.length===0
+    ? '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px">এখনো কোনো বার্তা নেই। নিচে লিখে শিক্ষক/বিদ্যালয়কে বার্তা পাঠান।</div>'
+    : myMsgs.map(m=>{
+        const mine = m.sender==='student';
+        return `<div style="align-self:${mine?'flex-end':'flex-start'};max-width:82%">
+          <div style="background:${mine?'var(--primary)':'#fff'};color:${mine?'#fff':'var(--text)'};border:1px solid ${mine?'var(--primary)':'var(--border)'};border-radius:12px;padding:8px 12px;font-size:13px;word-break:break-word">${escHtml(m.msg)}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-align:${mine?'right':'left'}">${mine?'আপনি':'🏫 বিদ্যালয়/শিক্ষক'} • ${m.time||''}</div>
+        </div>`;
+      }).join('');
+  threadEl.scrollTop = threadEl.scrollHeight;
+  // ছাত্র নিজের পোর্টাল খুললে বিদ্যালয়ের বার্তাগুলো "পড়া হয়েছে" হিসেবে চিহ্নিত হয়
+  if(unread>0) {
+    myMsgs.forEach(m=>{ if(m.sender==='school') m.unreadByStudent=false; });
+    saveTenantData().catch(e=>console.error('বার্তা read-status সেভ এরর:', e));
+  }
+}
+
+async function sendStudentMessage() {
+  const input = document.getElementById('sp-msg-input');
+  const msg = (input.value||'').trim();
+  if(!msg) { showToast('একটা বার্তা লিখুন', 'error'); return; }
+  if(!currentUser) return;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = currentUser.studentRoll || '০০১';
+  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  parentMessages.unshift({
+    student: sName, cls: sCls, msg,
+    time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+    createdAt: new Date().toISOString(),
+    type: 'ছাত্র', sender: 'student', read: false
+  });
+  input.value = '';
+  renderStudentMessages(sName, sCls);
+  try { await saveTenantData(); showToast('বার্তা পাঠানো হয়েছে ✅'); }
+  catch(e) { console.error('বার্তা সেভ এরর:', e); showToast('বার্তা সেভ করতে সমস্যা হয়েছে','error'); }
+  if(document.getElementById('msg-inbox-list')) renderMsgInbox();
+}
+
+// ============ ছাত্র ↔ শিক্ষক দুই-মুখী বার্তা (ADMIN/TEACHER INBOX SIDE) ============
+window._msgInboxGroups = [];
+function renderMsgInbox() {
+  const el = document.getElementById('msg-inbox-list');
+  if(!el) return;
+  const groups = {};
+  (parentMessages||[]).forEach(m=>{
+    if(!m.student) return;
+    if(!groups[m.student]) groups[m.student] = { student:m.student, cls:m.cls, msgs:[] };
+    groups[m.student].msgs.push(m);
+  });
+  const list = Object.values(groups).map(g=>{
+    g.msgs.sort((a,b)=> new Date(a.createdAt||0) - new Date(b.createdAt||0));
+    const last = g.msgs[g.msgs.length-1];
+    const unread = g.msgs.filter(m=>m.sender==='student' && !m.read).length;
+    return { ...g, last, unread };
+  }).filter(g=>g.last).sort((a,b)=>{
+    if(a.unread!==b.unread) return b.unread-a.unread;
+    return new Date(b.last.createdAt||0) - new Date(a.last.createdAt||0);
+  });
+  window._msgInboxGroups = list;
+  const totalUnread = list.reduce((a,g)=>a+g.unread,0);
+  const badgeEl = document.getElementById('msg-inbox-badge');
+  if(badgeEl) { badgeEl.style.display = totalUnread>0 ? '' : 'none'; badgeEl.textContent = toBnNum(totalUnread); }
+  el.innerHTML = list.length===0
+    ? '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px">কোনো ছাত্র বার্তা নেই</div>'
+    : list.map((g,i)=>`<div class="due-sms-log-item" style="cursor:pointer" onclick="openMsgThreadByIndex(${i})">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div style="font-weight:700">${g.student} <span style="font-weight:400;color:var(--text-muted)">— ${g.cls}</span></div>
+          ${g.unread>0?`<span class="badge badge-red">${toBnNum(g.unread)}</span>`:''}
+        </div>
+        <div style="color:var(--text-muted);margin-top:2px;font-size:12px">${g.last.sender==='student'?'🎒 ':'🏫 '}${g.last.msg.substring(0,50)}${g.last.msg.length>50?'...':''}</div>
+        <div class="due-sms-log-time">${g.last.time||''}</div>
+      </div>`).join('');
+}
+
+function openMsgThreadByIndex(i) {
+  const g = (window._msgInboxGroups||[])[i];
+  if(!g) return;
+  window._msgThreadStudent = g.student;
+  window._msgThreadCls = g.cls;
+  // অ্যাডমিন/শিক্ষক থ্রেড খুললে ছাত্রর পাঠানো বার্তাগুলো "পড়া হয়েছে" হিসেবে চিহ্নিত হয়
+  (parentMessages||[]).forEach(m=>{ if(m.student===g.student && m.sender==='student') m.read=true; });
+  document.getElementById('msg-thread-title').textContent = g.student + ' — ' + g.cls;
+  renderMsgThreadBody();
+  openModal('msg-thread-modal');
+  saveTenantData().catch(e=>console.error('বার্তা read-status সেভ এরর:', e));
+  renderMsgInbox();
+}
+
+function renderMsgThreadBody() {
+  const body = document.getElementById('msg-thread-body');
+  if(!body) return;
+  const student = window._msgThreadStudent;
+  const msgs = (parentMessages||[]).filter(m=>m.student===student)
+    .slice().sort((a,b)=> new Date(a.createdAt||0) - new Date(b.createdAt||0));
+  body.innerHTML = msgs.map(m=>{
+    const fromStudent = m.sender==='student';
+    return `<div style="align-self:${fromStudent?'flex-start':'flex-end'};max-width:82%">
+      <div style="background:${fromStudent?'#fff':'var(--primary)'};color:${fromStudent?'var(--text)':'#fff'};border:1px solid ${fromStudent?'var(--border)':'var(--primary)'};border-radius:12px;padding:8px 12px;font-size:13px;word-break:break-word">${escHtml(m.msg)}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-align:${fromStudent?'left':'right'}">${fromStudent?'🎒 ছাত্র':'🏫 আপনি'} • ${m.time||''}</div>
+    </div>`;
+  }).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+async function sendTeacherReply() {
+  const input = document.getElementById('msg-thread-input');
+  const msg = (input.value||'').trim();
+  if(!msg) { showToast('একটা উত্তর লিখুন','error'); return; }
+  const student = window._msgThreadStudent;
+  const cls = window._msgThreadCls;
+  if(!student) return;
+  parentMessages.unshift({
+    student, cls, msg,
+    time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+    createdAt: new Date().toISOString(),
+    type: 'শিক্ষক', sender: 'school', read: true, unreadByStudent: true
+  });
+  input.value = '';
+  renderMsgThreadBody();
+  renderMsgInbox();
+  try { await saveTenantData(); showToast('উত্তর পাঠানো হয়েছে ✅'); }
+  catch(e) { console.error('উত্তর সেভ এরর:', e); showToast('সেভ করতে সমস্যা হয়েছে','error'); }
+}
+
+// ============ অ্যাডমিট কার্ড ডাউনলোড (STUDENT PORTAL) ============
+// অ্যাডমিন যেভাবে exam-schedule মডিউলে বিষয়ভিত্তিক পরীক্ষাসূচি যোগ করেন (তারিখ/সময়/হল সহ),
+// সেই তথ্য থেকেই নিজের শ্রেণির exam "type" (যেমন: অর্ধবার্ষিক/বার্ষিক) অনুযায়ী গ্রুপ করে
+// প্রতিটার জন্য একটা করে ডাউনলোডযোগ্য অ্যাডমিট কার্ড তৈরি করা হয় — আলাদা করে কিছু সেটআপ লাগে না।
+window._spAdmitTypes = [];
+function renderStudentAdmitCards(sCls) {
+  const el = document.getElementById('sp-admit-body');
+  if(!el) return;
+  const clsExams = examSchedule.filter(e=>e.cls===sCls);
+  const types = [...new Set(clsExams.map(e=>e.type))];
+  window._spAdmitTypes = types;
+  if(types.length===0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো পরীক্ষাসূচি প্রকাশ করা হয়নি, তাই অ্যাডমিট কার্ড তৈরি করা যাচ্ছে না</div>';
+    return;
+  }
+  el.innerHTML = types.map((t,i)=>{
+    const subs = clsExams.filter(e=>e.type===t);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:10px">
+      <div>
+        <div style="font-weight:700;font-size:14px">${t} পরীক্ষা</div>
+        <div style="font-size:12px;color:var(--text-muted)">${toBnNum(subs.length)}টি বিষয় • ${subs[0]?.hall||'হল নির্ধারিত হয়নি'}</div>
+      </div>
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="downloadMyAdmitCard(${i})">📥 ডাউনলোড</button>
+    </div>`;
+  }).join('');
+}
+
+function downloadMyAdmitCard(idx) {
+  const examType = (window._spAdmitTypes||[])[idx];
+  if(!examType || !currentUser) return;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = currentUser.studentRoll || '০০১';
+  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  if(!matchedStudent) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
+  const sCls = matchedStudent.cls;
+  const subs = examSchedule.filter(e=>e.cls===sCls && e.type===examType);
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const addr = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
+  const phone = document.getElementById('s-phone')?.value || '';
+  const center = subs[0]?.hall || 'মূল ক্যাম্পাস';
+  const subRows = subs.length
+    ? subs.map(e=>`<tr><td>${e.subject}</td><td>${e.date}</td><td>${e.time}</td></tr>`).join('')
+    : '<tr><td colspan="3" style="text-align:center;color:#999">সময়সূচি নির্ধারিত হয়নি</td></tr>';
+  const photoHtml = matchedStudent.photo
+    ? `<img src="${matchedStudent.photo}" style="width:70px;height:85px;object-fit:cover;border:2px solid #333">`
+    : `<div style="width:70px;height:85px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999">ছবি নেই</div>`;
+  const w = window.open('', '_blank');
+  if(!w) { showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><title>Admit Card - ${escHtml(matchedStudent.name)}</title><style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+    body{font-family:'Hind Siliguri',sans-serif;padding:30px;color:#111}
+    .header{text-align:center;border-bottom:2px solid #1a5276;padding-bottom:14px;margin-bottom:16px}
+    .school-name{font-size:20px;font-weight:700;color:#1a5276}
+    .school-sub{font-size:12px;color:#555;margin-top:2px}
+    .title{font-size:17px;font-weight:700;text-align:center;margin:14px 0;text-decoration:underline;color:#1a5276}
+    .info-row{display:flex;gap:16px;margin-bottom:18px;align-items:flex-start}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th,td{border:1px solid #ccc;padding:8px 12px;text-align:left}
+    thead th{background:#1a5276;color:#fff}
+    .signs{display:flex;justify-content:space-between;margin-top:60px}
+    .sign-box{text-align:center;border-top:1px solid #333;width:180px;padding-top:6px;font-size:12px}
+    @media print{body{padding:15px}}
+  </style></head><body>
+  <div class="header"><div class="school-name">${escHtml(school)}</div><div class="school-sub">${escHtml(addr)}${phone?' | ফোন: '+escHtml(phone):''}</div></div>
+  <div class="title">প্রবেশপত্র / Admit Card — ${escHtml(examType)} পরীক্ষা</div>
+  <div class="info-row">
+    ${photoHtml}
+    <div style="flex:1;font-size:13px">
+      <div style="margin-bottom:6px"><b>নাম:</b> ${escHtml(matchedStudent.name)}</div>
+      <div style="margin-bottom:6px"><b>রোল:</b> ${escHtml(matchedStudent.roll)} &nbsp;|&nbsp; <b>শ্রেণি:</b> ${escHtml(matchedStudent.cls)}</div>
+      <div><b>পরীক্ষার কেন্দ্র:</b> ${escHtml(center)}</div>
+    </div>
+  </div>
+  <table><thead><tr><th>বিষয়</th><th>তারিখ</th><th>সময়</th></tr></thead><tbody>${subRows}</tbody></table>
+  <div class="signs"><div class="sign-box">শিক্ষার্থীর স্বাক্ষর</div><div class="sign-box">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div></div>
+  <scr${''}ipt>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  w.document.close();
+}
+
+// ============ আইডি কার্ড ডাউনলোড (STUDENT PORTAL — বিদ্যমান openIDCard() রিইউজ করে) ============
+function downloadMyIDCard() {
+  if(!currentUser) return;
+  const sName = currentUser.studentName || currentUser.name;
+  const sRoll = currentUser.studentRoll || '০০১';
+  let idx = students.findIndex(s=> s.roll===sRoll);
+  if(idx===-1) idx = students.findIndex(s=> s.name===sName);
+  if(idx===-1) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
+  openIDCard(idx);
+}
+
+// ============ লাইব্রেরি — ইস্যু করা বই ও রিটার্ন ডেট (STUDENT PORTAL, রিড-অনলি) ============
+// অ্যাডমিন প্যানেলের লাইব্রেরি মডিউলে (bookIssues) যে ইস্যু/রিটার্ন তথ্য রাখা হয়, সেখান থেকেই
+// নাম মিলিয়ে শুধু এই ছাত্রর বইগুলো বের করে দেখানো হয় — নির্ধারিত ফেরতের তারিখ পেরিয়ে গেলে
+// "মেয়াদোত্তীর্ণ" ব্যাজ ও আনুমানিক জরিমানা (দিন প্রতি ৳৫) হিসেব করে দেখানো হয়।
+function renderStudentLibrary(sName) {
+  const el = document.getElementById('sp-library-body');
+  const badgeEl = document.getElementById('sp-lib-badge');
+  if(!el) return;
+  const myIssues = (bookIssues||[]).filter(i=>i.student===sName)
+    .slice().sort((a,b)=> (b.issueDate||'').localeCompare(a.issueDate||''));
+  const activeCount = myIssues.filter(i=>i.status==='ইস্যুকৃত').length;
+  if(badgeEl) badgeEl.textContent = activeCount>0 ? `${toBnNum(activeCount)}টি জমা আছে` : '';
+  if(myIssues.length===0) {
+    el.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো বই ইস্যু করা হয়নি</div>';
+    return;
+  }
+  const todayStr = new Date().toISOString().slice(0,10);
+  const rows = myIssues.map(i=>{
+    let statusBadge, fineDisplay = i.fine ? `৳${toBnNum(i.fine)}` : '—';
+    if(i.status==='ফেরতকৃত') {
+      statusBadge = `<span class="badge badge-green">✓ ফেরত দেওয়া হয়েছে</span>${i.returnDate?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${i.returnDate}</div>`:''}`;
+    } else if(i.status==='হারানো') {
+      statusBadge = '<span class="badge badge-red">হারানো হিসেবে চিহ্নিত</span>';
+    } else {
+      const overdue = i.dueDate && i.dueDate < todayStr;
+      if(overdue) {
+        const lateDays = Math.max(0, Math.round((new Date(todayStr)-new Date(i.dueDate))/(1000*60*60*24)));
+        statusBadge = `<span class="badge badge-red">⚠ মেয়াদোত্তীর্ণ — ${toBnNum(lateDays)} দিন বিলম্বিত</span>`;
+        fineDisplay = `৳${toBnNum(lateDays*FINE_PER_DAY)} (আনুমানিক)`;
+      } else {
+        statusBadge = '<span class="badge badge-blue">ইস্যুকৃত</span>';
+      }
+    }
+    return `<tr>
+      <td><b>${i.title}</b><div style="font-size:11px;color:var(--text-muted)">${i.barcode}</div></td>
+      <td>${i.issueDate||'—'}</td>
+      <td>${i.dueDate||'—'}</td>
+      <td>${statusBadge}</td>
+      <td>${fineDisplay}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `<table><thead><tr><th>বইয়ের নাম</th><th>ইস্যুর তারিখ</th><th>ফেরতের নির্ধারিত তারিখ</th><th>অবস্থা</th><th>জরিমানা</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// অ্যাসাইনমেন্টের ফাইল সাময়িকভাবে মেমোরিতে রাখার জন্য (জমা দেওয়ার আগ পর্যন্ত)
+const _pendingAsgFiles = {};
+
+function renderStudentAssignments(sCls, sRoll, sName) {
+  const container = document.getElementById('sp-assignment-body');
+  if(!container) return;
+  const clsAssignments = assignments.filter(a=>a.cls===sCls);
+  if(clsAssignments.length===0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো এই শ্রেণির কোনো অ্যাসাইনমেন্ট দেওয়া হয়নি</div>';
+    return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  container.innerHTML = clsAssignments.map(a=>{
+    const aid = getAssignmentId(a);
+    const mySub = assignmentSubmissions.find(s=>s.assignmentId===aid && s.studentRoll===sRoll);
+    const isOverdue = a.due < today;
+    const color = dayColors[a.subject]||'var(--primary)';
+    const statusBadge = mySub
+      ? '<span class="badge badge-green">জমা দেওয়া হয়েছে</span>'
+      : (isOverdue ? '<span class="badge badge-red">মেয়াদ শেষ</span>' : '<span class="badge badge-orange">জমা দেওয়া হয়নি</span>');
+
+    const submittedPreview = mySub ? `
+      <div style="margin-top:10px;background:#f4f8f4;border-radius:8px;padding:10px 12px;font-size:12px">
+        <div style="color:var(--text-muted);margin-bottom:4px">✅ জমাকৃত (${mySub.submittedAt})</div>
+        ${mySub.text ? `<div style="white-space:pre-wrap;margin-bottom:4px">${escHtml(mySub.text)}</div>` : ''}
+        ${mySub.fileName ? `<div>📎 <a href="${mySub.fileData}" download="${escHtml(mySub.fileName)}" style="color:var(--primary-light);font-weight:600">${escHtml(mySub.fileName)}</a></div>` : ''}
+      </div>` : '';
+
+    const actionBtn = (!isOverdue || mySub)
+      ? `<button class="btn" style="background:${mySub?'#eef2f7':'#d5f5e3'};color:${mySub?'var(--primary)':'var(--success)'};font-size:12px;padding:6px 12px" onclick="toggleAssignmentForm('${aid}')">${mySub?'✏️ আবার জমা দিন':'📤 জমা দিন'}</button>`
+      : '';
+
+    return `<div class="hw-card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+            <span style="display:inline-block;padding:2px 10px;border-radius:50px;font-size:11px;font-weight:600;background:${color}18;color:${color}">${a.subject}</span>
+            <span class="badge badge-orange">${a.type||'একক'}</span>
+            ${statusBadge}
+          </div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:2px">${escHtml(a.title)}</div>
+          <div style="font-size:13px;color:var(--text);margin-bottom:4px">${escHtml(a.desc)}</div>
+          <div style="font-size:12px;color:var(--text-muted)">প্রদান: ${a.given||'—'} &nbsp;|&nbsp; জমার শেষ তারিখ: <b>${a.due}</b> &nbsp;|&nbsp; পূর্ণমান: <b>${a.marks||'—'}</b></div>
+          ${submittedPreview}
+        </div>
+        <div>${actionBtn}</div>
+      </div>
+      <div id="sp-asg-form-${aid}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px dashed var(--border)">
+        <textarea id="sp-asg-text-${aid}" placeholder="তোমার উত্তর/লেখা এখানে লিখো (ঐচ্ছিক)" style="width:100%;min-height:80px;border:1px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:13px;margin-bottom:8px">${mySub && mySub.text ? escHtml(mySub.text) : ''}</textarea>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+          <input type="file" id="sp-asg-file-${aid}" onchange="handleAssignmentFileSelect('${aid}', this)" style="font-size:12px">
+          <span id="sp-asg-filename-${aid}" style="font-size:12px;color:var(--text-muted)">${mySub && mySub.fileName ? '📎 আগের ফাইল: '+escHtml(mySub.fileName) : ''}</span>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px">সর্বোচ্চ ফাইল সাইজ ৮০০ কেবি। টেক্সট অথবা ফাইল — অন্তত একটা দিতে হবে।</div>
+        <div id="sp-asg-error-${aid}" class="error-msg" style="display:none;color:var(--danger);font-size:12px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="submitAssignmentWork('${aid}', '${escHtml(sRoll)}', '${escHtml(sName)}', '${escHtml(sCls)}')">জমা নিশ্চিত করো</button>
+          <button class="btn" style="background:#eee" onclick="toggleAssignmentForm('${aid}')">বাতিল</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAssignmentForm(aid) {
+  const el = document.getElementById('sp-asg-form-'+aid);
+  if(!el) return;
+  el.style.display = el.style.display==='none' ? '' : 'none';
+}
+
+function handleAssignmentFileSelect(aid, input) {
+  const file = input.files[0];
+  const nameEl = document.getElementById('sp-asg-filename-'+aid);
+  if(!file) return;
+  if(file.size > 800*1024) {
+    showErr('sp-asg-error-'+aid, 'ফাইলের সাইজ বড় হয়ে গেছে — ৮০০ কেবির মধ্যে ফাইল দাও');
+    input.value='';
+    delete _pendingAsgFiles[aid];
+    if(nameEl) nameEl.textContent='';
+    return;
+  }
+  hideErr('sp-asg-error-'+aid);
+  const reader = new FileReader();
+  reader.onload = function(e){
+    _pendingAsgFiles[aid] = { name: file.name, data: e.target.result };
+    if(nameEl) nameEl.textContent = '📎 ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+function submitAssignmentWork(aid, sRoll, sName, sCls) {
+  const text = (document.getElementById('sp-asg-text-'+aid)||{}).value?.trim() || '';
+  const pendingFile = _pendingAsgFiles[aid];
+  const existing = assignmentSubmissions.find(s=>s.assignmentId===aid && s.studentRoll===sRoll);
+  const fileName = pendingFile ? pendingFile.name : (existing ? existing.fileName : '');
+  const fileData = pendingFile ? pendingFile.data : (existing ? existing.fileData : '');
+  if(!text && !fileName) {
+    showErr('sp-asg-error-'+aid, 'অন্তত টেক্সট অথবা একটা ফাইল দাও');
+    return;
+  }
+  hideErr('sp-asg-error-'+aid);
+  const submittedAt = todayBn() + ' ' + new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'});
+  if(existing) {
+    existing.text = text; existing.fileName = fileName; existing.fileData = fileData; existing.submittedAt = submittedAt;
+  } else {
+    assignmentSubmissions.push({ assignmentId: aid, studentRoll: sRoll, studentName: sName, cls: sCls, text, fileName, fileData, submittedAt });
+  }
+  delete _pendingAsgFiles[aid];
+  if(typeof saveTenantData === 'function') saveTenantData().catch(()=>{});
+  showToast('অ্যাসাইনমেন্ট জমা দেওয়া হয়েছে!');
+  renderStudentAssignments(sCls, sRoll, sName);
 }
 
 // ============ CHARTS ============
@@ -10495,8 +11543,8 @@ function printExperienceCertificate(idx, endDate, performance, purpose) {
 // ============ PATCH showPage to add new pages ============
 const _origShowPage = showPage;
 showPage = function(id, el) {
-  // permission gate (skip for admin and for parent-portal which has its own gate)
-  if(currentUser && currentUser.role!=='admin' && id!=='parent-portal') {
+  // permission gate (skip for admin and for parent-portal/student-portal which have their own gate)
+  if(currentUser && currentUser.role!=='admin' && id!=='parent-portal' && id!=='student-portal') {
     if(!userHasPerm(id,'view')) {
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -10515,6 +11563,7 @@ showPage = function(id, el) {
   }
   _origShowPage(id, el);
   if(id==='parent-portal') renderParentPortal();
+  if(id==='student-portal') renderStudentPortal();
   if(id==='charts') renderCharts();
   if(id==='sms-notify') renderSMSPage();
   if(id==='monthly-report') renderMonthlyReport();
