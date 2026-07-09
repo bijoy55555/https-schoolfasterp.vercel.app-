@@ -673,6 +673,7 @@
     <div class="nav-section">
       <div class="nav-label">পরীক্ষা</div>
       <div class="nav-item" data-page="question-paper" onclick="showPage('question-paper',this)"><span class="icon">❓</span> প্রশ্নপত্র তৈরি</div>
+      <div class="nav-item" data-page="question-bank" onclick="showPage('question-bank',this)"><span class="icon">🏦</span> প্রশ্ন ব্যাংক</div>
       <div class="nav-item" data-page="admit-card" onclick="showPage('admit-card',this)"><span class="icon">🪪</span> অ্যাডমিট কার্ড</div>
       <div class="nav-item" data-page="seat-plan" onclick="showPage('seat-plan',this)"><span class="icon">🪑</span> সিট প্ল্যান</div>
       <div class="nav-item" data-page="tabulation" onclick="showPage('tabulation',this)"><span class="icon">📋</span> ট্যাবুলেশন শিট</div>
@@ -1404,6 +1405,34 @@
           <div class="card-body">
             <div id="qp-preview"></div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== প্রশ্ন ব্যাংক (REUSABLE QUESTION BANK) ===== -->
+    <div class="page" id="page-question-bank">
+      <div class="page-actions no-print">
+        <button class="btn btn-primary" onclick="openQBModal()">+ নতুন প্রশ্ন যোগ করুন</button>
+        <select class="form-select" id="qb-filter-class" style="max-width:160px;padding:9px 12px" onchange="renderQuestionBankList()">
+          <option value="">সব শ্রেণি</option>
+        </select>
+        <select class="form-select" id="qb-filter-subject" style="max-width:160px;padding:9px 12px" onchange="renderQuestionBankList()">
+          <option value="">সব বিষয়</option>
+        </select>
+        <select class="form-select" id="qb-filter-type" style="max-width:170px;padding:9px 12px" onchange="renderQuestionBankList()">
+          <option value="">সব ধরনের প্রশ্ন</option>
+          <option value="mcq">বহুনির্বাচনি (MCQ)</option>
+          <option value="short">সংক্ষিপ্ত প্রশ্ন</option>
+          <option value="creative">সৃজনশীল প্রশ্ন</option>
+          <option value="custom">কাস্টম</option>
+        </select>
+        <input class="search-box" id="qb-search" placeholder="প্রশ্ন খুঁজুন..." oninput="renderQuestionBankList()">
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">সংরক্ষিত প্রশ্ন সমূহ (এখানে যা যোগ করবেন তা প্রতি বছর/পরীক্ষায় পুনরায় ব্যবহার করা যাবে)</div></div>
+        <div class="card-body" style="padding:0">
+          <table><thead><tr><th>শ্রেণি</th><th>বিষয়</th><th>ধরন</th><th>প্রশ্ন</th><th>মান</th><th class="no-print">অ্যাকশন</th></tr></thead>
+          <tbody id="qb-tbody"></tbody></table>
         </div>
       </div>
     </div>
@@ -3665,6 +3694,58 @@
   </div>
 </div>
 
+<!-- QUESTION BANK ADD/EDIT MODAL -->
+<div class="modal-overlay" id="qb-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title" id="qb-modal-title">+ নতুন প্রশ্ন যোগ (প্রশ্ন ব্যাংক)</div><button class="modal-close" onclick="closeModal('qb-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">শ্রেণি *</label><input class="form-input" id="qb-class" list="qp-class-list" placeholder="যেমন: দশম"></div>
+        <div class="form-group"><label class="form-label">বিষয় *</label><input class="form-input" id="qb-subject" list="qp-subject-list" placeholder="যেমন: বাংলা"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">প্রশ্নের ধরন *</label>
+          <select class="form-select" id="qb-type" onchange="renderQBFormFields()">
+            <option value="mcq">বহুনির্বাচনি (MCQ)</option>
+            <option value="short">সংক্ষিপ্ত প্রশ্ন</option>
+            <option value="creative">সৃজনশীল প্রশ্ন</option>
+            <option value="custom">কাস্টম</option>
+          </select>
+        </div>
+      </div>
+      <div id="qb-form-fields"></div>
+      <div class="form-error" id="qb-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('qb-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="saveQBQuestion()">✓ সংরক্ষণ করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUESTION BANK PICKER MODAL (used inside question paper builder) -->
+<div class="modal-overlay" id="qb-picker-modal">
+  <div class="modal-box" style="max-width:640px">
+    <div class="modal-header"><div class="modal-header-title">🏦 প্রশ্ন ব্যাংক থেকে প্রশ্ন যোগ করুন</div><button class="modal-close" onclick="closeModal('qb-picker-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">শ্রেণি</label>
+          <select class="form-select" id="qbp-filter-class" onchange="renderQBPickerList()"><option value="">সব শ্রেণি</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">বিষয়</label>
+          <select class="form-select" id="qbp-filter-subject" onchange="renderQBPickerList()"><option value="">সব বিষয়</option></select>
+        </div>
+      </div>
+      <div id="qbp-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px"></div>
+      <div class="form-error" id="qbp-error" style="margin-top:8px"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('qb-picker-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="addSelectedQBQuestions()">✓ নির্বাচিত প্রশ্ন যোগ করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- LESSON PLAN MODAL -->
 <div class="modal-overlay" id="lp-modal">
   <div class="modal-box">
@@ -4116,7 +4197,7 @@ let notices = [
 let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: 'P'|'A'|'L' } } }
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -4344,6 +4425,7 @@ function showPage(id, el) {
   if(id==='homework') renderHomework();
   if(id==='exam') renderExam();
   if(id==='question-paper') renderQuestionPaperPage();
+  if(id==='question-bank') renderQuestionBankPage();
   if(id==='profile') renderProfilePage();
   if(id==='session') renderSessions();
   if(id==='master-data') switchMasterTab(currentMasterTab);
@@ -5884,6 +5966,16 @@ let questionPapers = [
 let qpDraft = null;
 let qpEditingId = null;
 
+// ============ প্রশ্ন ব্যাংক (REUSABLE QUESTION BANK) ============
+// প্রতিটা প্রশ্ন এখানে চিরস্থায়ীভাবে (localStorage + ক্লাউড ব্যাকআপে) সংরক্ষিত থাকে,
+// যাতে ভবিষ্যতে (২০২৭, ২০২৮... যেকোনো বছর) যেকোনো নতুন প্রশ্নপত্রে আবার ব্যবহার করা যায়।
+let questionBank = [
+  {id:'qb_demo1', cls:'দশম', subject:'বাংলা', type:'mcq', marks:1,
+    text:'বাংলা সাহিত্যের আদি নিদর্শন কোনটি?', options:['চর্যাপদ','মঙ্গলকাব্য','বৈষ্ণব পদাবলি','পুঁথি সাহিত্য'], createdAt:'২০২৬-০৬-০১'},
+  {id:'qb_demo2', cls:'দশম', subject:'বাংলা', type:'short', marks:4,
+    text:'চর্যাপদ কী? সংক্ষেপে লেখো।', createdAt:'২০২৬-০৬-০১'},
+];
+
 let teacherAtt = {}; // { dateKey: { name: 'P'|'A'|'L' } } — dateKey ফরম্যাট: 'YYYY-MM-DD'
 
 // ============ ROUTINE ============
@@ -6687,7 +6779,7 @@ function buildBackupPayload(){
     students, teachers, fees, results, notices, attendance, parentMessages,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
-    lessonPlans, assignments, assignmentSubmissions, onlineClasses, academicEvents, examSchedule, questionPapers, vouchers, expenses,
+    lessonPlans, assignments, assignmentSubmissions, onlineClasses, academicEvents, examSchedule, questionPapers, questionBank, vouchers, expenses,
     payrollStatus, dueSMSLog, teacherAtt, smsLog, leaveBalances,
     users, permissions, exportedAt: new Date().toISOString()
   };
@@ -6761,6 +6853,7 @@ function applyRestoreData(data){
   if(data.academicEvents) academicEvents = data.academicEvents;
   if(data.examSchedule) examSchedule = data.examSchedule;
   if(data.questionPapers) questionPapers = data.questionPapers;
+  if(data.questionBank) questionBank = data.questionBank;
   if(data.vouchers) vouchers = data.vouchers;
   if(data.expenses) expenses = data.expenses;
   if(data.classesList) classesList = data.classesList;
@@ -6922,7 +7015,7 @@ function applyTheme(name){
 let currentLang = 'bn';
 const navLabelsEn = {
   dashboard:'Dashboard', students:'Students', alumni:'Alumni', attendance:'Attendance', result:'Exams & Results',
-  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator', profile:'Profile',
+  fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator', 'question-bank':'Question Bank', profile:'Profile',
   session:'Session Management', 'master-data':'Master Data', 'lesson-plan':'Lesson Plan', assignment:'Assignment',
   'online-class':'Online Class', 'academic-calendar':'Academic Calendar', 'admit-card':'Admit Card', 'seat-plan':'Seat Plan',
   tabulation:'Tabulation Sheet', 'ledger-gen':'General Ledger', 'cash-book':'Cash Book', 'bank-book':'Bank Book',
@@ -7581,6 +7674,225 @@ function saveQuestionPapersData(){
   saveTenantData();
 }
 
+// ============ প্রশ্ন ব্যাংক — লিস্ট ভিউ ============
+function saveQuestionBankData(){
+  localStorage.setItem('questionBank', JSON.stringify(questionBank));
+  saveTenantData(); // ✅ ক্লাউডে (Firestore) সেভ হয়, তাই ২০২৭ সালেও প্রশ্নগুলো ফিরে পাওয়া যাবে
+}
+
+function renderQuestionBankPage(){
+  const clsSel = document.getElementById('qb-filter-class');
+  const subSel = document.getElementById('qb-filter-subject');
+  if(clsSel){
+    const cur = clsSel.value;
+    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('');
+    clsSel.value = cur;
+  }
+  if(subSel){
+    const cur = subSel.value;
+    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('');
+    subSel.value = cur;
+  }
+  renderQuestionBankList();
+}
+
+const QB_TYPE_LABELS = {mcq:'MCQ', short:'সংক্ষিপ্ত', creative:'সৃজনশীল', custom:'কাস্টম'};
+function qbQuestionPreviewText(q){
+  if(q.type==='creative') return q.stem||'(উদ্দীপক নেই)';
+  return q.text||'(প্রশ্ন খালি)';
+}
+function qbQuestionMarks(q){
+  if(q.type==='creative') return (q.parts||[]).reduce((s,p)=>s+(parseInt(p.marks)||0),0);
+  return q.marks||0;
+}
+
+function renderQuestionBankList(){
+  const tbody = document.getElementById('qb-tbody');
+  if(!tbody) return;
+  const fc = document.getElementById('qb-filter-class')?.value||'';
+  const fs = document.getElementById('qb-filter-subject')?.value||'';
+  const ft = document.getElementById('qb-filter-type')?.value||'';
+  const q = (document.getElementById('qb-search')?.value||'').trim();
+  const list = questionBank.filter(x=>
+    (!fc||x.cls===fc) && (!fs||x.subject===fs) && (!ft||x.type===ft) &&
+    (!q || qbQuestionPreviewText(x).includes(q))
+  );
+  if(list.length===0){
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">কোনো প্রশ্ন পাওয়া যায়নি</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(item=>{
+    const realIdx = questionBank.indexOf(item);
+    return `<tr>
+      <td>${item.cls||'—'}</td>
+      <td>${item.subject||'—'}</td>
+      <td><span class="badge badge-blue">${QB_TYPE_LABELS[item.type]||item.type}</span></td>
+      <td style="max-width:340px">${qbQuestionPreviewText(item)}</td>
+      <td>${qbQuestionMarks(item)}</td>
+      <td class="no-print" style="white-space:nowrap">
+        <button class="btn btn-outline" onclick="openQBModal(${realIdx})">✏️</button>
+        <button class="btn btn-danger" onclick="deleteQBQuestion(${realIdx})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ============ প্রশ্ন ব্যাংক — অ্যাড/এডিট মোডাল ============
+let qbEditingIdx = null;
+function openQBModal(idx){
+  qbEditingIdx = (typeof idx==='number') ? idx : null;
+  const item = qbEditingIdx!==null ? questionBank[qbEditingIdx] : null;
+  document.getElementById('qb-modal-title').textContent = item ? '✏️ প্রশ্ন সম্পাদনা করুন' : '+ নতুন প্রশ্ন যোগ (প্রশ্ন ব্যাংক)';
+  document.getElementById('qb-class').value = item?.cls || '';
+  document.getElementById('qb-subject').value = item?.subject || '';
+  document.getElementById('qb-type').value = item?.type || 'mcq';
+  hideErr('qb-error');
+  renderQBFormFields();
+  openModal('qb-modal');
+}
+function renderQBFormFields(){
+  const type = document.getElementById('qb-type').value;
+  const item = qbEditingIdx!==null ? questionBank[qbEditingIdx] : null;
+  const wrap = document.getElementById('qb-form-fields');
+  if(type==='mcq'){
+    const opts = (item && item.type==='mcq') ? item.options : ['','','',''];
+    wrap.innerHTML = `
+      <div class="form-group"><label class="form-label">প্রশ্ন *</label><textarea class="form-input" id="qb-text" rows="2">${item&&item.type==='mcq'?(item.text||''):''}</textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        ${['ক','খ','গ','ঘ'].map((lab,i)=>`<div style="display:flex;gap:6px;align-items:center"><span>${lab})</span><input class="form-input" id="qb-opt${i}" value="${opts[i]||''}" placeholder="অপশন ${i+1}"></div>`).join('')}
+      </div>
+      <div class="form-group"><label class="form-label">মান</label><input class="form-input" type="number" id="qb-marks" value="${item&&item.type==='mcq'?(item.marks||1):1}"></div>`;
+  } else if(type==='creative'){
+    const parts = (item && item.type==='creative') ? item.parts : [{label:'ক',text:'',marks:1},{label:'খ',text:'',marks:2},{label:'গ',text:'',marks:3},{label:'ঘ',text:'',marks:4}];
+    wrap.innerHTML = `
+      <div class="form-group"><label class="form-label">উদ্দীপক / প্রশ্নের ভূমিকা *</label><textarea class="form-input" id="qb-stem" rows="2">${item&&item.type==='creative'?(item.stem||''):''}</textarea></div>
+      <div id="qb-parts-wrap" style="display:flex;flex-direction:column;gap:6px">
+        ${parts.map((pt,i)=>`<div style="display:flex;gap:6px;align-items:center"><span style="min-width:16px">${pt.label})</span><input class="form-input" style="flex:1" id="qb-part-text${i}" value="${pt.text||''}" placeholder="প্রশ্নাংশ"><input class="form-input" type="number" style="max-width:70px" id="qb-part-marks${i}" value="${pt.marks||1}" placeholder="মান"></div>`).join('')}
+      </div>`;
+  } else {
+    wrap.innerHTML = `
+      <div class="form-group"><label class="form-label">প্রশ্ন *</label><textarea class="form-input" id="qb-text" rows="2">${item&&(item.type==='short'||item.type==='custom')?(item.text||''):''}</textarea></div>
+      <div class="form-group"><label class="form-label">মান</label><input class="form-input" type="number" id="qb-marks" value="${item&&(item.type==='short'||item.type==='custom')?(item.marks||(type==='short'?4:5)):(type==='short'?4:5)}"></div>`;
+  }
+}
+function saveQBQuestion(){
+  const cls = document.getElementById('qb-class').value.trim();
+  const subject = document.getElementById('qb-subject').value.trim();
+  const type = document.getElementById('qb-type').value;
+  if(!cls || !subject){ showErr('qb-error','শ্রেণি ও বিষয় লিখুন'); return; }
+  let payload = {cls, subject, type};
+  if(type==='mcq'){
+    const text = document.getElementById('qb-text').value.trim();
+    if(!text){ showErr('qb-error','প্রশ্ন লিখুন'); return; }
+    payload.text = text;
+    payload.options = [0,1,2,3].map(i=>document.getElementById('qb-opt'+i).value.trim());
+    payload.marks = parseInt(document.getElementById('qb-marks').value)||1;
+  } else if(type==='creative'){
+    const stem = document.getElementById('qb-stem').value.trim();
+    if(!stem){ showErr('qb-error','উদ্দীপক/ভূমিকা লিখুন'); return; }
+    payload.stem = stem;
+    payload.parts = ['ক','খ','গ','ঘ'].map((lab,i)=>({
+      label: lab,
+      text: document.getElementById('qb-part-text'+i).value.trim(),
+      marks: parseInt(document.getElementById('qb-part-marks'+i).value)||0
+    }));
+  } else {
+    const text = document.getElementById('qb-text').value.trim();
+    if(!text){ showErr('qb-error','প্রশ্ন লিখুন'); return; }
+    payload.text = text;
+    payload.marks = parseInt(document.getElementById('qb-marks').value)||0;
+  }
+  hideErr('qb-error');
+  if(qbEditingIdx!==null){
+    payload.id = questionBank[qbEditingIdx].id;
+    payload.createdAt = questionBank[qbEditingIdx].createdAt;
+    questionBank[qbEditingIdx] = payload;
+  } else {
+    payload.id = qpUid('qb');
+    payload.createdAt = (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD');
+    questionBank.push(payload);
+  }
+  saveQuestionBankData();
+  closeModal('qb-modal');
+  renderQuestionBankPage();
+  showToast('প্রশ্ন ব্যাংকে সংরক্ষণ হয়েছে!');
+}
+function deleteQBQuestion(idx){
+  if(!confirm('এই প্রশ্নটি ব্যাংক থেকে স্থায়ীভাবে মুছে ফেলতে চান?')) return;
+  questionBank.splice(idx,1);
+  saveQuestionBankData();
+  renderQuestionBankList();
+  showToast('মুছে ফেলা হয়েছে','error');
+}
+
+// ============ প্রশ্নপত্র বিল্ডার থেকে ব্যাংকে প্রশ্ন সংরক্ষণ ============
+function saveQPQuestionToBank(sIdx, qIdx){
+  qpSyncHeaderFromForm();
+  const sec = qpDraft.sections[sIdx];
+  const q = sec.questions[qIdx];
+  const cls = qpDraft.cls || '';
+  const subject = qpDraft.subject || '';
+  if(!cls || !subject){ showToast('আগে প্রশ্নপত্রের শ্রেণি ও বিষয় লিখুন','error'); return; }
+  let payload = {id:qpUid('qb'), cls, subject, type:sec.type, createdAt:(typeof todayBn==='function')?todayBn():new Date().toLocaleDateString('bn-BD')};
+  if(sec.type==='mcq'){ payload.text=q.text; payload.options=q.options; payload.marks=q.marks; }
+  else if(sec.type==='creative'){ payload.stem=q.stem; payload.parts=q.parts; }
+  else { payload.text=q.text; payload.marks=q.marks; }
+  questionBank.push(payload);
+  saveQuestionBankData();
+  showToast('প্রশ্নটি ব্যাংকে সংরক্ষিত হয়েছে — পরের বছরও ব্যবহার করা যাবে!');
+}
+
+// ============ প্রশ্নপত্র বিল্ডার — ব্যাংক থেকে প্রশ্ন তোলার পিকার ============
+let qbPickerTargetSection = null;
+function openQBPicker(sIdx){
+  qbPickerTargetSection = sIdx;
+  const clsSel = document.getElementById('qbp-filter-class');
+  const subSel = document.getElementById('qbp-filter-subject');
+  clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('');
+  subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('');
+  clsSel.value = qpDraft.cls || '';
+  subSel.value = qpDraft.subject || '';
+  renderQBPickerList();
+  openModal('qb-picker-modal');
+}
+function renderQBPickerList(){
+  const listEl = document.getElementById('qbp-list');
+  const fc = document.getElementById('qbp-filter-class')?.value||'';
+  const fs = document.getElementById('qbp-filter-subject')?.value||'';
+  const sec = qpDraft.sections[qbPickerTargetSection];
+  const matches = questionBank.filter(x=> x.type===sec.type && (!fc||x.cls===fc) && (!fs||x.subject===fs));
+  if(matches.length===0){
+    listEl.innerHTML = `<p style="color:var(--text-muted);text-align:center;padding:14px">এই ধরনের (${QB_TYPE_LABELS[sec.type]}) কোনো প্রশ্ন ব্যাংকে নেই। প্রথমে "প্রশ্ন ব্যাংক" পেজ থেকে যোগ করুন।</p>`;
+    return;
+  }
+  listEl.innerHTML = matches.map(item=>{
+    const realIdx = questionBank.indexOf(item);
+    return `<label style="display:flex;gap:10px;align-items:flex-start;padding:8px;border-bottom:1px solid #f0f4f8;cursor:pointer">
+      <input type="checkbox" class="qbp-check" data-idx="${realIdx}" style="margin-top:4px">
+      <span style="flex:1;font-size:13px"><b>[${item.cls||'—'} · ${item.subject||'—'}]</b> ${qbQuestionPreviewText(item)} <span style="color:var(--text-muted)">(মান: ${qbQuestionMarks(item)})</span></span>
+    </label>`;
+  }).join('');
+}
+function addSelectedQBQuestions(){
+  const checks = document.querySelectorAll('#qbp-list .qbp-check:checked');
+  if(checks.length===0){ showErr('qbp-error','অন্তত একটি প্রশ্ন নির্বাচন করুন'); return; }
+  hideErr('qbp-error');
+  const sec = qpDraft.sections[qbPickerTargetSection];
+  checks.forEach(chk=>{
+    const item = questionBank[parseInt(chk.dataset.idx)];
+    if(sec.type==='mcq'){
+      sec.questions.push({id:qpUid('q'), text:item.text||'', options:(item.options||['','','','']).slice(), marks:item.marks||1});
+    } else if(sec.type==='creative'){
+      sec.questions.push({id:qpUid('q'), stem:item.stem||'', parts:(item.parts||[]).map(p=>({...p}))});
+    } else {
+      sec.questions.push({id:qpUid('q'), text:item.text||'', marks:item.marks||5});
+    }
+  });
+  closeModal('qb-picker-modal');
+  renderQPSections();
+  showToast(`${checks.length}টি প্রশ্ন ব্যাংক থেকে যোগ করা হয়েছে!`);
+}
+
 function openQuestionPaperBuilder(){
   document.getElementById('qp-list-view').style.display='none';
   document.getElementById('qp-builder-view').style.display='';
@@ -7717,6 +8029,7 @@ function renderQPSections(){
             <input class="form-input" type="number" style="max-width:80px" value="${q.marks||1}" placeholder="মান" oninput="qpUpdateQuestionField(${sIdx},${qIdx},'marks',parseInt(this.value)||0)">
             <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)" title="উপরে সরান">↑</button>
             <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)" title="নিচে সরান">↓</button>
+            <button class="btn btn-outline" onclick="saveQPQuestionToBank(${sIdx},${qIdx})" title="ব্যাংকে সংরক্ষণ করুন (পরের বছরও ব্যবহার করা যাবে)">💾🏦</button>
             <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;margin-left:26px">
@@ -7731,6 +8044,7 @@ function renderQPSections(){
             <textarea class="form-input" rows="2" style="flex:1" placeholder="উদ্দীপক / প্রশ্নের ভূমিকা লিখুন..." oninput="qpUpdateQuestionField(${sIdx},${qIdx},'stem',this.value)">${q.stem||''}</textarea>
             <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)">↑</button>
             <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)">↓</button>
+            <button class="btn btn-outline" onclick="saveQPQuestionToBank(${sIdx},${qIdx})" title="ব্যাংকে সংরক্ষণ করুন (পরের বছরও ব্যবহার করা যাবে)">💾🏦</button>
             <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
           </div>
           <div style="margin-left:26px;margin-top:6px;display:flex;flex-direction:column;gap:6px">
@@ -7749,6 +8063,7 @@ function renderQPSections(){
           <input class="form-input" type="number" style="max-width:80px" value="${q.marks||0}" placeholder="মান" oninput="qpUpdateQuestionField(${sIdx},${qIdx},'marks',parseInt(this.value)||0)">
           <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},-1)">↑</button>
           <button class="btn btn-outline" onclick="moveQPQuestion(${sIdx},${qIdx},1)">↓</button>
+          <button class="btn btn-outline" onclick="saveQPQuestionToBank(${sIdx},${qIdx})" title="ব্যাংকে সংরক্ষণ করুন (পরের বছরও ব্যবহার করা যাবে)">💾🏦</button>
           <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
         </div>`).join('');
     }
@@ -7769,6 +8084,7 @@ function renderQPSections(){
         <input class="form-input" style="margin-bottom:10px" value="${sec.instruction||''}" placeholder="বিভাগের নির্দেশনা (যেমন: যেকোনো ৫টি প্রশ্নের উত্তর দাও)" oninput="qpUpdateSectionField(${sIdx},'instruction',this.value)">
         ${qHtml || '<p style="color:var(--text-muted)">এখনো কোনো প্রশ্ন যোগ করা হয়নি</p>'}
         <button class="btn btn-primary" onclick="addQPQuestion(${sIdx})">+ প্রশ্ন যোগ করুন</button>
+        <button class="btn btn-outline" onclick="openQBPicker(${sIdx})">🏦 ব্যাংক থেকে প্রশ্ন যোগ করুন</button>
       </div>
     </div>`;
   }).join('');
@@ -8553,6 +8869,7 @@ async function loadTenantData(schoolId) {
     if (d.onlineClasses) onlineClasses = d.onlineClasses;
     if (d.examSchedule) examSchedule = d.examSchedule;
     if (d.questionPapers) questionPapers = d.questionPapers;
+    if (d.questionBank) questionBank = d.questionBank;
     if (d.teacherAtt) teacherAtt = d.teacherAtt;
     if (d.books) books = d.books;
     if (d.bookIssues) bookIssues = d.bookIssues;
@@ -8594,7 +8911,7 @@ async function saveTenantData() {
   try {
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
       students, teachers, fees, results, notices, attendance,
-      payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers,
+      payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers, questionBank,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
       // ✅ বাগ-ফিক্স: আগে এগুলো Firestore-এ সেভ হতো না (শুধু ম্যানুয়াল ব্যাকআপে যেত) —
