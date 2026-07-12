@@ -47,6 +47,22 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ===== usernameIndex/{username} — প্লেইন ইউজারনেম (ইমেইল ফরম্যাট ছাড়া
+    // আইডি, যেমন "teacher1") লগইনের জন্য পাবলিক লুকআপ। লগইনের আগে (তখনো
+    // signedIn() না) এই ডকুমেন্ট পড়তে হয়, যাতে বোঝা যায় এই আইডিটা কোন
+    // স্কুলের/কোন synthetic Firebase Auth ইমেইলের সাথে যুক্ত — তাই read সবার
+    // জন্য খোলা (আসল পাসওয়ার্ড এখানে থাকে না, শুধু ইমেইল/schoolId থাকে,
+    // পাসওয়ার্ড Firebase Auth নিজেই সামলায়)। create শুধু তখনই সম্ভব যখন এই
+    // ইউজারনেম আগে থেকে নেওয়া নেই (Firestore-এর create-vs-update পার্থক্য
+    // এটা নিজে থেকেই নিশ্চিত করে) এবং যিনি লিখছেন তিনি নিজের স্কুলের
+    // অ্যাডমিন। update/delete শুধু সুপার-অ্যাডমিন করতে পারবে (ইউজারনেম
+    // হাইজ্যাক ঠেকাতে) =====
+    match /usernameIndex/{username} {
+      allow read: if true;
+      allow create: if hasIndex() && isSchoolAdmin(request.resource.data.schoolId);
+      allow update, delete: if isSuperAdmin();
+    }
+
     // ===== userIndex/{uid} — কোন ইউজার কোন স্কুলের, কী রোল — এই লুকআপ
     // দিয়েই বাকি সব রুলস schoolId/role বের করে। নিজের ডকুমেন্ট নিজে পড়তে
     // পারবে (লগইনের সময় দরকার); সুপার-অ্যাডমিন যেকোনো এন্ট্রি লিখতে পারবে

@@ -8737,6 +8737,27 @@ async function doLogin() {
     return doRealLogin(idInput, pw, errEl);
   }
 
+  // ✅ বাগ-ফিক্স (আসল কারণ: "মোবাইলে হয়, কম্পিউটারে হয় না"): প্লেইন
+  // ইউজারনেম (ইমেইল ফরম্যাট ছাড়া, যেমন "teacher1") দিয়ে বানানো ইউজাররা
+  // আগে শুধু in-memory `users` অবজেক্টে থাকতেন — যেটা প্রতিটা পেজ-লোডে খালি
+  // (শুধু ডেমো ডিফল্ট দিয়ে) নতুন করে শুরু হয়। ফলে যে ব্রাউজার-ট্যাবে এই
+  // ইউজার বানানো হয়েছিল (এবং রিলোড করা হয়নি) সেখানেই শুধু লগইন কাজ করত —
+  // অন্য যেকোনো ডিভাইস/ব্রাউজার/রিফ্রেশে "ভুল আইডি বা পাসওয়ার্ড" দেখাত,
+  // যদিও আইডি-পাসওয়ার্ড সঠিকই ছিল। এখন প্রথমে দেখা হচ্ছে এই ইউজারনেমটা
+  // পাবলিকলি-রিডেবল `usernameIndex` কালেকশনে (লগইনের আগেই পড়া যায়) কোন
+  // স্কুলের/কোন আসল Firebase Auth ইমেইলের সাথে যুক্ত, পাওয়া গেলে সেই ইমেইল
+  // দিয়েই আসল Firebase লগইন করানো হচ্ছে — এটা যেকোনো ডিভাইস থেকেই কাজ করবে।
+  if (window.fb && window.db && window.fb.getDoc) {
+    try {
+      const idxSnap = await window.fb.getDoc(window.fb.doc(window.db, 'usernameIndex', idInput.toLowerCase()));
+      if (idxSnap.exists() && idxSnap.data().authEmail) {
+        return doRealLogin(idxSnap.data().authEmail, pw, errEl);
+      }
+    } catch (e) {
+      console.error('ইউজারনেম লুকআপ এরর:', e);
+    }
+  }
+
   errEl.textContent='ভুল আইডি বা পাসওয়ার্ড। আবার চেষ্টা করুন।';
 }
 
@@ -9098,7 +9119,11 @@ async function addNewUser() {
   const err = document.getElementById('nu-error');
   err.style.display='none';
   if(!name||!uid||!pass) { err.textContent='সকল ঘর পূরণ করুন।'; err.style.display='block'; return; }
-  if(users[uid]) { err.textContent='এই আইডি ইতিমধ্যে আছে।'; err.style.display='block'; return; }
+  // ✅ বাগ-ফিক্স: আগে শুধু users[uid] (পুরনো-ধাঁচের কী) চেক হতো, যা নতুন
+  // (Firebase UID-কী, username শুধু email ফিল্ডে থাকা) অ্যাকাউন্টের ডুপ্লিকেট
+  // আইডি ধরতে পারত না।
+  const idAlreadyTaken = users[uid] || Object.values(users).some(u => (u.email||'').toLowerCase() === uid.toLowerCase());
+  if(idAlreadyTaken) { err.textContent='এই আইডি ইতিমধ্যে আছে।'; err.style.display='block'; return; }
   // অভিভাবক/ছাত্র হলে অবশ্যই একজন ছাত্রের সাথে লিংক করতে হবে — নাহলে পোর্টালে ভুল/ডিফল্ট তথ্য দেখাবে
   let studentLink = {};
   if(role==='parent' || role==='student') {
@@ -9112,75 +9137,93 @@ async function addNewUser() {
   }
   const avatar = name.trim().charAt(0);
 
-  // ✅ বাগ-ফিক্স: আগে ইমেইল-ফরম্যাট আইডি দিয়ে অভিভাবক/ছাত্র ইউজার বানালেও
-  // সেটা শুধু local users অবজেক্টে (ডেমো-স্টাইল) থেকে যেত, আসল Firebase
-  // Auth অ্যাকাউন্ট তৈরি হতো না। ফলে লগইন করা গেলেও window.currentSchoolId
-  // কখনো সেট হতো না, তাই "ডেমো/অফলাইন মোডে লগইন করা আছে" এরর দেখিয়ে
-  // পেমেন্ট (SSLCommerz) সবসময় ব্যর্থ হতো। এখন — আসল স্কুল সেশনে (real
-  // Firebase লগইন) থেকে ইমেইল-ফরম্যাট আইডি দিয়ে ইউজার বানালে একটা আসল
-  // Firebase Auth অ্যাকাউন্টও তৈরি করা হবে, যাতে পরে সেই ইমেইল/পাসওয়ার্ড
-  // দিয়ে সত্যিকারের লগইন (এবং পেমেন্ট) কাজ করে।
-  const canCreateRealAccount = !!(window.currentSchoolId && uid.includes('@') && window.fb && window.fb.createUserWithEmailAndPassword);
-  if (canCreateRealAccount) {
-    if (pass.length < 6) { err.textContent='ইমেইল দিয়ে ইউজার বানাতে পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে (Firebase Auth-এর নিয়ম)।'; err.style.display='block'; return; }
-    const btn = document.querySelector('#add-user-modal .btn-primary');
-    if (btn) { btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...'; }
-    // আলাদা ("সেকেন্ডারি") Firebase অ্যাপ ইনস্ট্যান্স দিয়ে বানানো হচ্ছে,
-    // যাতে createUserWithEmailAndPassword এই মুহূর্তে লগইন থাকা
-    // অ্যাডমিনের নিজের সেশনকে সাইন-আউট/প্রতিস্থাপন না করে দেয়।
-    const secondaryApp = window.fb.initializeApp(window.firebaseConfig, 'secondary-' + Date.now());
-    const secondaryAuth = window.fb.getAuth(secondaryApp);
-    try {
-      const cred = await window.fb.createUserWithEmailAndPassword(secondaryAuth, uid, pass);
-      const newUid = cred.user.uid;
-      await window.fb.signOut(secondaryAuth);
-
-      await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'users', newUid), {
-        name, email: uid, role, ...studentLink
-      });
-      await window.fb.setDoc(window.fb.doc(window.db, 'userIndex', newUid), {
-        schoolId: window.currentSchoolId, role, email: uid
-      });
-
-      // Settings → ইউজার তালিকায় দেখানোর জন্য স্থানীয় users অবজেক্টেও একটা
-      // এন্ট্রি রাখা হলো (কিন্তু এবার key হিসেবে ইমেইল না, আসল Firebase UID
-      // ব্যবহার হচ্ছে, আর pass রাখা হচ্ছে না — কারণ পাসওয়ার্ড এখন Firebase
-      // Auth-ই সামলাবে, তাই লগইনের সময় এটা আর "লোকাল" পথে যাবে না, বরং
-      // ইমেইল/পাসওয়ার্ড দিয়ে আসল Firebase লগইনে (doRealLogin) যাবে)
-      users[newUid] = { role, name, avatar, email: uid, ...studentLink };
-
-      document.getElementById('nu-name').value='';
-      document.getElementById('nu-uid').value='';
-      document.getElementById('nu-pass').value='';
-      closeModal('add-user-modal');
-      renderUserList();
-      logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
-      showToast('নতুন ইউজার তৈরি হয়েছে! (আসল লগইন — এই ইমেইল/পাসওয়ার্ড দিয়ে এখন সত্যিকারের লগইন ও পেমেন্ট দুটোই কাজ করবে)');
-      saveTenantData();
-    } catch (e) {
-      console.error('ইউজার তৈরির এরর:', e);
-      err.textContent = 'ইউজার তৈরি করা যায়নি: ' + (e.message || 'অজানা সমস্যা');
-      err.style.display = 'block';
-    } finally {
-      try { await window.fb.deleteApp(secondaryApp); } catch(e2) {}
-      if (btn) { btn.disabled = false; btn.textContent = 'তৈরি করুন'; }
-    }
+  // ✅ বাগ-ফিক্স (মূল সমস্যা: "মোবাইলে লগইন হয়, কম্পিউটারে হয় না"): আগে শুধু
+  // ইমেইল-ফরম্যাট আইডি হলেই আসল Firebase Auth অ্যাকাউন্ট বানানো হতো — প্লেইন
+  // ইউজারনেম (যেমন "teacher1") দিয়ে বানানো ইউজার শুধু এই ট্যাবের মেমরিতে
+  // (local `users` অবজেক্টে) থেকে যেত। পেজ রিলোড করলে বা অন্য ডিভাইসে খুললে
+  // ওই মেমরি খালি হয়ে যেত (শুধু ৫টা ডেমো ইউজার নিয়ে শুরু হতো), তাই সেই
+  // ইউজার আর কোনোদিনই অন্য কোথাও লগইন করতে পারতেন না। এখন — প্লেইন
+  // ইউজারনেমের ক্ষেত্রেও একটা আসল Firebase Auth অ্যাকাউন্ট বানানো হয় (ভেতরে
+  // schoolId জোড়া দিয়ে বানানো একটা synthetic ইমেইল দিয়ে), আর পাবলিকলি-
+  // রিডেবল `usernameIndex/{username}` ডকুমেন্টে সেই ইমেইলটা সেভ থাকে —
+  // যাতে লগইন স্ক্রিন থেকে (লগইনের আগেই, যেকোনো ডিভাইস থেকে) এটা বের করে
+  // আসল Firebase Auth লগইন করানো যায়।
+  if (!window.currentSchoolId || !window.fb || !window.fb.createUserWithEmailAndPassword) {
+    // ডেমো/অফলাইন মোড (এখনো কোনো আসল স্কুল সেশন নেই) — ক্লাউড ব্যাকিং নেই,
+    // তাই আগের মতোই শুধু এই ব্রাউজার-ট্যাবের মেমরিতে সেভ হবে
+    if(pass.length<4) { err.textContent='পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।'; err.style.display='block'; return; }
+    users[uid] = {pass, role, name, avatar, ...studentLink};
+    document.getElementById('nu-name').value='';
+    document.getElementById('nu-uid').value='';
+    document.getElementById('nu-pass').value='';
+    closeModal('add-user-modal');
+    renderUserList();
+    logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
+    showToast('নতুন ইউজার তৈরি হয়েছে! (ডেমো মোড — শুধু এই ব্রাউজারে কাজ করবে)');
+    saveTenantData();
     return;
   }
 
-  // ডেমো/অফলাইন মোড বা ইমেইল-ছাড়া সাধারণ ইউজারনেম — আগের মতোই শুধু
-  // local users অবজেক্টে সেভ হবে (এই অ্যাকাউন্টে পেমেন্ট/রিয়েল-টাইম সিঙ্ক
-  // কাজ করবে না, শুধু এই ব্রাউজারে/ডেমো ডেটাতে লগইন করা যাবে)
-  if(pass.length<4) { err.textContent='পাসওয়ার্ড অন্তত ৪ অক্ষরের হতে হবে।'; err.style.display='block'; return; }
-  users[uid] = {pass, role, name, avatar, ...studentLink};
-  document.getElementById('nu-name').value='';
-  document.getElementById('nu-uid').value='';
-  document.getElementById('nu-pass').value='';
-  closeModal('add-user-modal');
-  renderUserList();
-  logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
-  showToast('নতুন ইউজার তৈরি হয়েছে!');
-  saveTenantData(); // ✅ বাগ-ফিক্স: সাথে সাথেই Firestore-এ সেভ করা হচ্ছে, যাতে লগআউট/রিলোডে হারিয়ে না যায়
+  if (pass.length < 6) { err.textContent='পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে (Firebase Auth-এর নিয়ম)।'; err.style.display='block'; return; }
+
+  const isEmailId = uid.includes('@');
+  // প্লেইন ইউজারনেমের জন্য schoolId জুড়ে একটা ইউনিক synthetic লগইন-ইমেইল —
+  // এটা কখনো ব্যবহারকারীকে দেখানো হয় না, শুধু Firebase Auth-এর ভেতরে থাকে
+  const authEmail = isEmailId ? uid : `${uid.toLowerCase()}.s${window.currentSchoolId}@login.schoolerp.internal`;
+
+  const btn = document.querySelector('#add-user-modal .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'তৈরি হচ্ছে...'; }
+  // আলাদা ("সেকেন্ডারি") Firebase অ্যাপ ইনস্ট্যান্স দিয়ে বানানো হচ্ছে,
+  // যাতে createUserWithEmailAndPassword এই মুহূর্তে লগইন থাকা
+  // অ্যাডমিনের নিজের সেশনকে সাইন-আউট/প্রতিস্থাপন না করে দেয়।
+  const secondaryApp = window.fb.initializeApp(window.firebaseConfig, 'secondary-' + Date.now());
+  const secondaryAuth = window.fb.getAuth(secondaryApp);
+  try {
+    // প্লেইন ইউজারনেম হলে আগে usernameIndex-এ রিজার্ভ করার চেষ্টা করা হচ্ছে
+    // (এই ডকুমেন্ট আগে থেকে থাকলে Firestore rules এই লেখা আটকে দেবে —
+    // তার মানে এই ইউজারনেমটা অন্য কোথাও আগে থেকেই নেওয়া)
+    if (!isEmailId) {
+      try {
+        await window.fb.setDoc(window.fb.doc(window.db, 'usernameIndex', uid.toLowerCase()), {
+          schoolId: window.currentSchoolId, authEmail, role
+        });
+      } catch (e3) {
+        throw new Error('এই ইউজারনেমটা আগে থেকেই ব্যবহৃত হয়ে গেছে। অন্য একটা ইউজারনেম দিন।');
+      }
+    }
+
+    const cred = await window.fb.createUserWithEmailAndPassword(secondaryAuth, authEmail, pass);
+    const newUid = cred.user.uid;
+    await window.fb.signOut(secondaryAuth);
+
+    await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'users', newUid), {
+      name, email: uid, authEmail, role, ...studentLink
+    });
+    await window.fb.setDoc(window.fb.doc(window.db, 'userIndex', newUid), {
+      schoolId: window.currentSchoolId, role, email: uid
+    });
+
+    // Settings → ইউজার তালিকায় দেখানোর জন্য স্থানীয় users অবজেক্টেও একটা
+    // এন্ট্রি রাখা হলো (key হিসেবে আসল Firebase UID, pass রাখা হচ্ছে না —
+    // পাসওয়ার্ড এখন Firebase Auth-ই সামলাবে)
+    users[newUid] = { role, name, avatar, email: uid, ...studentLink };
+
+    document.getElementById('nu-name').value='';
+    document.getElementById('nu-uid').value='';
+    document.getElementById('nu-pass').value='';
+    closeModal('add-user-modal');
+    renderUserList();
+    logAudit(`নতুন ইউজার তৈরি করেছেন: ${name} (${uid})`);
+    showToast('নতুন ইউজার তৈরি হয়েছে! এখন এই আইডি/পাসওয়ার্ড দিয়ে যেকোনো ডিভাইস থেকেই লগইন করা যাবে।');
+    saveTenantData();
+  } catch (e) {
+    console.error('ইউজার তৈরির এরর:', e);
+    err.textContent = 'ইউজার তৈরি করা যায়নি: ' + (e.message || 'অজানা সমস্যা');
+    err.style.display = 'block';
+  } finally {
+    try { await window.fb.deleteApp(secondaryApp); } catch(e2) {}
+    if (btn) { btn.disabled = false; btn.textContent = 'তৈরি করুন'; }
+  }
 }
 
 function deleteUser(uid) {
@@ -11897,13 +11940,28 @@ function setHelpLang(lang) {
 // আসল কন্টেন্ট নিচে নেমে যায়। ভিউপোর্ট সাইজ বদলালে জোর করে একটা রিফ্লো ঘটিয়ে
 // এই গ্লিচ ঠিক করা হচ্ছে।
 function forceLayoutReflow() {
-  document.body.style.display = 'none';
-  // eslint-disable-next-line no-unused-expressions
-  document.body.offsetHeight; // reflow trigger
-  document.body.style.display = 'flex';
+  // ✅ বাগ-ফিক্স: display:none → flex টগল করাটা নিজেই এক মুহূর্তের জন্য
+  // পুরো পেজ (body) অদৃশ্য করে দিত। শুধু layout প্রপার্টি read করেই
+  // (offsetHeight) ব্রাউজারকে বিনা-flicker-এ reflow করানো সম্ভব।
+  void document.body.offsetHeight;
+  document.querySelectorAll('.topbar, .sidebar, .main').forEach(el => { void el.offsetHeight; });
 }
 let _reflowTimer = null;
+// ✅ বাগ-ফিক্স (মূল সমস্যা: "স্ক্রল করলে পেজ নিচে নামে না, কাঁপাকাঁপি করে"):
+// আগে window/visualViewport-এর প্রতিটা 'resize' ইভেন্টেই (তা যত ছোটই হোক)
+// এই রিফ্লো চলত। মোবাইল ব্রাউজারে নিচে স্ক্রল করলে URL বার/টুলবার সাময়িকভাবে
+// লুকিয়ে যায় — এতে visualViewport height ~৫০-১০০px বদলে যায় এবং বারবার
+// 'resize' ইভেন্ট ফায়ার হয়। প্রতিটাতেই body display:none↔flex টগল হওয়ায়
+// স্ক্রল করার সময় পুরো পেজ থরথর করে কাঁপত/ঝাঁকুনি দিত এবং স্মুথ স্ক্রলিং
+// বাধাগ্রস্ত হতো। এখন শুধু সত্যিকারের বড় পরিবর্তনেই (যেমন অন-স্ক্রিন
+// কিবোর্ড খোলা/বন্ধ হওয়া — সাধারণত ২০০px+) রিফ্লো ট্রিগার হবে, সাধারণ
+// স্ক্রলে URL-বারের ছোট শিফটে না।
+let _lastViewportH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
 function scheduleReflow() {
+  const currentH = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  const delta = Math.abs(currentH - _lastViewportH);
+  _lastViewportH = currentH;
+  if (delta < 150) return; // সাধারণ স্ক্রল/টুলবার শিফট — উপেক্ষা করা হচ্ছে
   clearTimeout(_reflowTimer);
   _reflowTimer = setTimeout(forceLayoutReflow, 60);
 }
