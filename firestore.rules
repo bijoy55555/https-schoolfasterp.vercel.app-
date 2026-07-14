@@ -131,6 +131,12 @@ service cloud.firestore {
       match /backups/{backupId} {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
+      // ===== schools/{schoolId}/backups/{backupId}/chunks/{chunkId} — ১MB
+      // ডকুমেন্ট লিমিট এড়াতে বড় ব্যাকআপ JSON-কে এখানে ছোট ছোট অংশে ভাগ করে
+      // রাখা হয় (দেখুন app.html-এর createBackupPoint ফাংশন) =====
+      match /backups/{backupId}/chunks/{chunkId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
 
       // ===== schools/{schoolId}/settings/{docId} — স্কুলের নিজস্ব সেটিংস
       // (যেমন settings/payment = SSLCommerz Store ID/Password)। Store

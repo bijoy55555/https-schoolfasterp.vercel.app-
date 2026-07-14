@@ -901,6 +901,7 @@
         <div class="card-body" style="padding:0">
           <table id="student-table"><thead><tr><th>রোল</th><th>নাম / প্রোফাইল</th><th>শ্রেণি - সেকশন</th><th>অভিভাবক</th><th>ফোন</th><th>ফি অবস্থা</th><th>অবস্থা</th><th class="no-print">অ্যাকশন</th></tr></thead>
           <tbody id="student-tbody"></tbody></table>
+          <div id="student-pagination" class="no-print"></div>
         </div>
       </div>
     </div>
@@ -4512,10 +4513,26 @@ function renderDashboard() {
 }
 
 // ============ STUDENTS ============
-function renderStudents(list) {
+// ✅ পেজিনেশন — বড় স্কুলে (৫০০+/১০০০+ ছাত্র) পুরো লিস্ট একসাথে DOM-এ রেন্ডার করলে
+// ব্রাউজার স্লো/ল্যাগ করে। তাই ডেটা এখনো পুরোপুরি মেমোরিতে থাকে (সার্চ/ফিল্টার/
+// এক্সপোর্ট/এডিট আগের মতোই সম্পূর্ণ ডেটা নিয়ে কাজ করবে) — শুধু টেবিলে একবারে
+// একটা পেজ (৫০ জন) দেখানো হয়, যাতে বড় স্কুলেও তালিকা পেজ দ্রুত লোড/স্ক্রল হয়।
+const STUDENT_PAGE_SIZE = 50;
+let _studentPage = 1;
+let _studentPageData = null; // বর্তমানে ফিল্টার করা (বা সব) ছাত্রের লিস্ট, পেজিনেশনের জন্য মনে রাখা হয়
+
+function renderStudents(list, opts) {
   const data = list || students;
+  _studentPageData = data;
+  const printAll = !!(opts && opts.printAll); // প্রিন্টের সময় পেজিনেশন উপেক্ষা করে সম্পূর্ণ তালিকা দেখাতে
+  const totalPages = Math.max(1, Math.ceil(data.length / STUDENT_PAGE_SIZE));
+  if(_studentPage > totalPages) _studentPage = totalPages;
+  if(_studentPage < 1) _studentPage = 1;
+  const pageStart = (_studentPage - 1) * STUDENT_PAGE_SIZE;
+  const pageData = printAll ? data : data.slice(pageStart, pageStart + STUDENT_PAGE_SIZE);
+
   const tbody = document.getElementById('student-tbody');
-  tbody.innerHTML = data.map((s,i)=>{
+  tbody.innerHTML = pageData.map((s,i)=>{
     const idx = students.indexOf(s);
     const photoHtml = s.photo
       ? `<img class="student-photo" src="${s.photo}" alt="${s.name}">`
@@ -4541,15 +4558,39 @@ function renderStudents(list) {
       </td>
     </tr>`;
   }).join('');
+  if(printAll){ const pgEl=document.getElementById('student-pagination'); if(pgEl) pgEl.innerHTML=''; }
+  else { renderStudentPagination(data.length, totalPages); }
   const active = students.filter(s=>s.status==='সক্রিয়').length;
   const pending = students.filter(s=>s.status==='মুলতবি').length;
   document.getElementById('student-count-title').textContent = `সকল ছাত্রছাত্রী (${toBnNum(students.length)} জন)`;
   document.getElementById('student-active-count').textContent = `সক্রিয়: ${toBnNum(active)}`;
   document.getElementById('student-pending-count').textContent = `মুলতবি: ${toBnNum(pending)}`;
 }
+// পেজিনেশন নিয়ন্ত্রণ বার (আগের/পরের বাটন + কোন রেঞ্জ দেখানো হচ্ছে) রেন্ডার করে
+function renderStudentPagination(totalCount, totalPages) {
+  const el = document.getElementById('student-pagination');
+  if(!el) return;
+  if(totalCount <= STUDENT_PAGE_SIZE){ el.innerHTML=''; return; }
+  const start = (_studentPage-1)*STUDENT_PAGE_SIZE + 1;
+  const end = Math.min(_studentPage*STUDENT_PAGE_SIZE, totalCount);
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--text-muted)">${toBnNum(start)}–${toBnNum(end)} / ${toBnNum(totalCount)} জন দেখানো হচ্ছে</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" ${_studentPage<=1?'disabled':''} onclick="goToStudentPage(_studentPage-1)">◀ আগের</button>
+        <span style="font-size:12px">পেজ ${toBnNum(_studentPage)} / ${toBnNum(totalPages)}</span>
+        <button class="btn btn-outline" style="padding:5px 10px;font-size:12px" ${_studentPage>=totalPages?'disabled':''} onclick="goToStudentPage(_studentPage+1)">পরের ▶</button>
+      </div>
+    </div>`;
+}
+function goToStudentPage(p) {
+  _studentPage = p;
+  renderStudents(_studentPageData);
+}
 function filterStudents() {
   const q = document.getElementById('student-search').value.toLowerCase();
   const cls = document.getElementById('student-class-filter').value;
+  _studentPage = 1; // নতুন সার্চ/ফিল্টারে সবসময় প্রথম পেজ থেকে দেখানো হবে
   renderStudents(students.filter(s=>{
     const matchQ = !q || s.name.toLowerCase().includes(q)||s.roll.includes(q)||s.phone.includes(q);
     const matchC = !cls || s.cls===cls;
@@ -5706,7 +5747,20 @@ function getPrintHeader() {
 }
 
 // ============ PRINT ============
-function printPage() { window.print(); }
+function printPage() {
+  // ✅ ছাত্র পেজে পেজিনেশন থাকায় window.print() সরাসরি কল করলে শুধু বর্তমান
+  // পেজের (৫০ জন) তালিকা প্রিন্ট হতো। তাই প্রিন্টের আগে সাময়িকভাবে পুরো
+  // তালিকা দেখানো হয়, প্রিন্ট শেষে (afterprint) আবার পেজিনেশনে ফিরিয়ে আনা হয়।
+  const studentsPageActive = document.getElementById('page-students')?.classList.contains('active');
+  if(studentsPageActive && _studentPageData && _studentPageData.length > STUDENT_PAGE_SIZE){
+    renderStudents(_studentPageData, {printAll:true});
+    const restore = () => { renderStudents(_studentPageData); window.removeEventListener('afterprint', restore); };
+    window.addEventListener('afterprint', restore);
+    setTimeout(()=>window.print(), 50);
+  } else {
+    window.print();
+  }
+}
 
 // ============ INIT ============
 document.getElementById('topbar-date').textContent = todayBn();
@@ -6837,6 +6891,42 @@ async function idbTrimHistory(){
 }
 
 // ---- ক্লাউড (Firestore) ব্যাকআপ — শুধু আসল স্কুল লগইনে (schools/{schoolId}/backups/{id}) ----
+// ✅ ফিক্স: Firestore-এর একটা ডকুমেন্টের সাইজ লিমিট ১MB। ১০০০+ ছাত্র/হাজিরা/ফি
+// ডেটা জমলে পুরো ব্যাকআপ সহজেই ১MB পার হয়ে যেত, ফলে ব্যাকআপ সাইলেন্টলি ফেইল
+// করত। এখন বড় JSON-কে ছোট ছোট 'chunk' ডকুমেন্টে (প্রতিটা সর্বোচ্চ ~700KB) ভাগ
+// করে আলাদা সাবকালেকশনে রাখা হয়:
+//   schools/{schoolId}/backups/{id}            -> মেটাডেটা (type, createdAt, sizeKB, chunkCount)
+//   schools/{schoolId}/backups/{id}/chunks/{i} -> আসল ডেটার একটা অংশ (data: chunk_i)
+const CLOUD_BACKUP_CHUNK_SIZE = 700000; // ~700KB প্রতি chunk (নিরাপদ মার্জিনসহ)
+const CLOUD_BATCH_WRITE_LIMIT = 400; // Firestore batch লিমিট ৫০০, নিরাপদ থাকতে ৪০০
+
+function chunkString(str, size){
+  const chunks = [];
+  for(let i=0; i<str.length; i+=size) chunks.push(str.slice(i, i+size));
+  return chunks.length ? chunks : [''];
+}
+
+// অনেকগুলো write একসাথে (৪০০-এর গ্রুপে ভেঙে) commit করার হেল্পার — Firestore batch limit এড়াতে
+async function commitInBatches(ops){
+  for(let i=0; i<ops.length; i+=CLOUD_BATCH_WRITE_LIMIT){
+    const batch = window.fb.writeBatch(window.db);
+    ops.slice(i, i+CLOUD_BATCH_WRITE_LIMIT).forEach(op => batch.set(op.ref, op.data));
+    await batch.commit();
+  }
+}
+
+// একটা ক্লাউড ব্যাকআপের chunk সাবকালেকশনসহ সম্পূর্ণ মুছে ফেলা (নাহলে পুরনো
+// chunk গুলো এতিম হয়ে অপ্রয়োজনীয় স্টোরেজ খরচ বাড়াতে থাকবে)
+async function deleteCloudBackupWithChunks(schoolId, id){
+  try{
+    const chunksSnap = await window.fb.getDocs(
+      window.fb.collection(window.db, 'schools', schoolId, 'backups', id, 'chunks')
+    );
+    for(const d of chunksSnap.docs){ try{ await window.fb.deleteDoc(d.ref); }catch(e){} }
+  }catch(e){ /* chunk না থাকলে বা পুরনো ফরম্যাটের ব্যাকআপ হলে সমস্যা নেই */ }
+  try{ await window.fb.deleteDoc(window.fb.doc(window.db, 'schools', schoolId, 'backups', id)); }catch(e){}
+}
+
 async function trimCloudBackups(){
   if(!window.currentSchoolId || !window.fb || !window.fb.getDocs) return;
   try{
@@ -6848,7 +6938,7 @@ async function trimCloudBackups(){
     const docs = snap.docs.filter(d=> d.id !== '_meta');
     if(docs.length > BACKUP_MAX_HISTORY){
       const extra = docs.slice(BACKUP_MAX_HISTORY);
-      for(const d of extra){ try{ await window.fb.deleteDoc(d.ref); }catch(e){} }
+      for(const d of extra){ await deleteCloudBackupWithChunks(window.currentSchoolId, d.id); }
     }
   }catch(e){ console.error('ক্লাউড ব্যাকআপ ট্রিম এরর:', e); }
 }
@@ -6873,8 +6963,9 @@ function downloadBackupFile(payload, label){
   URL.revokeObjectURL(url);
 }
 
-// ✅ একটা ব্যাকআপ পয়েন্ট তৈরি করে — IndexedDB (অফলাইন) + সম্ভব হলে Firebase
-// ক্লাউডে সংরক্ষণ করে, এবং সবসময় সর্বশেষ ৩০টা রাখে (পুরনোগুলো অটো মুছে যায়)
+// ✅ একটা ব্যাকআপ পয়েন্ট তৈরি করে — IndexedDB (অফলাইন, পুরো ডেটা একটাই রেকর্ডে,
+// কোনো সাইজ লিমিট নেই) + সম্ভব হলে Firebase ক্লাউডে (chunk করে, ১MB লিমিট এড়িয়ে)
+// সংরক্ষণ করে, এবং সবসময় সর্বশেষ ৩০টা রাখে (পুরনোগুলো অটো মুছে যায়)
 async function createBackupPoint(type){
   const payload = buildBackupPayload();
   const json = JSON.stringify(payload);
@@ -6889,9 +6980,16 @@ async function createBackupPoint(type){
 
   if(window.currentSchoolId && window.fb && window.db){
     try{
-      await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', id), {
-        type, createdAt: record.createdAt, sizeKB: record.sizeKB, data: json
+      const chunks = chunkString(json, CLOUD_BACKUP_CHUNK_SIZE);
+      const backupRef = window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', id);
+      const ops = [{ ref: backupRef, data: { type, createdAt: record.createdAt, sizeKB: record.sizeKB, chunkCount: chunks.length } }];
+      chunks.forEach((chunk, i)=>{
+        ops.push({
+          ref: window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', id, 'chunks', String(i)),
+          data: { data: chunk }
+        });
       });
+      await commitInBatches(ops);
       await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', '_meta'), {
         lastBackupAt: record.createdAt, lastBackupType: type, lastBackupSizeKB: record.sizeKB
       }, {merge:true});
@@ -6972,6 +7070,8 @@ function restoreData(){
 }
 
 // ---- ব্যাকআপ ইতিহাস (সর্বশেষ ৩০টি) — IndexedDB + ক্লাউড মার্জ করে দেখানো হয় ----
+// ✅ লিস্ট দেখানোর সময় শুধু মেটাডেটা আনা হয় (chunkCount ইত্যাদি), আসল ডেটা
+// (chunks) তখনই আনা হয় যখন কেউ রিস্টোর/ডাউনলোড করতে চায় — তাই লিস্ট লোড দ্রুত ও সস্তা
 let _backupHistoryCache = [];
 async function renderBackupHistory(){
   const container = document.getElementById('backup-history-list');
@@ -6985,7 +7085,7 @@ async function renderBackupHistory(){
         window.fb.orderBy('createdAt','desc'), window.fb.limit(30)
       );
       const snap = await window.fb.getDocs(q);
-      const cloudList = snap.docs.filter(d=>d.id!=='_meta').map(d=>({id:d.id, ...d.data()}));
+      const cloudList = snap.docs.filter(d=>d.id!=='_meta').map(d=>({id:d.id, cloud:true, ...d.data()}));
       const localIds = new Set(list.map(r=>r.id));
       cloudList.forEach(c=>{ if(!localIds.has(c.id)) list.push(c); });
     }catch(e){ console.error('ক্লাউড ব্যাকআপ ইতিহাস লোড এরর:', e); }
@@ -7011,19 +7111,39 @@ async function renderBackupHistory(){
   `).join('');
 }
 function findHistoryRecord(id){ return _backupHistoryCache.find(r=>r.id===id); }
-function getHistoryPayload(id){
+
+// ✅ ব্যাকআপের আসল ডেটা লোড করে — লোকাল (IndexedDB) হলে সরাসরি, ক্লাউড হলে
+// chunk ফরম্যাট (নতুন) বা একক-ডকুমেন্ট ফরম্যাট (পুরনো, ব্যাকওয়ার্ড কম্প্যাটিবিলিটি) অনুযায়ী fetch করে জোড়া লাগায়
+async function getHistoryPayloadAsync(id){
   const rec = findHistoryRecord(id);
-  if(!rec || !rec.data) return null;
-  try{ return JSON.parse(rec.data); }catch(e){ return null; }
+  if(!rec) return null;
+  if(rec.data){ // লোকাল IndexedDB রেকর্ড অথবা পুরনো ফরম্যাটের ক্লাউড রেকর্ড
+    try{ return JSON.parse(rec.data); }catch(e){ return null; }
+  }
+  if(rec.cloud && rec.chunkCount && window.currentSchoolId && window.fb){
+    try{
+      let json = '';
+      for(let i=0; i<rec.chunkCount; i++){
+        const chunkSnap = await window.fb.getDoc(
+          window.fb.doc(window.db, 'schools', window.currentSchoolId, 'backups', id, 'chunks', String(i))
+        );
+        if(!chunkSnap.exists()) throw new Error('chunk missing: '+i);
+        json += chunkSnap.data().data || '';
+      }
+      return JSON.parse(json);
+    }catch(e){ console.error('ক্লাউড ব্যাকআপ ডেটা লোড এরর:', e); return null; }
+  }
+  return null;
 }
-function downloadHistoryBackup(id){
-  const payload = getHistoryPayload(id);
+async function downloadHistoryBackup(id){
+  const payload = await getHistoryPayloadAsync(id);
   if(!payload){ showToast('ব্যাকআপ ডেটা পাওয়া যায়নি', 'error'); return; }
   downloadBackupFile(payload, id);
 }
 async function restoreFromHistory(id){
   if(!confirm('এই ব্যাকআপ পয়েন্ট থেকে রিস্টোর করতে চান? বর্তমান ডেটার একটা অটো-ব্যাকআপ আগে নেওয়া হবে।')) return;
-  const payload = getHistoryPayload(id);
+  showToast('ব্যাকআপ ডেটা লোড হচ্ছে...');
+  const payload = await getHistoryPayloadAsync(id);
   if(!payload){ showToast('ব্যাকআপ ডেটা পাওয়া যায়নি', 'error'); return; }
   await createBackupPoint('auto-before-restore'); // ✅ Auto Backup Before Restore
   applyRestoreData(payload);
@@ -7037,7 +7157,7 @@ async function deleteHistoryBackup(id){
   if(!confirm('এই ব্যাকআপ পয়েন্টটা মুছে ফেলতে চান?')) return;
   await idbDeleteBackup(id);
   if(window.currentSchoolId && window.fb && window.fb.deleteDoc){
-    try{ await window.fb.deleteDoc(window.fb.doc(window.db,'schools',window.currentSchoolId,'backups',id)); }catch(e){}
+    await deleteCloudBackupWithChunks(window.currentSchoolId, id);
   }
   renderBackupHistory();
 }
