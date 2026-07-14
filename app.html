@@ -889,6 +889,8 @@
           <option value="">সব শ্রেণি</option>
           <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         <button class="btn btn-outline" onclick="printPage()">🖨️ প্রিন্ট</button>
+        <button class="btn btn-outline" style="border-color:#e67e22;color:#e67e22" onclick="generateDummyStudents()">🧪 ডামি ছাত্র তৈরি করুন</button>
+        <button class="btn btn-outline" style="border-color:#c0392b;color:#c0392b" onclick="deleteAllDummyStudents()">🗑️ ডামি ছাত্র মুছুন</button>
       </div>
       <div class="card">
         <div class="card-header">
@@ -4639,6 +4641,70 @@ function deleteStudent(idx) {
   students.splice(idx,1);
   renderStudents(); renderDashboard();
   showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
+}
+
+// ============ DUMMY STUDENT GENERATOR (টেস্টিং-এর জন্য) ============
+async function generateDummyStudents() {
+  const countStr = prompt('কতজন ডামি ছাত্র তৈরি করতে চান?', '1000');
+  if(countStr===null) return;
+  const count = parseInt(countStr);
+  if(!count || count<1){ showToast('সঠিক সংখ্যা লিখুন','error'); return; }
+  if(!confirm(`${toBnNum(count)} জন ডামি ছাত্র তৈরি হবে। এগিয়ে যাবেন?`)) return;
+
+  const firstNames = ['মো. রাকিব','সুমাইয়া','তানভীর','ফারহানা','আরিফুল','রনি','মিম','সাকিব','নুসরাত','ইমরান','লিমা','সজীব','তাসনিম','রাহেলা','জাহিদ','মিতু','শাকিল','প্রিয়া','হাসান','সাদিয়া','কামাল','রুবিনা','ফয়সাল','নাজমা','আসিফ','মৌসুমী','রাসেল','শিরিন','তারেক','ইয়াসমিন'];
+  const lastNames = ['ইসলাম','হোসেন','আক্তার','আহমেদ','খান','বেগম','মিয়া','চৌধুরী','সরকার','মণ্ডল','তালুকদার','শেখ'];
+  const classes = ['প্লে - ক','প্লে - খ','প্লে - গ','নার্সারি - ক','নার্সারি - খ','নার্সারি - গ','প্রথম - ক','প্রথম - খ','প্রথম - গ','দ্বিতীয় - ক','দ্বিতীয় - খ','দ্বিতীয় - গ','তৃতীয় - ক','তৃতীয় - খ','তৃতীয় - গ','চতুর্থ - ক','চতুর্থ - খ','চতুর্থ - গ','পঞ্চম - ক','পঞ্চম - খ','পঞ্চম - গ','ষষ্ঠ - ক','ষষ্ঠ - খ','ষষ্ঠ - গ','সপ্তম - ক','সপ্তম - খ','সপ্তম - গ','অষ্টম - ক','অষ্টম - খ','অষ্টম - গ','নবম - ক','নবম - খ','নবম - গ','দশম - ক','দশম - খ','দশম - গ'];
+  const blood = ['A+','B+','O+','AB+','A-','B-','O-','AB-'];
+  const religion = ['ইসলাম','হিন্দু','খ্রিস্টান','বৌদ্ধ'];
+  const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+  const pad3 = n => String(n).padStart(3,'0');
+  const todayISO = new Date().toISOString().split('T')[0];
+
+  // প্রতিটি শ্রেণির জন্য আলাদা রোল কাউন্টার
+  const rollCounter = {};
+
+  for(let i=0;i<count;i++){
+    const cls = pick(classes);
+    rollCounter[cls] = (rollCounter[cls]||0)+1;
+    students.push({
+      roll: pad3(rollCounter[cls]),
+      name: `${pick(firstNames)} ${pick(lastNames)}`,
+      cls, section: cls.split(' - ')[1]||'ক',
+      guardian: `${pick(firstNames)} ${pick(lastNames)}`,
+      phone: `01${Math.floor(300000000+Math.random()*699999999)}`,
+      feeStatus: pick(['পরিশোধিত','বকেয়া','আংশিক']),
+      status: 'সক্রিয়',
+      dob: '—',
+      religion: pick(religion),
+      blood: pick(blood),
+      address: 'ঢাকা, বাংলাদেশ',
+      photo: '',
+      transferHistory: [],
+      admissionDate: new Date().toLocaleDateString('bn-BD'),
+      monthlyFee: pick([400,450,500,600,800]),
+      feeStartDate: todayISO,
+      isDummy: true, // পরে সহজে চিহ্নিত করে মুছে ফেলার জন্য
+    });
+    // বড় সংখ্যায় UI ফ্রিজ এড়াতে প্রতি ২০০ জনে একটু বিরতি
+    if(i%200===199) await new Promise(r=>setTimeout(r,0));
+  }
+
+  renderStudents();
+  renderDashboard();
+  showToast(`${toBnNum(count)} জন ডামি ছাত্র তৈরি হয়েছে!`);
+  // দ্রুত ক্লাউডে সেভ করার চেষ্টা (থাকলে)
+  if(typeof saveTenantData==='function'){ try{ await saveTenantData(); }catch(e){} }
+}
+
+function deleteAllDummyStudents() {
+  const before = students.length;
+  const removed = students.filter(s=>s.isDummy).length;
+  if(removed===0){ showToast('কোনো ডামি ছাত্র নেই','error'); return; }
+  if(!confirm(`${toBnNum(removed)} জন ডামি ছাত্র মুছে ফেলা হবে। নিশ্চিত?`)) return;
+  students = students.filter(s=>!s.isDummy);
+  renderStudents(); renderDashboard();
+  showToast(`${toBnNum(removed)} জন ডামি ছাত্র মুছে ফেলা হয়েছে!`);
+  if(typeof saveTenantData==='function'){ saveTenantData().catch(()=>{}); }
 }
 
 // ============ TEACHERS ============
