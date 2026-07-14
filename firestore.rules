@@ -102,6 +102,28 @@ service cloud.firestore {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
 
+      // ===== schools/{schoolId}/attendance/{clsDateId} — প্রতিটা শ্রেণি+তারিখের
+      // উপস্থিতি আলাদা ডকুমেন্ট (আগে data/main-এর ভেতর একটা ফিল্ড ছিল, ১MB
+      // লিমিট ও একসাথে-এডিট-করলে-ওভাররাইট সমস্যা এড়াতে আলাদা করা হয়েছে) =====
+      match /attendance/{clsDateId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
+
+      // ===== schools/{schoolId}/students/{studentId}, /fees/{feeId}, /results/{resultId}
+      // — attendance-এর মতো একই কারণে এই তিনটাও data/main থেকে বের করে আলাদা
+      // কালেকশনে নেওয়া হয়েছে: প্রতিটা ছাত্র/ফি এন্ট্রি/ফলাফল আলাদা ডকুমেন্ট, তাই
+      // স্কুল বড় হলেও ১MB লিমিটে ধাক্কা খাবে না, আর দুইজন স্টাফ ভিন্ন রেকর্ড নিয়ে
+      // একসাথে কাজ করলে একে অপরের ডেটা ওভাররাইট করবে না =====
+      match /students/{studentId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
+      match /fees/{feeId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
+      match /results/{resultId} {
+        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+      }
+
       // ===== schools/{schoolId}/backups/{backupId} — ম্যানুয়াল/অটো ব্যাকআপ
       // পয়েন্টের ক্লাউড কপি (JSON স্ন্যাপশট)। backups/_meta ডকুমেন্টে শেষ
       // ব্যাকআপের সময়/ধরন থাকে, যা সুপার-অ্যাডমিন প্যানেল থেকে সব স্কুলের

@@ -1,0 +1,4 @@
+# ⚠️ Firebase Admin SDK প্রাইভেট কী — এটা কখনো GitHub-এ পুশ করবেন না,
+# এই ফাইল দিয়ে যে কেউ আপনার প্রজেক্টের পুরো ডেটাবেসে অ্যাডমিন অ্যাক্সেস পেয়ে যাবে
+scripts/serviceAccountKey.json
+node_modules/

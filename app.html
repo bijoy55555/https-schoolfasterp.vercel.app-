@@ -572,7 +572,7 @@
   <!-- ===== Firebase SDK (যোগ করা হয়েছে) ===== -->
   <script type="module">
     import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
@@ -600,7 +600,7 @@
 
     // ✅ classic <script> ব্লক (নিচে, মডিউল না) থেকে ব্যবহারের জন্য এক্সপোজ করা হলো
     window.fb = {
-      doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit,
+      doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch,
       signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged,
       httpsCallable,
       initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword
@@ -4971,6 +4971,17 @@ function renderAttendanceTable() {
   }).join('');
   updateAttStats(cls,dk);
 }
+// ✅ আগে সাধারণ ২০ সেকেন্ডের অটো-সেভ (পুরো data/main ব্লব লেখা) attendance-ও সাথে সাথে
+// কভার করত। এখন attendance আলাদা কালেকশনে, তাই এখানেও একটা হালকা ডিবাউন্সড অটো-সেভ
+// রাখা হলো — এডিটের ৩ সেকেন্ড পর নিজে থেকেই শুধু এই একটা শ্রেণি/তারিখের ডকুমেন্ট সেভ হয়ে
+// যাবে, ইউজার "সেভ" বাটনে না চাপলেও ডেটা হারাবে না।
+let _attSaveDebounce = null;
+function scheduleAttendanceAutoSave(cls, dk) {
+  if (_attSaveDebounce) clearTimeout(_attSaveDebounce);
+  _attSaveDebounce = setTimeout(() => {
+    saveAttendanceDay(cls, dk).catch(e => console.error('উপস্থিতি অটো-সেভ এরর:', e));
+  }, 3000);
+}
 function setAtt(cls, name, val, btn) {
   const dk = getSelectedAttDate();
   getAttForDate(cls, dk)[name] = val;
@@ -4978,6 +4989,7 @@ function setAtt(cls, name, val, btn) {
   row.querySelectorAll('.att-status-btn').forEach(b=>b.className='att-status-btn');
   btn.className = `att-status-btn ${val==='P'?'att-p':val==='A'?'att-a':'att-l'}`;
   updateAttStats(cls,dk);
+  scheduleAttendanceAutoSave(cls, dk);
 }
 function markAll(val) {
   const cls = document.getElementById('att-class-select').value;
@@ -4985,6 +4997,7 @@ function markAll(val) {
   const rec = getAttForDate(cls, dk);
   getClassStudents(cls).forEach(s=>{ rec[s.name]=val; });
   renderAttendanceTable();
+  scheduleAttendanceAutoSave(cls, dk);
 }
 function updateAttStats(cls, dk) {
   const data = (attendance[cls]||{})[dk||getSelectedAttDate()]||{};
@@ -4998,13 +5011,79 @@ function updateAttStats(cls, dk) {
   document.getElementById('att-late-count').textContent = toBnNum(l);
   document.getElementById('att-rate').textContent = total>0 ? toBnNum(Math.round((p/total)*100))+'%' : '০%';
 }
+// ============ উপস্থিতি — আলাদা Firestore কালেকশন (schools/{id}/attendance/{cls}__{date}) ============
+// আগে পুরো attendance অবজেক্টটা schools/{id}/data/main ডকুমেন্টের ভেতর একটা ফিল্ড হিসেবে যেত —
+// স্কুল যত পুরনো হতো, এই ফিল্ড তত বড় হতো এবং একসময় Firestore-এর ১MB ডকুমেন্ট-লিমিটে ধাক্কা খেতে পারত।
+// এখন প্রতিটা শ্রেণি+তারিখ আলাদা ডকুমেন্ট — সাইজ সীমাহীনভাবে বাড়তে পারে, আর দুইজন স্টাফ ভিন্ন
+// শ্রেণি/তারিখে একসাথে কাজ করলে একজনের সেভ আরেকজনেরটা মুছে দেবে না (আলাদা ডকুমেন্ট = আলাদা রাইট)।
+// মেমোরিতে attendance[cls][dateKey] স্ট্রাকচার আগের মতোই আছে — বাকি সব কোড (রিপোর্ট, প্রোফাইল,
+// চার্ট ইত্যাদি) অপরিবর্তিত থাকবে, শুধু লোড/সেভ যেভাবে হয় সেটা বদলেছে।
+function attDocId(cls, dk) {
+  // Firestore ডকুমেন্ট আইডিতে '/' চলে না; শ্রেণির নামে সাধারণত থাকে না, তবু নিরাপদ থাকার জন্য বদলে দেওয়া হলো
+  return `${cls}__${dk}`.replace(/\//g, '-');
+}
+async function saveAttendanceDay(cls, dk) {
+  if (!window.currentSchoolId) return; // ডেমো মোডে ক্লাউড সিঙ্ক নেই
+  const records = (attendance[cls] || {})[dk] || {};
+  await window.fb.setDoc(
+    window.fb.doc(window.db, 'schools', window.currentSchoolId, 'attendance', attDocId(cls, dk)),
+    { cls, date: dk, records, updatedAt: new Date().toISOString() }
+  );
+}
+// স্কুলের 'attendance' কালেকশনের সব ডকুমেন্ট পড়ে মেমোরিতে attendance[cls][date]=records আকারে বসায়
+async function loadAllAttendanceDocs(schoolId) {
+  const snap = await window.fb.getDocs(
+    window.fb.collection(window.db, 'schools', schoolId, 'attendance')
+  );
+  const result = {};
+  snap.forEach(docSnap => {
+    const d = docSnap.data();
+    if (!d || !d.cls || !d.date) return;
+    if (!result[d.cls]) result[d.cls] = {};
+    result[d.cls][d.date] = d.records || {};
+  });
+  return { data: result, isEmpty: snap.empty };
+}
+// পুরনো স্কুলের জন্য এক-কালীন মাইগ্রেশন: data/main ডকুমেন্টে যদি পুরনো ফরম্যাটে attendance পাওয়া
+// যায় আর নতুন কালেকশন এখনো খালি থাকে, তাহলে প্রতিটা শ্রেণি+তারিখকে আলাদা ডকুমেন্ট হিসেবে লিখে দেয়
+async function migrateAttendanceToCollection(schoolId, oldAttendance) {
+  if (!oldAttendance || typeof oldAttendance !== 'object') return;
+  const clsKeys = Object.keys(oldAttendance);
+  if (clsKeys.length === 0) return;
+  try {
+    let batch = window.fb.writeBatch(window.db);
+    let opCount = 0;
+    for (const cls of clsKeys) {
+      const byDate = oldAttendance[cls] || {};
+      for (const dk of Object.keys(byDate)) {
+        const ref = window.fb.doc(window.db, 'schools', schoolId, 'attendance', attDocId(cls, dk));
+        batch.set(ref, { cls, date: dk, records: byDate[dk] || {}, updatedAt: new Date().toISOString() });
+        opCount++;
+        if (opCount >= 450) { // Firestore ব্যাচ লিমিট ৫০০ — নিরাপদ মার্জিন রেখে ফ্লাশ করে নতুন ব্যাচ শুরু
+          await batch.commit();
+          batch = window.fb.writeBatch(window.db);
+          opCount = 0;
+        }
+      }
+    }
+    if (opCount > 0) await batch.commit();
+    console.log(`✅ পুরনো উপস্থিতি ডেটা নতুন কালেকশনে মাইগ্রেট হয়েছে (${clsKeys.length} শ্রেণি)`);
+  } catch (e) {
+    console.error('উপস্থিতি মাইগ্রেশন এরর:', e);
+  }
+}
+
 async function saveAttendance() {
   const cls = document.getElementById('att-class-select').value;
+  const dk = getSelectedAttDate();
   const btn = event ? event.target : null;
   const origText = btn ? btn.textContent : '';
   if(btn){ btn.disabled = true; btn.textContent = 'সেভ হচ্ছে...'; }
   try {
-    await saveTenantData(); // তাৎক্ষণিকভাবে Firestore-এ লেখা হয়, ২০ সেকেন্ডের অটো-সেভের জন্য অপেক্ষা করে না
+    // ✅ আগে পুরো saveTenantData() (সব মডিউলের সব ডেটা) লেখা হতো — এখন শুধু
+    // এই একটা শ্রেণি/তারিখের ডকুমেন্ট লেখা হয়, তাই দ্রুতও হবে আর অন্য
+    // কেউ একই সময়ে অন্য কিছু এডিট করলে তার ডেটার সাথে সংঘর্ষও হবে না
+    await saveAttendanceDay(cls, dk);
     showToast(`${cls} শ্রেণির উপস্থিতি সেভ হয়েছে!`);
   } catch(e) {
     console.error('উপস্থিতি সেভ এরর:', e);
@@ -8877,12 +8956,69 @@ async function loadTenantData(schoolId) {
     const snap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', schoolId, 'data', 'main'));
     if (!snap.exists()) { await saveTenantData(); return; } // প্রথমবার — বর্তমান ডেমো ডেটা দিয়ে শুরু
     const d = snap.data();
-    if (d.students) students = d.students;
+    // ✅ students/fees/results এখন schools/{id}/data/main-এর ভেতর বড় অ্যারে-ফিল্ড না,
+    // বরং প্রতিটা আলাদা কালেকশনে (schools/{id}/students|fees|results/{id})। প্রথমে
+    // নতুন কালেকশন থেকে লোড করা হয়; খালি পেলে ও পুরনো data/main-এ ডেটা থাকলে
+    // এক-কালীন মাইগ্রেশন চালিয়ে নতুন কালেকশনে কপি করে নেওয়া হয়।
+    try {
+      const { records: newStudents, isEmpty: stuEmpty } = await loadCollectionRecords(schoolId, 'students');
+      if (!stuEmpty) {
+        students = newStudents;
+        students.forEach(s => { window._lastSynced.students[s.id] = JSON.stringify(s); });
+      } else if (d.students && d.students.length > 0) {
+        students = await migrateArrayToCollection(schoolId, 'students', d.students, 'stu', window._lastSynced.students);
+      }
+    } catch (e) {
+      console.error('students কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
+      if (d.students) students = d.students;
+    }
     if (d.teachers) teachers = d.teachers;
-    if (d.fees) fees = d.fees;
-    if (d.results) results = d.results;
+    try {
+      const { records: newFees, isEmpty: feesEmpty } = await loadCollectionRecords(schoolId, 'fees');
+      if (!feesEmpty) {
+        fees = newFees;
+        fees.forEach(f => { window._lastSynced.fees[f.id] = JSON.stringify(f); });
+      } else if (d.fees && d.fees.length > 0) {
+        fees = await migrateArrayToCollection(schoolId, 'fees', d.fees, 'fee', window._lastSynced.fees);
+      }
+    } catch (e) {
+      console.error('fees কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
+      if (d.fees) fees = d.fees;
+    }
+    try {
+      const { records: newResults, isEmpty: resultsEmpty } = await loadCollectionRecords(schoolId, 'results');
+      if (!resultsEmpty) {
+        results = newResults;
+        results.forEach(r => { window._lastSynced.results[r.id] = JSON.stringify(r); });
+      } else if (d.results && d.results.length > 0) {
+        results = await migrateArrayToCollection(schoolId, 'results', d.results, 'res', window._lastSynced.results);
+      }
+    } catch (e) {
+      console.error('results কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
+      if (d.results) results = d.results;
+    }
     if (d.notices) notices = d.notices;
-    if (d.attendance) attendance = d.attendance;
+    // ✅ উপস্থিতি এখন schools/{id}/data/main-এর একটা বিশাল ফিল্ড না, বরং আলাদা
+    // 'attendance' কালেকশনে প্রতিটা শ্রেণি+তারিখ আলাদা ডকুমেন্ট হিসেবে থাকে (নিচের
+    // saveAttendanceDay/migrateAttendanceToCollection দেখুন)। প্রথমে নতুন কালেকশন
+    // থেকে লোড করার চেষ্টা হয়; যদি সেটা খালি থাকে কিন্তু পুরনো data/main.attendance-এ
+    // ডেটা পাওয়া যায় (পুরনো স্কুল যেগুলো এখনো মাইগ্রেট হয়নি), তাহলে একবারই সেই
+    // ডেটা নতুন কালেকশনে কপি করে দেওয়া হয়, যাতে পুরনো উপস্থিতি হারিয়ে না যায়।
+    try {
+      const { data: newAtt, isEmpty } = await loadAllAttendanceDocs(schoolId);
+      if (!isEmpty) {
+        attendance = newAtt;
+      } else if (d.attendance && Object.keys(d.attendance).length > 0) {
+        attendance = d.attendance;
+        migrateAttendance(); // পুরনো (তারিখবিহীন) ফরম্যাট থাকলে আগে ঠিক করে নেওয়া হয়
+        await migrateAttendanceToCollection(schoolId, attendance); // এক-কালীন মাইগ্রেশন
+      } else {
+        attendance = {};
+      }
+    } catch (e) {
+      console.error('উপস্থিতি কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
+      if (d.attendance) attendance = d.attendance;
+    }
     if (d.payrollStatus) payrollStatus = d.payrollStatus;
     if (d.dueSMSLog) dueSMSLog = d.dueSMSLog;
     if (d.parentMessages) parentMessages = d.parentMessages;
@@ -8927,11 +9063,102 @@ async function loadTenantData(schoolId) {
   }
 }
 
+// ============ students / fees / results — আলাদা Firestore কালেকশন ============
+// আগে এই তিনটাও attendance-এর মতো schools/{id}/data/main ডকুমেন্টের ভেতর একেকটা
+// বড় অ্যারে-ফিল্ড হিসেবে যেত। এখন প্রতিটা রেকর্ড (একজন ছাত্র/একটা ফি এন্ট্রি/একটা
+// ফলাফল) আলাদা ডকুমেন্ট — schools/{id}/students/{id}, schools/{id}/fees/{id},
+// schools/{id}/results/{id}। এতে (ক) একটা স্কুল অনেক বড় হয়ে গেলেও ১MB লিমিটে
+// ধাক্কা খাবে না, (খ) দুইজন স্টাফ ভিন্ন ছাত্র/ফি/ফলাফল নিয়ে একসাথে কাজ করলে
+// একজনের সেভ আরেকজনেরটা মুছে দেবে না।
+//
+// এই মডিউলগুলোতে অ্যাড/এডিট/ডিলিট অনেক জায়গা থেকে হয় (saveStudent, deleteStudent,
+// moveToAlumni, saveFee, applyPaidStatusForStudent, saveResult, ইত্যাদি) — প্রতিটা
+// জায়গায় আলাদাভাবে ক্লাউড-সেভ কল বসানো ঝুঁকিপূর্ণ (কোথাও বাদ পড়ে যেতে পারে)।
+// তাই এখানে একটা "ডিফ-ভিত্তিক" সিঙ্ক ব্যবহার হয়েছে: মেমোরির অ্যারে যেভাবেই বদলাক
+// না কেন (যোগ/এডিট/মোছা), প্রতি অটো-সেভে (২০ সেকেন্ড পরপর, আগের মতোই) যা যা বদলেছে
+// শুধু সেটুকুই ক্লাউডে লেখা/মোছা হয় — পুরো অ্যারে re-write হয় না।
+function genRecordId(prefix) {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2,7)}`;
+}
+function ensureIds(arr, prefix) {
+  if (!Array.isArray(arr)) return;
+  arr.forEach(rec => { if (rec && !rec.id) rec.id = genRecordId(prefix); });
+}
+async function loadCollectionRecords(schoolId, collName) {
+  const snap = await window.fb.getDocs(window.fb.collection(window.db, 'schools', schoolId, collName));
+  const records = [];
+  snap.forEach(docSnap => records.push(docSnap.data()));
+  return { records, isEmpty: snap.empty };
+}
+// পুরনো data/main-এর অ্যারে থেকে এক-কালীন মাইগ্রেশন — প্রতিটা রেকর্ডকে id দিয়ে আলাদা ডকুমেন্ট বানায়
+async function migrateArrayToCollection(schoolId, collName, oldArr, prefix, lastSyncedMap) {
+  if (!Array.isArray(oldArr) || oldArr.length === 0) return oldArr || [];
+  ensureIds(oldArr, prefix);
+  try {
+    let batch = window.fb.writeBatch(window.db);
+    let opCount = 0;
+    for (const rec of oldArr) {
+      const ref = window.fb.doc(window.db, 'schools', schoolId, collName, rec.id);
+      batch.set(ref, rec);
+      lastSyncedMap[rec.id] = JSON.stringify(rec);
+      opCount++;
+      if (opCount >= 450) { // Firestore ব্যাচ লিমিট ৫০০ — নিরাপদ মার্জিন
+        await batch.commit();
+        batch = window.fb.writeBatch(window.db);
+        opCount = 0;
+      }
+    }
+    if (opCount > 0) await batch.commit();
+    console.log(`✅ পুরনো ${collName} ডেটা নতুন কালেকশনে মাইগ্রেট হয়েছে (${oldArr.length}টা রেকর্ড)`);
+  } catch (e) {
+    console.error(`${collName} মাইগ্রেশন এরর:`, e);
+  }
+  return oldArr;
+}
+// বর্তমান অ্যারের সাথে সর্বশেষ-সিঙ্ক-করা অবস্থার তুলনা করে শুধু বদলে যাওয়া/নতুন রেকর্ড
+// লেখে এবং মুছে ফেলা রেকর্ড ক্লাউড থেকেও সরিয়ে দেয়
+async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix) {
+  if (!schoolId || !Array.isArray(arr)) return;
+  ensureIds(arr, prefix);
+  const currentIds = new Set();
+  for (const rec of arr) {
+    currentIds.add(rec.id);
+    const json = JSON.stringify(rec);
+    if (lastSyncedMap[rec.id] !== json) {
+      try {
+        await window.fb.setDoc(window.fb.doc(window.db, 'schools', schoolId, collName, rec.id), rec);
+        lastSyncedMap[rec.id] = json;
+      } catch (e) { console.error(`${collName} সিঙ্ক এরর (${rec.id}):`, e); }
+    }
+  }
+  for (const oldId of Object.keys(lastSyncedMap)) {
+    if (!currentIds.has(oldId)) {
+      try {
+        await window.fb.deleteDoc(window.fb.doc(window.db, 'schools', schoolId, collName, oldId));
+      } catch (e) { console.error(`${collName} ডিলিট-সিঙ্ক এরর (${oldId}):`, e); }
+      delete lastSyncedMap[oldId];
+    }
+  }
+}
+// সর্বশেষ-সিঙ্ক-করা অবস্থার স্ন্যাপশট (id -> JSON স্ট্রিং), ডিফ বের করতে ব্যবহার হয়
+window._lastSynced = { students: {}, fees: {}, results: {} };
+
 async function saveTenantData() {
   if (!window.currentSchoolId) return; // ডেমো মোডে সিঙ্ক হবে না
   try {
+    // ✅ students/fees/results এখন আলাদা কালেকশনে (schools/{id}/students|fees|results/{id})
+    // ডিফ-ভিত্তিক সিঙ্ক হয় — নিচের বড় setDoc-এ এই তিনটা ইচ্ছাকৃতভাবে নেই।
+    await Promise.all([
+      syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
+      syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
+      syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
+    ]);
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
-      students, teachers, fees, results, notices, attendance,
+      teachers, notices,
+      // ⚠️ attendance, students, fees, results ইচ্ছাকৃতভাবে এখানে নেই — এগুলো এখন
+      // আলাদা কালেকশনে সেভ হয় (saveAttendanceDay / syncCollectionDiff দেখুন), যাতে
+      // বড় স্কুলে এই একটামাত্র ডকুমেন্ট ১MB লিমিটের কাছে না যায় এবং দুইজন স্টাফ
+      // একসাথে ভিন্ন রেকর্ড এডিট করলে একে অপরের ডেটা মুছে না যায়।
       payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers, questionBank,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
