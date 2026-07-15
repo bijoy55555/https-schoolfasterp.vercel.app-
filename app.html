@@ -575,6 +575,10 @@
     import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+    // ✅ ছাত্রের ছবি এখন Firestore ডকুমেন্টে base64 হিসেবে না রেখে Firebase Storage-এ
+    // আপলোড করা হয় (শুধু ডাউনলোড URL ডকুমেন্টে সেভ থাকে) — দেখুন uploadStudentPhoto()
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
@@ -597,14 +601,17 @@
 
     window.auth = getAuth(app);
     window.functions = getFunctions(app);
+    window.storage = getStorage(app);
 
     // ✅ classic <script> ব্লক (নিচে, মডিউল না) থেকে ব্যবহারের জন্য এক্সপোজ করা হলো
     window.fb = {
       doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch,
       signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged,
       httpsCallable,
-      initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword
+      initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword,
+      storageRef, uploadBytes, getDownloadURL, deleteObject
     };
+
     window.firebaseConfig = firebaseConfig;
 
     // নেট স্ট্যাটাস দেখানো
@@ -4537,7 +4544,7 @@ function renderStudents(list, opts) {
   tbody.innerHTML = pageData.map((s,i)=>{
     const idx = students.indexOf(s);
     const photoHtml = s.photo
-      ? `<img class="student-photo" src="${s.photo}" alt="${s.name}">`
+      ? `<img class="student-photo" src="${s.photo}" alt="${s.name}" loading="lazy">`
       : `<div class="student-photo" style="background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700">${s.name.charAt(0)}</div>`;
     return `<tr>
       <td>${s.roll}</td>
@@ -4599,6 +4606,76 @@ function filterStudents() {
     return matchQ && matchC;
   }));
 }
+// ===== ছাত্রের ছবি: রিসাইজ/কম্প্রেস + Firebase Storage আপলোড =====
+// ব্রাউজারে <canvas> দিয়ে ছবি max 400x400px-এ রিসাইজ করে, তারপর JPEG কোয়ালিটি
+// ধাপে ধাপে কমিয়ে ~maxSizeKB-এর নিচে আনার চেষ্টা করে। রিটার্ন করে একটা Blob।
+function compressImageFile(file, maxDim = 400, maxSizeKB = 50) {
+  return new Promise((resolve, reject) => {
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('ফাইল পড়তে ব্যর্থ'));
+    reader.onload = e => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('ছবি লোড করতে ব্যর্থ'));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        let quality = 0.85;
+        const tryExport = () => {
+          canvas.toBlob(blob => {
+            if (!blob) { reject(new Error('ছবি কম্প্রেস করতে ব্যর্থ')); return; }
+            if (blob.size / 1024 <= maxSizeKB || quality <= 0.3) resolve(blob);
+            else { quality -= 0.15; tryExport(); }
+          }, 'image/jpeg', quality);
+        };
+        tryExport();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+// Blob-কে base64 data URL-এ রূপান্তর করে (শুধু ডেমো/অফলাইন মোডে ফলব্যাক হিসেবে ব্যবহৃত হয়,
+// যখন কোনো স্কুল ক্লাউডে কানেক্টেড না থাকায় Storage ব্যবহার করা যায় না)
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    if (!blob) { resolve(''); return; }
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('ছবি রূপান্তরে ব্যর্থ'));
+    reader.readAsDataURL(blob);
+  });
+}
+// কম্প্রেসড ছবি Firebase Storage-এ (schools/{schoolId}/students/{studentId}.jpg পাথে) আপলোড
+// করে ডাউনলোড URL রিটার্ন করে — Firestore ডকুমেন্টে এখন থেকে এই URL-টাই সেভ হবে, পুরো
+// base64 ছবি না, তাই ১০০০ ছাত্রের লিস্ট লোড করাটা অনেক হালকা ও দ্রুত হবে।
+async function uploadStudentPhoto(schoolId, studentId, file) {
+  if (!file) return '';
+  try {
+    const blob = await compressImageFile(file, 400, 50);
+    if (!blob) return '';
+    if (schoolId && window.fb && window.fb.storageRef && window.storage) {
+      const path = `schools/${schoolId}/students/${studentId}.jpg`;
+      const ref = window.fb.storageRef(window.storage, path);
+      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+      return await window.fb.getDownloadURL(ref);
+    }
+    // ডেমো/অফলাইন মোড (কোনো schoolId নেই) — ক্লাউড Storage ব্যবহার করা যায় না,
+    // তাই ছোট কম্প্রেসড ছবিটাই base64 হিসেবে রাখা হচ্ছে (এটা তখনও ছোট, কারণ আগেই কম্প্রেস করা হয়েছে)
+    return await blobToBase64(blob);
+  } catch (e) {
+    console.error('ছবি আপলোড এরর:', e);
+    showToast('ছবি আপলোড ব্যর্থ হয়েছে — ছাত্র ছবি ছাড়াই সেভ হয়েছে', 'error');
+    return '';
+  }
+}
+
 async function saveStudent() {
   const name = document.getElementById('s-name').value.trim();
   const roll = document.getElementById('s-roll').value.trim();
@@ -4608,11 +4685,13 @@ async function saveStudent() {
   if(!cls){showErr('s-error','শ্রেণি নির্বাচন করুন');return;}
   hideErr('s-error');
   const photoFile = document.getElementById('s-photo').files[0];
-  const photo = await fileToBase64(photoFile);
+  const studentId = genRecordId('stu'); // ছবির Storage পাথ ও Firestore ডকুমেন্ট আইডি একই রাখতে আগেই তৈরি
+  const photo = await uploadStudentPhoto(window.currentSchoolId, studentId, photoFile);
   const section = document.getElementById('s-section').value;
   const feeStartInput = document.getElementById('s-fee-start').value; // yyyy-mm-dd বা খালি
   const todayISO = new Date().toISOString().split('T')[0];
   students.push({
+    id: studentId,
     roll, name, cls, section,
     guardian: document.getElementById('s-guardian').value.trim()||'—',
     phone: document.getElementById('s-phone-no').value.trim()||'—',

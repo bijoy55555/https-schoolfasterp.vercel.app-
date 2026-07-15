@@ -1,0 +1,46 @@
+rules_version = '2';
+
+// ===================================================================
+// Firebase Storage রুলস — ছাত্রের ছবি এখন এখানে রাখা হয় (Firestore-এ না),
+// firestore.rules-এর মতোই userIndex/{uid} লুকআপ দিয়ে schoolId/role যাচাই হয়।
+// পাথ প্যাটার্ন: schools/{schoolId}/students/{studentId}.jpg
+// ===================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isSuperAdmin() {
+      return signedIn() &&
+        firestore.exists(/databases/(default)/documents/superAdmins/$(request.auth.uid));
+    }
+    function hasIndex() {
+      return signedIn() &&
+        firestore.exists(/databases/(default)/documents/userIndex/$(request.auth.uid));
+    }
+    function myIndex() {
+      return firestore.get(/databases/(default)/documents/userIndex/$(request.auth.uid)).data;
+    }
+    function belongsToSchool(schoolId) {
+      return hasIndex() && myIndex().schoolId == schoolId;
+    }
+
+    // ===== schools/{schoolId}/students/{fileName} — ছাত্রের কম্প্রেসড ছবি।
+    // শুধু ওই স্কুলের ইউজার (বা সুপার-অ্যাডমিন) পড়তে/লিখতে পারবে। আকার ও টাইপ
+    // সীমাবদ্ধ রাখা হয়েছে যাতে ভুলবশত বড়/অন্য-ধরনের ফাইল আপলোড না হয় —
+    // ক্লায়েন্ট-সাইডে আগেই কম্প্রেস হয় (~৫০KB), তাই ১MB যথেষ্ট মার্জিন =====
+    match /schools/{schoolId}/students/{fileName} {
+      allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+      allow write: if (belongsToSchool(schoolId) || isSuperAdmin())
+        && request.resource.size < 1 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    // ডিফল্ট: ওপরে উল্লেখ না থাকা যেকোনো পাথে অ্যাক্সেস বন্ধ
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
