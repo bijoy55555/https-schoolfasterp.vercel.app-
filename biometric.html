@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>বায়োমেট্রিক / RFID সেটিংস — স্কুল ERP</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; }
+  .wrap { max-width: 980px; margin: 0 auto; }
+  h1 { color:#fff; font-size:22px; margin-bottom:4px; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card h2 { font-size:16px; margin:0 0 14px; color:#1a5276; }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input, select { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  button { margin-top:16px; background:#1a5276; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:hover { background:#154160; }
+  button.danger { background:#b03030; }
+  button.danger:hover { background:#8f2525; }
+  button.ghost { background:#eaf2fb; color:#1a5276; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .msg.info { background:#eaf2fb; color:#1a5276; display:block; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid #eee; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+  .hint { font-size:12px; color:#777; margin-top:8px; line-height:1.5; }
+  code { background:#f1f1f1; padding:1px 5px; border-radius:4px; font-size:12px; word-break:break-all; }
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+  .tab-btn { background:#12385a; color:#cfe0f0; border:none; padding:9px 16px; border-radius:20px; font-size:13px; cursor:pointer; font-weight:600; }
+  .tab-btn.active { background:#16A34A; color:#fff; }
+  .tabpage { display:none; }
+  .tabpage.active { display:block; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:700; }
+  .badge.active { background:#e8f8ef; color:#1e7e46; }
+  .badge.revoked { background:#fdeaea; color:#b03030; }
+  .badge.P { background:#e8f8ef; color:#1e7e46; }
+  .badge.L { background:#fff6e0; color:#a06a00; }
+  .apikey-box { background:#0d2137; color:#7CFFB2; padding:14px; border-radius:8px; font-family:monospace; font-size:13px; word-break:break-all; margin-top:10px; }
+  .live-dot { display:inline-block; width:9px; height:9px; border-radius:50%; background:#16A34A; margin-left:6px; animation:pulse 1.4s infinite; }
+  @keyframes pulse { 0%{opacity:1} 50%{opacity:.3} 100%{opacity:1} }
+  .qr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px; margin-top:12px; }
+  .qr-cell { text-align:center; border:1px solid #eee; border-radius:10px; padding:10px; font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🪪 বায়োমেট্রিক / RFID উপস্থিতি সেটিংস</h1>
+  <div class="sub">RFID কার্ড রিডার, ZKTeco বায়োমেট্রিক ডিভাইস বা QR স্ক্যানার থেকে সরাসরি "উপস্থিতি" পেজে হাজিরা বসাবে।</div>
+
+  <div id="auth-card" class="card">
+    <h2>লগইন যাচাই হচ্ছে...</h2>
+    <div class="hint">এই পেজটা ব্যবহার করতে হলে আগে app.html-এ স্কুল-অ্যাডমিন হিসেবে লগইন করা থাকতে হবে (একই ব্রাউজারে)। লগইন করা না থাকলে <a href="app.html">app.html</a>-এ গিয়ে আগে লগইন করুন।</div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="devices" onclick="showTab('devices')">📡 ডিভাইস</button>
+      <button class="tab-btn" data-tab="mapping" onclick="showTab('mapping')">🪪 RFID ম্যাপিং</button>
+      <button class="tab-btn" data-tab="live" onclick="showTab('live')">🟢 লাইভ ড্যাশবোর্ড</button>
+      <button class="tab-btn" data-tab="qr" onclick="showTab('qr')">📱 QR হাজিরা</button>
+      <button class="tab-btn" data-tab="settings" onclick="showTab('settings')">⚙️ সেটিংস</button>
+    </div>
+
+    <!-- ===== DEVICES TAB ===== -->
+    <div class="tabpage active" id="tab-devices">
+      <div class="card">
+        <h2>নতুন ডিভাইস রেজিস্টার করুন</h2>
+        <div class="row3">
+          <div><label>ডিভাইসের নাম</label><input id="dev-name" placeholder="যেমন: মূল গেট RFID রিডার"></div>
+          <div><label>ধরন</label>
+            <select id="dev-type">
+              <option value="rfid">RFID কার্ড রিডার (ESP32/Arduino)</option>
+              <option value="zkteco">ZKTeco বায়োমেট্রিক (ফিঙ্গারপ্রিন্ট/ফেস)</option>
+              <option value="qr">QR স্ক্যানার অ্যাপ</option>
+              <option value="app">মোবাইল অ্যাপ (ম্যানুয়াল স্ক্যান)</option>
+            </select>
+          </div>
+          <div><label>অবস্থান (ঐচ্ছিক)</label><input id="dev-location" placeholder="যেমন: মূল গেট"></div>
+        </div>
+        <button onclick="registerDevice()" id="dev-reg-btn">➕ ডিভাইস যোগ করুন</button>
+        <div class="msg" id="dev-msg"></div>
+        <div id="apikey-result" style="display:none">
+          <div class="hint"><b>⚠️ এই API Key এখনই কপি করে ডিভাইসের ফার্মওয়্যার/সেটিংসে বসান — এটা আর কখনো দেখানো হবে না।</b></div>
+          <div class="apikey-box" id="apikey-text"></div>
+          <button class="ghost" onclick="copyApiKey()">📋 কপি করুন</button>
+        </div>
+      </div>
+      <div class="card">
+        <h2>নিবন্ধিত ডিভাইসসমূহ</h2>
+        <table>
+          <thead><tr><th>নাম</th><th>ধরন</th><th>অবস্থান</th><th>স্ট্যাটাস</th><th>সর্বশেষ সক্রিয়</th><th></th></tr></thead>
+          <tbody id="dev-tbody"><tr><td colspan="6">লোড হচ্ছে...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== MAPPING TAB ===== -->
+    <div class="tabpage" id="tab-mapping">
+      <div class="card">
+        <h2>RFID কার্ড / বায়োমেট্রিক ID → ছাত্র ম্যাপিং যোগ করুন</h2>
+        <div class="row3">
+          <div><label>কার্ড UID / বায়োমেট্রিক ID</label><input id="map-uid" placeholder="যেমন: 04A3B2C1"></div>
+          <div><label>শ্রেণি</label><input id="map-cls" placeholder="যেমন: ষষ্ঠ শ্রেণি"></div>
+          <div><label>ছাত্রের নাম</label><input id="map-name" placeholder="ছাত্রের পুরো নাম"></div>
+        </div>
+        <div class="hint">💡 টিপস: কার্ডটা রিডারে একবার ট্যাপ করলে ডিভাইসের সিরিয়াল মনিটরে UID দেখা যাবে (নিচের ফার্মওয়্যার গাইড দেখুন) — সেই UID এখানে কপি-পেস্ট করুন।</div>
+        <button onclick="addMapping()">💾 ম্যাপিং সেভ করুন</button>
+        <div class="msg" id="map-msg"></div>
+      </div>
+      <div class="card">
+        <h2>বর্তমান ম্যাপিংসমূহ</h2>
+        <table>
+          <thead><tr><th>UID</th><th>শ্রেণি</th><th>ছাত্রের নাম</th><th></th></tr></thead>
+          <tbody id="map-tbody"><tr><td colspan="4">লোড হচ্ছে...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== LIVE DASHBOARD TAB ===== -->
+    <div class="tabpage" id="tab-live">
+      <div class="card">
+        <h2>লাইভ হাজিরা ফিড <span class="live-dot"></span></h2>
+        <div class="hint">ডিভাইস থেকে স্ক্যান হওয়া মাত্র এখানে দেখা যাবে (সর্বশেষ ৫০টা)।</div>
+        <table>
+          <thead><tr><th>সময়</th><th>ছাত্রের নাম</th><th>শ্রেণি</th><th>স্ট্যাটাস</th><th>উৎস</th></tr></thead>
+          <tbody id="live-tbody"><tr><td colspan="5">অপেক্ষা করা হচ্ছে...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== QR TAB ===== -->
+    <div class="tabpage" id="tab-qr">
+      <div class="card">
+        <h2>QR-ভিত্তিক হাজিরা</h2>
+        <div class="hint">
+          প্রতিটা ছাত্রের জন্য একটা QR কোড তৈরি হবে (schoolId + studentId এনকোড করা)। ছাত্র ID-কার্ডে/বেঞ্চে
+          প্রিন্ট করে রাখুন। যেকোনো QR স্ক্যানার অ্যাপ থেকে স্ক্যান করে নিচের এন্ডপয়েন্টে POST করলেই হাজিরা মার্ক হবে:
+          <br><code>POST /api/attendance-push</code> — body: <code>{schoolId, deviceId, apiKey, studentId, source:"qr"}</code>
+          (আগে "ডিভাইস" ট্যাব থেকে <b>QR স্ক্যানার অ্যাপ</b> টাইপের একটা ডিভাইস রেজিস্টার করে সেই deviceId/apiKey ব্যবহার করুন)।
+        </div>
+        <button onclick="generateAllQr()">🔄 সব ছাত্রের QR তৈরি করুন</button>
+        <div class="qr-grid" id="qr-grid"></div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS TAB ===== -->
+    <div class="tabpage" id="tab-settings">
+      <div class="card">
+        <h2>দেরি (Late) নির্ধারণ</h2>
+        <label>এই সময়ের পরে স্ক্যান হলে "দেরি" (L) হিসেবে মার্ক হবে</label>
+        <input id="set-late-after" type="time" style="max-width:160px">
+        <button onclick="saveBiometricSettings()">💾 সেভ করুন</button>
+        <div class="msg" id="set-msg"></div>
+        <div class="hint">খালি রাখলে সবসময় "উপস্থিত" (P) হিসেবেই মার্ক হবে।</div>
+      </div>
+      <div class="card">
+        <h2>ভবিষ্যতের জন্য প্রস্তুত</h2>
+        <div class="hint">
+          এই মডিউলের ব্যাকএন্ড (<code>/api/attendance-push</code>, <code>/api/attendance-sync</code>) জেনেরিকভাবে বানানো —
+          <code>source</code> ফিল্ডে <code>rfid</code>, <code>zkteco</code>, <code>qr</code>, বা <code>app</code> পাঠিয়ে
+          যেকোনো নতুন হার্ডওয়্যার (ZKTeco/Ronald Jack ইত্যাদি) সহজেই যুক্ত করা যাবে — কোনো কোড পরিবর্তন ছাড়াই।
+          অফলাইন সিঙ্ক কিউর জন্য <code>/api/attendance-sync</code> ব্যবহার করুন (একসাথে সর্বোচ্চ ৫০০ স্ক্যান)।
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
+    authDomain: "school-erp-bd.firebaseapp.com",
+    projectId: "school-erp-bd",
+    storageBucket: "school-erp-bd.firebasestorage.app",
+    messagingSenderId: "951924242207",
+    appId: "1:951924242207:web:c5bd862a9e00ae9d9b622a",
+    measurementId: "G-9E9LHG9HWS"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  window.fb = { doc, getDoc, setDoc, collection, getDocs, query, orderBy, limit, onSnapshot };
+  window.db = db;
+
+  let currentSchoolId = null;
+  let idToken = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      document.getElementById('auth-card').innerHTML = '<h2>⚠️ লগইন করা নেই</h2><div class="hint">আগে <a href="app.html">app.html</a>-এ লগইন করুন, তারপর এই পেজে ফিরে আসুন।</div>';
+      return;
+    }
+    try {
+      const idxSnap = await getDoc(doc(db, 'userIndex', user.uid));
+      if (!idxSnap.exists()) throw new Error('এই ইউজারের সাথে কোনো স্কুল যুক্ত নেই');
+      const idx = idxSnap.data();
+      if (idx.role !== 'admin') throw new Error('শুধু স্কুল-অ্যাডমিন এই পেজ ব্যবহার করতে পারবেন');
+      currentSchoolId = idx.schoolId;
+      idToken = await user.getIdToken();
+      // টোকেন ৫৫ মিনিট পরপর রিফ্রেশ করা হয় (Firebase ID token ১ ঘণ্টা মেয়াদি)
+      setInterval(async () => { idToken = await user.getIdToken(true); }, 55 * 60 * 1000);
+      document.getElementById('auth-card').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      loadDevices();
+      loadMappings();
+      startLiveFeed();
+      loadBiometricSettings();
+    } catch (e) {
+      document.getElementById('auth-card').innerHTML = `<h2>⚠️ অ্যাক্সেস নেই</h2><div class="hint">${e.message}</div>`;
+    }
+  });
+
+  async function apiCall(path, method, body) {
+    const resp = await fetch(path, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'সার্ভার এরর');
+    return data;
+  }
+
+  window.showTab = function (name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  };
+
+  let lastApiKey = '';
+  window.registerDevice = async function () {
+    const name = document.getElementById('dev-name').value.trim();
+    const type = document.getElementById('dev-type').value;
+    const location = document.getElementById('dev-location').value.trim();
+    const msg = document.getElementById('dev-msg');
+    if (!name) { msg.className = 'msg err'; msg.textContent = 'ডিভাইসের নাম দিন'; return; }
+    try {
+      const r = await apiCall('/api/devices', 'POST', { name, type, location });
+      lastApiKey = r.apiKey;
+      document.getElementById('apikey-result').style.display = 'block';
+      document.getElementById('apikey-text').textContent =
+        `schoolId: ${r.schoolId}\ndeviceId: ${r.deviceId}\napiKey:   ${r.apiKey}`;
+      msg.className = 'msg ok'; msg.textContent = '✅ ডিভাইস রেজিস্টার হয়েছে';
+      document.getElementById('dev-name').value = '';
+      document.getElementById('dev-location').value = '';
+      loadDevices();
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
+    }
+  };
+  window.copyApiKey = function () {
+    navigator.clipboard.writeText(document.getElementById('apikey-text').textContent);
+  };
+
+  async function loadDevices() {
+    const tbody = document.getElementById('dev-tbody');
+    try {
+      const r = await apiCall('/api/devices', 'GET');
+      if (!r.devices.length) { tbody.innerHTML = '<tr><td colspan="6">কোনো ডিভাইস নেই</td></tr>'; return; }
+      const typeLabel = { rfid: 'RFID রিডার', zkteco: 'ZKTeco বায়োমেট্রিক', qr: 'QR স্ক্যানার', app: 'মোবাইল অ্যাপ' };
+      tbody.innerHTML = r.devices.map(d => `<tr>
+        <td>${d.name}</td><td>${typeLabel[d.type]||d.type}</td><td>${d.location||'—'}</td>
+        <td><span class="badge ${d.status}">${d.status==='active'?'সক্রিয়':'বাতিল'}</span></td>
+        <td>${d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString('bn-BD') : 'এখনো স্ক্যান হয়নি'}</td>
+        <td>${d.status==='active' ? `<button class="danger" style="margin:0;padding:6px 10px;font-size:12px" onclick="revokeDevice('${d.id}')">বাতিল করুন</button>` : ''}</td>
+      </tr>`).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6">এরর: ${e.message}</td></tr>`;
+    }
+  }
+  window.revokeDevice = async function (deviceId) {
+    if (!confirm('এই ডিভাইসের অ্যাক্সেস বাতিল করবেন?')) return;
+    try { await apiCall('/api/devices', 'DELETE', { deviceId }); loadDevices(); }
+    catch (e) { alert('এরর: ' + e.message); }
+  };
+
+  window.addMapping = async function () {
+    const uid = document.getElementById('map-uid').value.trim();
+    const cls = document.getElementById('map-cls').value.trim();
+    const studentName = document.getElementById('map-name').value.trim();
+    const msg = document.getElementById('map-msg');
+    if (!uid || !cls || !studentName) { msg.className = 'msg err'; msg.textContent = 'সব ফিল্ড পূরণ করুন'; return; }
+    try {
+      await apiCall('/api/rfid-map', 'POST', { uid, cls, studentName });
+      msg.className = 'msg ok'; msg.textContent = '✅ ম্যাপিং সেভ হয়েছে';
+      document.getElementById('map-uid').value = '';
+      document.getElementById('map-name').value = '';
+      loadMappings();
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
+    }
+  };
+  async function loadMappings() {
+    const tbody = document.getElementById('map-tbody');
+    try {
+      const r = await apiCall('/api/rfid-map', 'GET');
+      if (!r.mappings.length) { tbody.innerHTML = '<tr><td colspan="4">কোনো ম্যাপিং নেই</td></tr>'; return; }
+      tbody.innerHTML = r.mappings.map(m => `<tr>
+        <td><code>${m.uid}</code></td><td>${m.cls}</td><td>${m.studentName}</td>
+        <td><button class="danger" style="margin:0;padding:6px 10px;font-size:12px" onclick="removeMapping('${m.uid}')">মুছুন</button></td>
+      </tr>`).join('');
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="4">এরর: ${e.message}</td></tr>`;
+    }
+  }
+  window.removeMapping = async function (uid) {
+    if (!confirm('এই ম্যাপিং মুছে ফেলবেন?')) return;
+    try { await apiCall('/api/rfid-map', 'DELETE', { uid }); loadMappings(); }
+    catch (e) { alert('এরর: ' + e.message); }
+  };
+
+  function startLiveFeed() {
+    const tbody = document.getElementById('live-tbody');
+    const q = query(collection(db, 'schools', currentSchoolId, 'attendanceLogs'), orderBy('receivedAt', 'desc'), limit(50));
+    onSnapshot(q, (snap) => {
+      if (snap.empty) { tbody.innerHTML = '<tr><td colspan="5">এখনো কোনো স্ক্যান হয়নি</td></tr>'; return; }
+      tbody.innerHTML = snap.docs.map(d => {
+        const v = d.data();
+        const t = v.receivedAt && v.receivedAt.toDate ? v.receivedAt.toDate().toLocaleString('bn-BD') : (v.scanTs || '—');
+        return `<tr><td>${t}</td><td><b>${v.studentName||'—'}</b></td><td>${v.cls||'—'}</td>
+          <td><span class="badge ${v.status}">${v.status==='L'?'দেরি':'উপস্থিত'}</span></td><td>${v.source||'—'}</td></tr>`;
+      }).join('');
+    }, (e) => { tbody.innerHTML = `<tr><td colspan="5">এরর: ${e.message}</td></tr>`; });
+  }
+
+  window.generateAllQr = async function () {
+    const grid = document.getElementById('qr-grid');
+    grid.innerHTML = 'লোড হচ্ছে...';
+    try {
+      const snap = await getDocs(collection(db, 'schools', currentSchoolId, 'students'));
+      if (snap.empty) { grid.innerHTML = 'কোনো ছাত্র পাওয়া যায়নি'; return; }
+      grid.innerHTML = '';
+      snap.forEach(docSnap => {
+        const s = docSnap.data();
+        const cell = document.createElement('div');
+        cell.className = 'qr-cell';
+        const qrHolder = document.createElement('div');
+        cell.appendChild(qrHolder);
+        const label = document.createElement('div');
+        label.style.marginTop = '6px';
+        label.innerHTML = `<b>${s.name||''}</b><br>${s.cls||''}`;
+        cell.appendChild(label);
+        grid.appendChild(cell);
+        new QRCode(qrHolder, {
+          text: JSON.stringify({ schoolId: currentSchoolId, studentId: docSnap.id }),
+          width: 110, height: 110
+        });
+      });
+    } catch (e) {
+      grid.innerHTML = 'এরর: ' + e.message;
+    }
+  };
+
+  async function loadBiometricSettings() {
+    try {
+      const snap = await getDoc(doc(db, 'schools', currentSchoolId, 'settings', 'biometric'));
+      if (snap.exists() && snap.data().lateAfter) {
+        document.getElementById('set-late-after').value = snap.data().lateAfter;
+      }
+    } catch (e) { /* সেটিংস না থাকলেও সমস্যা নেই */ }
+  }
+  window.saveBiometricSettings = async function () {
+    const lateAfter = document.getElementById('set-late-after').value;
+    const msg = document.getElementById('set-msg');
+    try {
+      await setDoc(doc(db, 'schools', currentSchoolId, 'settings', 'biometric'), { lateAfter }, { merge: true });
+      msg.className = 'msg ok'; msg.textContent = '✅ সেভ হয়েছে';
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
+    }
+  };
+</script>
+</body>
+</html>

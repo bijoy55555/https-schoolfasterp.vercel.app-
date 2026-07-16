@@ -124,6 +124,25 @@ service cloud.firestore {
         allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
       }
 
+      // ===== schools/{schoolId}/devices/{deviceId} — RFID/ZKTeco/QR বায়োমেট্রিক ডিভাইস
+      // রেজিস্ট্রেশন। apiKeyHash-সহ থাকে বলে শুধু স্কুল-অ্যাডমিন/সুপার-অ্যাডমিন পড়তে/লিখতে
+      // পারবে। ডিভাইস নিজে এই কালেকশনে ক্লায়েন্ট থেকে সরাসরি write করে না =====
+      match /devices/{deviceId} {
+        allow read, write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+      }
+
+      // ===== schools/{schoolId}/rfidMap/{uid} — RFID কার্ড UID/বায়োমেট্রিক ID ↔ ছাত্র ম্যাপিং =====
+      match /rfidMap/{uid} {
+        allow read, write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+      }
+
+      // ===== schools/{schoolId}/attendanceLogs/{logId} — প্রতিটা RFID/বায়োমেট্রিক/QR স্ক্যানের
+      // কাঁচা লগ। write শুধু attendance-push.js/attendance-sync.js (Admin SDK) থেকেই হয় =====
+      match /attendanceLogs/{logId} {
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if false;
+      }
+
       // ===== schools/{schoolId}/backups/{backupId} — ম্যানুয়াল/অটো ব্যাকআপ
       // পয়েন্টের ক্লাউড কপি (JSON স্ন্যাপশট)। backups/_meta ডকুমেন্টে শেষ
       // ব্যাকআপের সময়/ধরন থাকে, যা সুপার-অ্যাডমিন প্যানেল থেকে সব স্কুলের
