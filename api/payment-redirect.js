@@ -36,7 +36,10 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const APP_URL = process.env.APP_URL || `https://${req.headers.host}/app.html`;
+  let origin = process.env.APP_URL || `https://${req.headers.host}`;
+  origin = origin.replace(/\/+$/, "");
+  origin = origin.replace(/\/app\.html$/, "");
+  const APP_URL = `${origin}/app.html`;
   res.redirect(
     302,
     `${APP_URL}?payment=${statusLabel}&tran_id=${encodeURIComponent(tranId)}&school_id=${encodeURIComponent(schoolId)}`
