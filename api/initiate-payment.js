@@ -1,10 +1,6 @@
 // ===================================================================
 // POST /api/initiate-payment
 // ===================================================================
-// আগে এটা Firebase Cloud Function (initiatePayment, httpsCallable) ছিল —
-// এখন এটাই কাজ করছে, কিন্তু Vercel-এ, যাতে Firebase Blaze প্ল্যান না লাগে।
-// ফ্রন্টএন্ড থেকে fetch('/api/initiate-payment', { method:'POST', ... }) দিয়ে কল হয়।
-
 const axios = require("axios");
 const { getAdmin, verifyRequestToken } = require("../lib/firebaseAdmin");
 
@@ -15,8 +11,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // ১) লগইন যাচাই — যে কেউ এই এন্ডপয়েন্ট কল করে টাকা শুরু করাতে পারবে না,
-    //    শুধু বৈধ Firebase Auth টোকেনধারী ব্যবহারকারীই পারবে
     const decoded = await verifyRequestToken(req);
 
     const { studentId, amount, studentName, phone, email, feeType, schoolId } = req.body || {};
@@ -25,21 +19,22 @@ module.exports = async function handler(req, res) {
       res.status(400).json({ error: "studentId এবং amount দেওয়া বাধ্যতামূলক" });
       return;
     }
-    // টোকেনে থাকা schoolId-ই আসল সত্য — body-তে schoolId থাকলেও টোকেনের সাথে মিলতে হবে,
-    // নাহলে একজন অন্য স্কুলের নামে পেমেন্ট শুরু করাতে পারবে
-    const tokenSchoolId = decoded.schoolId;
-    if (!tokenSchoolId) {
+
+    const admin = getAdmin();
+    const db = admin.firestore();
+
+    const idxSnap = await db.collection("userIndex").doc(decoded.uid).get();
+    if (!idxSnap.exists || !idxSnap.data().schoolId) {
       res.status(403).json({ error: "এই ইউজারের সাথে কোনো স্কুল যুক্ত নেই" });
       return;
     }
+    const tokenSchoolId = idxSnap.data().schoolId;
     if (schoolId && schoolId !== tokenSchoolId) {
       res.status(403).json({ error: "অনুমতি নেই — schoolId মিলছে না" });
       return;
     }
     const finalSchoolId = tokenSchoolId;
 
-    const admin = getAdmin();
-    const db = admin.firestore();
     const schoolRef = db.collection("schools").doc(finalSchoolId);
 
     const paymentSettingsSnap = await schoolRef.collection("settings").doc("payment").get();
@@ -69,8 +64,6 @@ module.exports = async function handler(req, res) {
 
     const tranId = `TXN_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // ⚠️ আপনার আসল ডোমেইন — Vercel-এ deploy হওয়া এই একই প্রজেক্টের ডোমেইন।
-    // env var APP_URL সেট না থাকলে রিকোয়েস্ট যেই হোস্ট থেকে এসেছে সেটাই ব্যবহার হবে।
     const origin = process.env.APP_URL || `https://${req.headers.host}`;
 
     const postData = {
@@ -79,7 +72,7 @@ module.exports = async function handler(req, res) {
       total_amount: amount,
       currency: "BDT",
       tran_id: tranId,
-      value_a: finalSchoolId, // IPN/redirect-এ ফেরত আসবে, তাই কোন স্কুলের লেনদেন তা জানা যাবে
+      value_a: finalSchoolId,
       success_url: `${origin}/api/payment-redirect?status=success`,
       fail_url: `${origin}/api/payment-redirect?status=fail`,
       cancel_url: `${origin}/api/payment-redirect?status=cancel`,
@@ -107,7 +100,6 @@ module.exports = async function handler(req, res) {
       return;
     }
 
-    // লেনদেনের রেকর্ড স্কুলের নিজস্ব সাব-কালেকশনে সেভ — schools/{schoolId}/payments/{tranId}
     await schoolRef.collection("payments").doc(tranId).set({
       studentId,
       studentName: studentName || "",
