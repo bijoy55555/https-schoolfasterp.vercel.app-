@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/iclock/:path*", "destination": "/api/zkteco-adms" }
+  ]
+}

@@ -74,7 +74,7 @@
         <div class="row3">
           <div><label>ডিভাইসের নাম</label><input id="dev-name" placeholder="যেমন: মূল গেট RFID রিডার"></div>
           <div><label>ধরন</label>
-            <select id="dev-type">
+            <select id="dev-type" onchange="toggleSnField()">
               <option value="rfid">RFID কার্ড রিডার (ESP32/Arduino)</option>
               <option value="zkteco">ZKTeco বায়োমেট্রিক (ফিঙ্গারপ্রিন্ট/ফেস)</option>
               <option value="qr">QR স্ক্যানার অ্যাপ</option>
@@ -82,6 +82,11 @@
             </select>
           </div>
           <div><label>অবস্থান (ঐচ্ছিক)</label><input id="dev-location" placeholder="যেমন: মূল গেট"></div>
+        </div>
+        <div id="sn-field-wrap" style="display:none">
+          <label>ডিভাইসের Serial Number (SN)</label>
+          <input id="dev-sn" placeholder="ডিভাইসের মেনু → System Info → Device Info-তে পাবেন">
+          <div class="hint">ZKTeco ডিভাইসের হোম স্ক্রিনে Menu → System Info → Device Info-তে SN দেখা যায়। এই SN দিয়েই ডিভাইস চিনে নেওয়া হবে, তাই এখানে হুবহু একই SN বসাতে হবে।</div>
         </div>
         <button onclick="registerDevice()" id="dev-reg-btn">➕ ডিভাইস যোগ করুন</button>
         <div class="msg" id="dev-msg"></div>
@@ -109,7 +114,7 @@
           <div><label>শ্রেণি</label><input id="map-cls" placeholder="যেমন: ষষ্ঠ শ্রেণি"></div>
           <div><label>ছাত্রের নাম</label><input id="map-name" placeholder="ছাত্রের পুরো নাম"></div>
         </div>
-        <div class="hint">💡 টিপস: কার্ডটা রিডারে একবার ট্যাপ করলে ডিভাইসের সিরিয়াল মনিটরে UID দেখা যাবে (নিচের ফার্মওয়্যার গাইড দেখুন) — সেই UID এখানে কপি-পেস্ট করুন।</div>
+        <div class="hint">💡 RFID কার্ডের জন্য: কার্ডটা রিডারে একবার ট্যাপ করলে ডিভাইসের সিরিয়াল মনিটরে UID দেখা যাবে (নিচের ফার্মওয়্যার গাইড দেখুন)। <b>ZKTeco ফেস/ফিঙ্গারপ্রিন্ট ডিভাইসের জন্য:</b> কার্ড UID-এর বদলে ছাত্রকে এনরোল করার সময় ডিভাইসে যে User ID/PIN (যেমন 1, 2, 101) দেওয়া হয়েছিল, সেটাই এখানে "UID" ঘরে বসান।</div>
         <button onclick="addMapping()">💾 ম্যাপিং সেভ করুন</button>
         <div class="msg" id="map-msg"></div>
       </div>
@@ -237,22 +242,35 @@
     document.querySelectorAll('.tabpage').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
   };
 
+  window.toggleSnField = function () {
+    const isZk = document.getElementById('dev-type').value === 'zkteco';
+    document.getElementById('sn-field-wrap').style.display = isZk ? 'block' : 'none';
+  };
+
   let lastApiKey = '';
   window.registerDevice = async function () {
     const name = document.getElementById('dev-name').value.trim();
     const type = document.getElementById('dev-type').value;
     const location = document.getElementById('dev-location').value.trim();
+    const serialNumber = document.getElementById('dev-sn').value.trim();
     const msg = document.getElementById('dev-msg');
     if (!name) { msg.className = 'msg err'; msg.textContent = 'ডিভাইসের নাম দিন'; return; }
+    if (type === 'zkteco' && !serialNumber) { msg.className = 'msg err'; msg.textContent = 'ZKTeco ডিভাইসের Serial Number দিন'; return; }
     try {
-      const r = await apiCall('/api/devices', 'POST', { name, type, location });
+      const r = await apiCall('/api/devices', 'POST', { name, type, location, serialNumber: serialNumber || undefined });
       lastApiKey = r.apiKey;
       document.getElementById('apikey-result').style.display = 'block';
-      document.getElementById('apikey-text').textContent =
-        `schoolId: ${r.schoolId}\ndeviceId: ${r.deviceId}\napiKey:   ${r.apiKey}`;
+      if (type === 'zkteco') {
+        document.getElementById('apikey-text').textContent =
+          `schoolId: ${r.schoolId}\ndeviceId: ${r.deviceId}\nSN:       ${serialNumber}\n\nZKTeco ডিভাইসে এখন কিছু বসাতে হবে না — ডিভাইসের মেনু থেকে:\nMenu → Comm → Cloud Server Setting → Server Mode: ADMS চালু করুন,\nServer Address: আপনার-ডোমেইন.vercel.app, Port: 443 (HTTPS) বসান, Enable Domain Name: চালু রাখুন।`;
+      } else {
+        document.getElementById('apikey-text').textContent =
+          `schoolId: ${r.schoolId}\ndeviceId: ${r.deviceId}\napiKey:   ${r.apiKey}`;
+      }
       msg.className = 'msg ok'; msg.textContent = '✅ ডিভাইস রেজিস্টার হয়েছে';
       document.getElementById('dev-name').value = '';
       document.getElementById('dev-location').value = '';
+      document.getElementById('dev-sn').value = '';
       loadDevices();
     } catch (e) {
       msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
@@ -269,7 +287,7 @@
       if (!r.devices.length) { tbody.innerHTML = '<tr><td colspan="6">কোনো ডিভাইস নেই</td></tr>'; return; }
       const typeLabel = { rfid: 'RFID রিডার', zkteco: 'ZKTeco বায়োমেট্রিক', qr: 'QR স্ক্যানার', app: 'মোবাইল অ্যাপ' };
       tbody.innerHTML = r.devices.map(d => `<tr>
-        <td>${d.name}</td><td>${typeLabel[d.type]||d.type}</td><td>${d.location||'—'}</td>
+        <td>${d.name}${d.serialNumber ? `<br><span style="color:#888;font-size:11px">SN: ${d.serialNumber}</span>` : ''}</td><td>${typeLabel[d.type]||d.type}</td><td>${d.location||'—'}</td>
         <td><span class="badge ${d.status}">${d.status==='active'?'সক্রিয়':'বাতিল'}</span></td>
         <td>${d.lastSeenAt ? new Date(d.lastSeenAt).toLocaleString('bn-BD') : 'এখনো স্ক্যান হয়নি'}</td>
         <td>${d.status==='active' ? `<button class="danger" style="margin:0;padding:6px 10px;font-size:12px" onclick="revokeDevice('${d.id}')">বাতিল করুন</button>` : ''}</td>
