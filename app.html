@@ -5216,10 +5216,22 @@ async function saveAttendanceDay(cls, dk) {
     { cls, date: dk, records, updatedAt: new Date().toISOString() }
   );
 }
-// স্কুলের 'attendance' কালেকশনের সব ডকুমেন্ট পড়ে মেমোরিতে attendance[cls][date]=records আকারে বসায়
-async function loadAllAttendanceDocs(schoolId) {
+// স্কুলের 'attendance' কালেকশনের ডকুমেন্ট পড়ে মেমোরিতে attendance[cls][date]=records আকারে বসায়।
+// ⚠️ খরচ-সংক্রান্ত গুরুত্বপূর্ণ পরিবর্তন: আগে এটা প্রতিবার লগইনে *পুরো* উপস্থিতির ইতিহাস
+// (সব ক্লাস × সব তারিখ, স্কুল শুরু হওয়া থেকে) লোড করত — একটা পুরনো স্কুলে এটা হাজার হাজার
+// Firestore read প্রতিটা লগইনে, প্রতিটা ব্যবহারকারীর জন্য। এখন ডিফল্টভাবে শুধু সাম্প্রতিক
+// কয়েক মাস (monthsBack) লোড হয়, কারণ দৈনন্দিন ব্যবহার (আজকের হাজিরা নেওয়া, সাম্প্রতিক
+// এডিট) মূলত সাম্প্রতিক তারিখ নিয়েই হয়। পুরনো তারিখের রিপোর্ট লাগলে loadAttendanceRange()
+// দিয়ে চাহিদামতো (on-demand) লোড করা যাবে — নিচে দেখুন।
+async function loadAllAttendanceDocs(schoolId, monthsBack = 6) {
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - monthsBack);
+  const cutoffKey = dateKey(cutoff);
   const snap = await window.fb.getDocs(
-    window.fb.collection(window.db, 'schools', schoolId, 'attendance')
+    window.fb.query(
+      window.fb.collection(window.db, 'schools', schoolId, 'attendance'),
+      window.fb.where('date', '>=', cutoffKey)
+    )
   );
   const result = {};
   snap.forEach(docSnap => {
@@ -5229,6 +5241,25 @@ async function loadAllAttendanceDocs(schoolId) {
     result[d.cls][d.date] = d.records || {};
   });
   return { data: result, isEmpty: snap.empty };
+}
+// প্রয়োজনে (যেমন পুরনো মাসের রিপোর্ট বানাতে) একটা নির্দিষ্ট তারিখ-সীমার উপস্থিতি
+// চাহিদামতো লোড করে, আর সেটা বর্তমান in-memory attendance অবজেক্টে merge করে দেয়।
+// এভাবে পুরনো ডেটা শুধু তখনই পড়া হয় যখন সত্যিই দরকার হয়, প্রতিটা লগইনে না।
+async function loadAttendanceRange(schoolId, fromDateStr, toDateStr) {
+  if (!schoolId || !fromDateStr || !toDateStr) return;
+  const snap = await window.fb.getDocs(
+    window.fb.query(
+      window.fb.collection(window.db, 'schools', schoolId, 'attendance'),
+      window.fb.where('date', '>=', fromDateStr),
+      window.fb.where('date', '<=', toDateStr)
+    )
+  );
+  snap.forEach(docSnap => {
+    const d = docSnap.data();
+    if (!d || !d.cls || !d.date) return;
+    if (!attendance[d.cls]) attendance[d.cls] = {};
+    attendance[d.cls][d.date] = d.records || {};
+  });
 }
 // পুরনো স্কুলের জন্য এক-কালীন মাইগ্রেশন: data/main ডকুমেন্টে যদি পুরনো ফরম্যাটে attendance পাওয়া
 // যায় আর নতুন কালেকশন এখনো খালি থাকে, তাহলে প্রতিটা শ্রেণি+তারিখকে আলাদা ডকুমেন্ট হিসেবে লিখে দেয়
@@ -11428,14 +11459,16 @@ function selectPayMethod(m) {
 function goPayStep(n) {
   document.querySelectorAll('.pay-step').forEach((s,i)=>s.classList.toggle('active', i===n-1));
 }
-// ============ আসল পেমেন্ট (SSLCommerz via Firebase Functions) ============
+// ============ আসল পেমেন্ট (SSLCommerz via Vercel /api রুট) ============
 // আগে এখানে একটা mock/নকল OTP ফ্লো ছিল যা আসলে কোনো টাকা নড়াচড়া করত না।
-// এখন এটা সত্যিকারের index.js-এর initiatePayment ফাংশনকে কল করে,
+// এখন এটা সত্যিকারের /api/initiate-payment (Vercel সার্ভারলেস ফাংশন) কল করে,
 // যা অভিভাবককে SSLCommerz-এর নিজস্ব নিরাপদ পেমেন্ট পেজে (বিকাশ/নগদ/রকেট/কার্ড) পাঠায়।
+// (আগে এটা Firebase Cloud Function ছিল, কিন্তু বাইরের API কল করতে Firebase Blaze
+// প্ল্যান লাগত — তাই এখন Vercel-এর ফ্রি সার্ভারলেস ফাংশনে সরানো হয়েছে।)
 // ⚠️ এটা কাজ করার জন্য প্রয়োজন:
-//   ১) Firebase Functions ডিপ্লয় করা থাকতে হবে (firebase deploy --only functions)
-//   ২) SSLCOMMERZ_STORE_ID ও SSLCOMMERZ_STORE_PASSWORD এনভায়রনমেন্ট কনফিগে সেট থাকতে হবে
-//   ৩) index.js-এ success_url/fail_url/cancel_url সঠিক ডোমেইনে বসাতে হবে
+//   ১) /api ফোল্ডার Vercel-এ deploy করা থাকতে হবে (গিট পুশ করলেই হয়ে যায়)
+//   ২) Vercel Dashboard-এ FIREBASE_SERVICE_ACCOUNT_B64 env variable সেট থাকতে হবে
+//   ৩) অ্যাডমিন প্যানেল → পেমেন্ট সেটিংসে SSLCommerz Store ID/Password বসানো থাকতে হবে
 async function startRealPayment() {
   // ✅ বাগ-ফিক্স: ফোনের ঘরে বাংলা সংখ্যায় (০১৮...) নম্বর লিখলে আগে
   // এটা ভুল ধরে বাতিল করে দিত, কারণ regex-এর \d শুধু ইংরেজি 0-9 ধরে,
@@ -11467,24 +11500,38 @@ async function startRealPayment() {
   goPayStep(2);
 
   try {
-    if(!window.functions || !window.fb || !window.fb.httpsCallable) {
-      throw new Error('Firebase Functions লোড হয়নি — ইন্টারনেট সংযোগ চেক করুন');
-    }
     if(!window.currentSchoolId) {
       throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল পেমেন্টের জন্য ইমেইল দিয়ে (আসল স্কুল অ্যাকাউন্ট) লগইন করতে হবে');
     }
-    const initiatePayment = window.fb.httpsCallable(window.functions, 'initiatePayment');
-    const result = await initiatePayment({
-      schoolId: window.currentSchoolId,
-      studentId: sRoll,
-      amount,
-      studentName: sName,
-      phone,
-      feeType: feeText,
+    if(!window.auth || !window.auth.currentUser) {
+      throw new Error('লগইন সেশন পাওয়া যায়নি — আবার লগইন করে চেষ্টা করুন');
+    }
+    // Firebase ID টোকেন নেওয়া হচ্ছে — /api/initiate-payment এটা দিয়েই যাচাই করবে
+    // যে অনুরোধকারী সত্যিই লগইন করা আছে, এবং কোন স্কুলের সাথে যুক্ত
+    const idToken = await window.auth.currentUser.getIdToken();
+
+    const resp = await fetch('/api/initiate-payment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + idToken,
+      },
+      body: JSON.stringify({
+        schoolId: window.currentSchoolId,
+        studentId: sRoll,
+        amount,
+        studentName: sName,
+        phone,
+        feeType: feeText,
+      }),
     });
-    if(result && result.data && result.data.paymentUrl) {
+    const result = await resp.json();
+    if(!resp.ok) {
+      throw new Error(result.error || 'পেমেন্ট শুরু করা যায়নি');
+    }
+    if(result && result.paymentUrl) {
       // অভিভাবককে SSLCommerz-এর নিজস্ব পেজে পাঠানো হলো — টাকা ওখানেই ওদের নিরাপদ সিস্টেমে দেওয়া হবে
-      window.location.href = result.data.paymentUrl;
+      window.location.href = result.paymentUrl;
     } else {
       throw new Error('গেটওয়ে থেকে পেমেন্ট লিংক পাওয়া যায়নি');
     }
@@ -11492,7 +11539,7 @@ async function startRealPayment() {
     console.error('পেমেন্ট শুরু করতে সমস্যা:', e);
     goPayStep(1);
     const err = document.getElementById('pay-err');
-    err.textContent = 'পেমেন্ট শুরু করা যায়নি। কারণ: '+(e.message||'অজানা সমস্যা')+'। (Store ID/Password ও Functions ডিপ্লয় ঠিক আছে কিনা চেক করুন)';
+    err.textContent = 'পেমেন্ট শুরু করা যায়নি। কারণ: '+(e.message||'অজানা সমস্যা')+'। (Store ID/Password ও পেমেন্ট সেটিংস ঠিক আছে কিনা চেক করুন)';
     err.style.display='block';
   }
 }
