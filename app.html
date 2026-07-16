@@ -5416,6 +5416,36 @@ let dueSMSLog = [];
 let parentMessages = []; // { student, cls, msg, time, createdAt, type } — শুধু অভিভাবক পোর্টালে দেখানোর জন্য, আসল SMS না
 let receiptCounter = 1001;
 
+// ===== বায়োমেট্রিক/RFID দেরি-স্ক্যান থেকে অটোমেটিক তৈরি হওয়া নোটিশ =====
+// schools/{id}/lateNotices কালেকশনে সরাসরি Admin SDK (attendance-push.js/attendance-sync.js)
+// থেকে যোগ হয় — data/main-এর parentMessages অ্যারেতে না রেখে আলাদা কালেকশনে রাখা হয়েছে,
+// কারণ সেই অ্যারে প্রতি ২০ সেকেন্ডে পুরো ডকুমেন্ট ওভাররাইট করে অটো-সেভ হয়, যা এখানকার
+// এন্ট্রি হারিয়ে ফেলতে পারত। এখানে শুধু ক্যাশ করে অভিভাবক পোর্টালে "আমার বার্তা"-র
+// সাথে merge করে দেখানো হয়।
+let _lateNoticesCache = {}; // { studentName: [{msg, time, type}] }
+async function fetchLateNoticesForStudent(schoolId, sName) {
+  if (!schoolId || !sName || !window.fb) return;
+  try {
+    const q = window.fb.query(
+      window.fb.collection(window.db, 'schools', schoolId, 'lateNotices'),
+      window.fb.where('studentName', '==', sName)
+    );
+    const snap = await window.fb.getDocs(q);
+    const list = snap.docs.map(d => {
+      const v = d.data();
+      return {
+        msg: v.message || `${v.studentName || sName} দেরি করে বিদ্যালয়ে প্রবেশ করেছে।`,
+        time: `${v.dateKey || ''} ${v.time || ''}`.trim(),
+        type: 'দেরি (স্বয়ংক্রিয়)'
+      };
+    });
+    list.sort((a, b) => b.time.localeCompare(a.time));
+    _lateNoticesCache[sName] = list;
+  } catch (e) {
+    // লোড ব্যর্থ হলেও পোর্টাল স্বাভাবিকভাবে কাজ করবে, শুধু এই স্বয়ংক্রিয় নোটিশ অংশটা বাদ যাবে
+  }
+}
+
 function switchFeeTab(tab) {
   ['payments','ledger','due-sms'].forEach(t => {
     document.getElementById('ftab-'+t).classList.toggle('active', t===tab);
@@ -9954,8 +9984,17 @@ function renderParentPortal() {
       <div><div class="notice-title">${n.title}</div><div class="notice-date">${n.date} • ${n.type}</div></div>
     </div>`).join('');
 
-  // আমার বার্তা — শুধু এই ছাত্রকে লক্ষ্য করে পাঠানো বার্তা (নাম মিলিয়ে)
-  const myMessages = (parentMessages||[]).filter(m=>m.student===sName);
+  // আমার বার্তা — শুধু এই ছাত্রকে লক্ষ্য করে পাঠানো বার্তা (নাম মিলিয়ে) +
+  // বায়োমেট্রিক/RFID দেরি-স্ক্যান থেকে অটোমেটিক তৈরি হওয়া নোটিশ (lateNotices কালেকশন)
+  if (!_lateNoticesCache[sName] && window.currentSchoolId) {
+    fetchLateNoticesForStudent(window.currentSchoolId, sName).then(() => {
+      if (document.getElementById('page-parent-portal')?.classList.contains('active')) renderParentPortal();
+    });
+  }
+  const myMessages = [
+    ...(parentMessages||[]).filter(m=>m.student===sName),
+    ...(_lateNoticesCache[sName]||[])
+  ];
   document.getElementById('pp-msg-badge').textContent = myMessages.length>0 ? toBnNum(myMessages.length) : '';
   document.getElementById('pp-msg-list').innerHTML = myMessages.length===0
     ? '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো বার্তা নেই</div>'

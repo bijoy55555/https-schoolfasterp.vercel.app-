@@ -46,6 +46,14 @@
   @keyframes pulse { 0%{opacity:1} 50%{opacity:.3} 100%{opacity:1} }
   .qr-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:14px; margin-top:12px; }
   .qr-cell { text-align:center; border:1px solid #eee; border-radius:10px; padding:10px; font-size:12px; }
+  .badge.A { background:#fdeaea; color:#b03030; }
+  @media print {
+    body * { visibility:hidden; }
+    #rep-print-area, #rep-print-area * { visibility:visible; }
+    #rep-print-area { position:absolute; top:0; left:0; width:100%; padding:0; }
+    .no-print { display:none !important; }
+    .card { box-shadow:none; padding:0; }
+  }
 </style>
 </head>
 <body>
@@ -64,6 +72,7 @@
       <button class="tab-btn" data-tab="mapping" onclick="showTab('mapping')">🪪 RFID ম্যাপিং</button>
       <button class="tab-btn" data-tab="live" onclick="showTab('live')">🟢 লাইভ ড্যাশবোর্ড</button>
       <button class="tab-btn" data-tab="qr" onclick="showTab('qr')">📱 QR হাজিরা</button>
+      <button class="tab-btn" data-tab="report" onclick="showTab('report')">🖨️ প্রিন্ট রিপোর্ট</button>
       <button class="tab-btn" data-tab="settings" onclick="showTab('settings')">⚙️ সেটিংস</button>
     </div>
 
@@ -154,15 +163,52 @@
       </div>
     </div>
 
+    <!-- ===== PRINT REPORT TAB ===== -->
+    <div class="tabpage" id="tab-report">
+      <div class="card no-print">
+        <h2>উপস্থিতি রিপোর্ট — ক্লাস ও তারিখ বেছে নিন</h2>
+        <div class="row3">
+          <div><label>শ্রেণি</label><select id="rep-cls"><option value="">লোড হচ্ছে...</option></select></div>
+          <div><label>তারিখ</label><input id="rep-date" type="date"></div>
+          <div style="display:flex;align-items:flex-end">
+            <button onclick="loadAttReport()" style="width:100%">📊 রিপোর্ট দেখুন</button>
+          </div>
+        </div>
+        <div class="msg" id="rep-msg"></div>
+      </div>
+
+      <div class="card" id="rep-result-card" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px" class="no-print">
+          <h2 style="margin:0">রিপোর্ট প্রিভিউ</h2>
+          <button class="ghost" onclick="window.print()">🖨️ প্রিন্ট করুন</button>
+        </div>
+        <div id="rep-print-area">
+          <div style="text-align:center;margin-bottom:14px">
+            <div style="font-size:18px;font-weight:800;color:#1a5276" id="rep-title">উপস্থিতি রিপোর্ট</div>
+            <div style="font-size:13px;color:#555" id="rep-subtitle"></div>
+          </div>
+          <table>
+            <thead><tr><th>ক্রম</th><th>ছাত্রের নাম</th><th>ইন-টাইম</th><th>আউট-টাইম</th><th>স্ট্যাটাস</th></tr></thead>
+            <tbody id="rep-tbody"><tr><td colspan="5">এখনো কোনো রিপোর্ট লোড হয়নি</td></tr></tbody>
+          </table>
+          <div style="margin-top:14px;font-size:13px;color:#333" id="rep-summary"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== SETTINGS TAB ===== -->
     <div class="tabpage" id="tab-settings">
       <div class="card">
         <h2>দেরি (Late) নির্ধারণ</h2>
         <label>এই সময়ের পরে স্ক্যান হলে "দেরি" (L) হিসেবে মার্ক হবে</label>
         <input id="set-late-after" type="time" style="max-width:160px">
+        <label style="display:flex;align-items:center;gap:8px;margin-top:16px;cursor:pointer">
+          <input type="checkbox" id="set-auto-notify" style="width:auto" checked>
+          <span style="font-weight:600;color:#333;font-size:13px">দেরিতে আসলে অভিভাবক পোর্টালে স্বয়ংক্রিয়ভাবে নোটিশ পাঠান</span>
+        </label>
         <button onclick="saveBiometricSettings()">💾 সেভ করুন</button>
         <div class="msg" id="set-msg"></div>
-        <div class="hint">খালি রাখলে সবসময় "উপস্থিত" (P) হিসেবেই মার্ক হবে।</div>
+        <div class="hint">খালি রাখলে সবসময় "উপস্থিত" (P) হিসেবেই মার্ক হবে। দেরির নোটিশ চালু থাকলে ছাত্রের প্রথম স্ক্যানে "দেরি" ধরা পড়লেই অভিভাবক পোর্টালের "আমার বার্তা" অংশে স্বয়ংক্রিয়ভাবে একটা বার্তা যোগ হবে।</div>
       </div>
       <div class="card">
         <h2>ভবিষ্যতের জন্য প্রস্তুত</h2>
@@ -221,6 +267,8 @@
       loadMappings();
       startLiveFeed();
       loadBiometricSettings();
+      loadClassOptions();
+      document.getElementById('rep-date').value = new Date().toISOString().slice(0, 10);
     } catch (e) {
       document.getElementById('auth-card').innerHTML = `<h2>⚠️ অ্যাক্সেস নেই</h2><div class="hint">${e.message}</div>`;
     }
@@ -382,17 +430,81 @@
   async function loadBiometricSettings() {
     try {
       const snap = await getDoc(doc(db, 'schools', currentSchoolId, 'settings', 'biometric'));
-      if (snap.exists() && snap.data().lateAfter) {
-        document.getElementById('set-late-after').value = snap.data().lateAfter;
+      if (snap.exists()) {
+        const s = snap.data();
+        if (s.lateAfter) document.getElementById('set-late-after').value = s.lateAfter;
+        document.getElementById('set-auto-notify').checked = s.autoNotifyLate !== false;
       }
     } catch (e) { /* সেটিংস না থাকলেও সমস্যা নেই */ }
   }
   window.saveBiometricSettings = async function () {
     const lateAfter = document.getElementById('set-late-after').value;
+    const autoNotifyLate = document.getElementById('set-auto-notify').checked;
     const msg = document.getElementById('set-msg');
     try {
-      await setDoc(doc(db, 'schools', currentSchoolId, 'settings', 'biometric'), { lateAfter }, { merge: true });
+      await setDoc(doc(db, 'schools', currentSchoolId, 'settings', 'biometric'), { lateAfter, autoNotifyLate }, { merge: true });
       msg.className = 'msg ok'; msg.textContent = '✅ সেভ হয়েছে';
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
+    }
+  };
+
+  // ===== প্রিন্ট রিপোর্ট =====
+  // app.html-এর attDocId()-এর সাথে হুবহু মিলিয়ে (biometricAttendance.js দেখুন): '/' বাদ দিয়ে '-' বসানো হয়
+  function repAttDocId(cls, dk) {
+    return `${cls}__${dk}`.replace(/\//g, '-');
+  }
+
+  let allStudentsCache = [];
+  async function loadClassOptions() {
+    const sel = document.getElementById('rep-cls');
+    try {
+      const snap = await getDocs(collection(db, 'schools', currentSchoolId, 'students'));
+      allStudentsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const classes = [...new Set(allStudentsCache.map(s => s.cls).filter(Boolean))].sort();
+      if (!classes.length) { sel.innerHTML = '<option value="">কোনো শ্রেণি পাওয়া যায়নি</option>'; return; }
+      sel.innerHTML = classes.map(c => `<option value="${c}">${c}</option>`).join('');
+    } catch (e) {
+      sel.innerHTML = '<option value="">লোড ব্যর্থ</option>';
+    }
+  }
+
+  window.loadAttReport = async function () {
+    const cls = document.getElementById('rep-cls').value;
+    const dk = document.getElementById('rep-date').value;
+    const msg = document.getElementById('rep-msg');
+    const card = document.getElementById('rep-result-card');
+    if (!cls || !dk) { msg.className = 'msg err'; msg.textContent = 'শ্রেণি ও তারিখ দুটোই বেছে নিন'; return; }
+    msg.className = 'msg info'; msg.textContent = 'লোড হচ্ছে...';
+    try {
+      const classStudents = allStudentsCache.filter(s => s.cls === cls).sort((a, b) => (a.roll || '').localeCompare(b.roll || '', 'bn'));
+      const attSnap = await getDoc(doc(db, 'schools', currentSchoolId, 'attendance', repAttDocId(cls, dk)));
+      const records = (attSnap.exists() && attSnap.data().records) || {};
+      const times = (attSnap.exists() && attSnap.data().times) || {};
+
+      const statusLabel = { P: 'উপস্থিত', L: 'দেরি', A: 'অনুপস্থিত' };
+      let pCount = 0, lCount = 0, aCount = 0;
+      const rows = classStudents.map((s, i) => {
+        const st = records[s.name] || 'A'; // ম্যাপিং/স্ক্যান না থাকলে ধরে নেওয়া হয় ছাত্রটি অনুপস্থিত
+        if (st === 'P') pCount++; else if (st === 'L') lCount++; else aCount++;
+        const t = times[s.name] || {};
+        return `<tr>
+          <td>${i + 1}</td><td>${s.name || '—'}</td>
+          <td>${t.in || '—'}</td><td>${t.out || '—'}</td>
+          <td><span class="badge ${st}">${statusLabel[st] || st}</span></td>
+        </tr>`;
+      });
+
+      if (!rows.length) {
+        document.getElementById('rep-tbody').innerHTML = '<tr><td colspan="5">এই শ্রেণিতে কোনো ছাত্র পাওয়া যায়নি</td></tr>';
+      } else {
+        document.getElementById('rep-tbody').innerHTML = rows.join('');
+      }
+      document.getElementById('rep-subtitle').textContent = `শ্রেণি: ${cls} | তারিখ: ${dk}`;
+      document.getElementById('rep-summary').textContent =
+        `মোট ছাত্র: ${classStudents.length} | উপস্থিত: ${pCount} | দেরি: ${lCount} | অনুপস্থিত: ${aCount}`;
+      card.style.display = 'block';
+      msg.className = 'msg ok'; msg.textContent = '✅ রিপোর্ট লোড হয়েছে';
     } catch (e) {
       msg.className = 'msg err'; msg.textContent = '❌ ' + e.message;
     }

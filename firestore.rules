@@ -143,6 +143,14 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ===== schools/{schoolId}/lateNotices/{noticeId} — দেরি করে আসা ছাত্রদের জন্য
+      // অভিভাবক পোর্টালে দেখানো অটোমেটিক নোটিশ। write শুধু attendance-push.js/
+      // attendance-sync.js (Admin SDK, resolveAndMarkAttendance) থেকেই হয় =====
+      match /lateNotices/{noticeId} {
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if false;
+      }
+
       // ===== schools/{schoolId}/backups/{backupId} — ম্যানুয়াল/অটো ব্যাকআপ
       // পয়েন্টের ক্লাউড কপি (JSON স্ন্যাপশট)। backups/_meta ডকুমেন্টে শেষ
       // ব্যাকআপের সময়/ধরন থাকে, যা সুপার-অ্যাডমিন প্যানেল থেকে সব স্কুলের
