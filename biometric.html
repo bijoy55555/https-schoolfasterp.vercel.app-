@@ -356,6 +356,34 @@
     const studentName = document.getElementById('map-name').value.trim();
     const msg = document.getElementById('map-msg');
     if (!uid || !cls || !studentName) { msg.className = 'msg err'; msg.textContent = 'সব ফিল্ড পূরণ করুন'; return; }
+
+    // ⚠️ নিরাপত্তা-চেক: হাজিরা সিস্টেম ছাত্রের নাম দিয়ে মেলায় (studentName), UID দিয়ে না —
+    // তাই একই শ্রেণিতে দুইজন ছাত্রের নাম হুবহু এক হলে তাদের হাজিরা/স্ক্যান একসাথে মিশে যাবে।
+    // এখানে আগে থেকেই সতর্ক করে দেওয়া হচ্ছে, যাতে ভুলটা পরে ধরা না পড়ে।
+    try {
+      const [studentsSnap, mappingsRes] = await Promise.all([
+        getDocs(collection(db, 'schools', currentSchoolId, 'students')),
+        apiCall('/api/rfid-map', 'GET'),
+      ]);
+      const nameClashInStudents = studentsSnap.docs.some(d => {
+        const s = d.data();
+        return s.name === studentName && s.cls === cls;
+      });
+      const clashingMapping = (mappingsRes.mappings || []).find(m => m.studentName === studentName && m.cls === cls && m.uid !== uid);
+      if (nameClashInStudents === false) {
+        // ছাত্র তালিকায় এই নাম+শ্রেণি না থাকলে বানান ভুল হয়ে থাকতে পারে
+        const proceed = confirm(`"${studentName}" নামে "${cls}" শ্রেণিতে কোনো ছাত্র তালিকায় খুঁজে পাওয়া যায়নি। নাম/শ্রেণি বানান ঠিক আছে তো?\n\nএগিয়ে যেতে OK চাপুন, ঠিক করতে Cancel চাপুন।`);
+        if (!proceed) return;
+      }
+      if (clashingMapping) {
+        const proceed = confirm(`⚠️ "${studentName}" (${cls}) নামে ইতিমধ্যে আরেকটা UID (${clashingMapping.uid}) ম্যাপ করা আছে। একই নামের দুইজন ছাত্র থাকলে তাদের হাজিরা একসাথে মিশে যাবে।\n\nএটা যদি একই ছাত্রের দ্বিতীয় কার্ড/ডিভাইস হয়, তাহলে সমস্যা নেই — এগিয়ে যেতে OK চাপুন। যদি আসলে আলাদা দুইজন ছাত্র হয়, Cancel চেপে একজনের নামের সাথে রোল নম্বর যোগ করে আলাদা করুন (যেমন "রাকিব হাসান (রোল ১২)")।`);
+        if (!proceed) return;
+      }
+    } catch (e) {
+      // চেকিং ব্যর্থ হলেও মূল সেভ প্রক্রিয়া আটকাবে না, শুধু সতর্কতা স্কিপ হবে
+      console.warn('ডুপ্লিকেট-নাম চেক করা যায়নি:', e.message);
+    }
+
     try {
       await apiCall('/api/rfid-map', 'POST', { uid, cls, studentName });
       msg.className = 'msg ok'; msg.textContent = '✅ ম্যাপিং সেভ হয়েছে';

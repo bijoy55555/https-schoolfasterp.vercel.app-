@@ -2399,6 +2399,8 @@
               <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#fadbd8;border-radius:3px;display:inline-block"></span> অনুপস্থিত</span>
               <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#fdebd0;border-radius:3px;display:inline-block"></span> দেরি</span>
             </div>
+            <!-- ✅ নতুন: বায়োমেট্রিক/RFID ডিভাইস থেকে আসা আজকের ইন-টাইম/আউট-টাইম — আগে ডেটা জমা হলেও কোথাও দেখানো হতো না -->
+            <div id="pp-today-times" style="display:none;margin-top:12px;padding:10px 12px;background:#f5f9ff;border-radius:8px;font-size:12px"></div>
           </div>
         </div>
 
@@ -4327,6 +4329,9 @@ let notices = [
 ];
 
 let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: 'P'|'A'|'L' } } }
+// ✅ নতুন: বায়োমেট্রিক/RFID ডিভাইস থেকে আসা ইন-টাইম/আউট-টাইম — আগে লোড হতো না, কোথাও দেখানো হতো না।
+// { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: {in:'HH:MM', out:'HH:MM'} } } }
+let attendanceTimes = {};
 
 // ============ UTILS ============
 const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
@@ -5203,6 +5208,14 @@ async function saveStudent() {
   if(!name){showErr('s-error','ছাত্রের নাম লিখুন');return;}
   if(!roll){showErr('s-error','রোল নম্বর লিখুন');return;}
   if(!cls){showErr('s-error','শ্রেণি নির্বাচন করুন');return;}
+  // ⚠️ নিরাপত্তা-চেক: হাজিরা, ফি, বায়োমেট্রিক ম্যাপিং — সবই ছাত্রের নাম দিয়ে মেলায়।
+  // একই শ্রেণিতে হুবহু একই নামের দুইজন ছাত্র থাকলে তাদের রেকর্ড একসাথে মিশে যাবে,
+  // তাই ভর্তির সময়ই সতর্ক করে দেওয়া হচ্ছে।
+  const dupInSameClass = students.some(s => s.name===name && s.cls===cls);
+  if (dupInSameClass) {
+    const proceed = confirm(`⚠️ "${cls}" শ্রেণিতে ইতিমধ্যে "${name}" নামে আরেকজন ছাত্র/ছাত্রী আছে। একই নাম থাকলে হাজিরা, ফি ও বায়োমেট্রিক রেকর্ড দুইজনের একসাথে মিশে যেতে পারে।\n\nতারপরও এগিয়ে যেতে OK চাপুন — তবে সুপারিশ থাকবে নামের সাথে কিছু যোগ করে আলাদা করার (যেমন "${name} (রোল ${roll})")।\n\nঠিক করতে Cancel চাপুন।`);
+    if (!proceed) return;
+  }
   hideErr('s-error');
   const photoFile = document.getElementById('s-photo').files[0];
   const studentId = genRecordId('stu'); // ছবির Storage পাথ ও Firestore ডকুমেন্ট আইডি একই রাখতে আগেই তৈরি
@@ -5731,9 +5744,14 @@ function attDocId(cls, dk) {
 async function saveAttendanceDay(cls, dk) {
   if (!window.currentSchoolId) return; // ডেমো মোডে ক্লাউড সিঙ্ক নেই
   const records = (attendance[cls] || {})[dk] || {};
+  // ⚠️ বাগ-ফিক্স: আগে merge ছাড়া setDoc ব্যবহার হতো, যা পুরো ডকুমেন্ট ওভাররাইট করে দিত —
+  // ফলে বায়োমেট্রিক/RFID ডিভাইস থেকে merge:true দিয়ে লেখা times.{নাম}.in/out ফিল্ড
+  // (ইন-টাইম/আউট-টাইম) শিক্ষক/অ্যাডমিন হাজিরা পাতায় সামান্য এডিট করলেই মুছে যেত।
+  // এখন merge:true ব্যবহার হচ্ছে, তাই records আপডেট হলেও times ফিল্ড অক্ষত থাকবে।
   await window.fb.setDoc(
     window.fb.doc(window.db, 'schools', window.currentSchoolId, 'attendance', attDocId(cls, dk)),
-    { cls, date: dk, records, updatedAt: new Date().toISOString() }
+    { cls, date: dk, records, updatedAt: new Date().toISOString() },
+    { merge: true }
   );
 }
 // স্কুলের 'attendance' কালেকশনের ডকুমেন্ট পড়ে মেমোরিতে attendance[cls][date]=records আকারে বসায়।
@@ -5759,6 +5777,11 @@ async function loadAllAttendanceDocs(schoolId, monthsBack = 6) {
     if (!d || !d.cls || !d.date) return;
     if (!result[d.cls]) result[d.cls] = {};
     result[d.cls][d.date] = d.records || {};
+    // ✅ বায়োমেট্রিক ইন/আউট টাইমও একসাথে মেমোরিতে তুলে নেওয়া হয়
+    if (d.times) {
+      if (!attendanceTimes[d.cls]) attendanceTimes[d.cls] = {};
+      attendanceTimes[d.cls][d.date] = d.times;
+    }
   });
   return { data: result, isEmpty: snap.empty };
 }
@@ -5779,6 +5802,11 @@ async function loadAttendanceRange(schoolId, fromDateStr, toDateStr) {
     if (!d || !d.cls || !d.date) return;
     if (!attendance[d.cls]) attendance[d.cls] = {};
     attendance[d.cls][d.date] = d.records || {};
+    // ✅ বায়োমেট্রিক ইন/আউট টাইমও একসাথে মেমোরিতে তুলে নেওয়া হয়
+    if (d.times) {
+      if (!attendanceTimes[d.cls]) attendanceTimes[d.cls] = {};
+      attendanceTimes[d.cls][d.date] = d.times;
+    }
   });
 }
 // পুরনো স্কুলের জন্য এক-কালীন মাইগ্রেশন: data/main ডকুমেন্টে যদি পুরনো ফরম্যাটে attendance পাওয়া
@@ -5794,7 +5822,7 @@ async function migrateAttendanceToCollection(schoolId, oldAttendance) {
       const byDate = oldAttendance[cls] || {};
       for (const dk of Object.keys(byDate)) {
         const ref = window.fb.doc(window.db, 'schools', schoolId, 'attendance', attDocId(cls, dk));
-        batch.set(ref, { cls, date: dk, records: byDate[dk] || {}, updatedAt: new Date().toISOString() });
+        batch.set(ref, { cls, date: dk, records: byDate[dk] || {}, updatedAt: new Date().toISOString() }, { merge: true });
         opCount++;
         if (opCount >= 450) { // Firestore ব্যাচ লিমিট ৫০০ — নিরাপদ মার্জিন রেখে ফ্লাশ করে নতুন ব্যাচ শুরু
           await batch.commit();
@@ -10482,6 +10510,21 @@ function renderParentPortal() {
     const cls = d.status==='P'?'cal-present':d.status==='A'?'cal-absent':d.status==='L'?'cal-late':'cal-empty';
     return `<div class="cal-cell ${cls}${isToday?' cal-today':''}">${toBnNum(d.day)}</div>`;
   }).join('');
+
+  // ✅ নতুন: আজকের বায়োমেট্রিক ইন-টাইম/আউট-টাইম দেখানো (ডেটা আগে থেকেই জমা হতো, এখন প্রথমবার দেখানো হচ্ছে)
+  const ppTimesBox = document.getElementById('pp-today-times');
+  if (ppTimesBox) {
+    const todayKey = `${y}-${String(m+1).padStart(2,'0')}-${String(todayDate).padStart(2,'0')}`;
+    const todayTimes = ((attendanceTimes[sCls]||{})[todayKey]||{})[sName];
+    if (todayTimes && (todayTimes.in || todayTimes.out)) {
+      ppTimesBox.style.display = 'block';
+      ppTimesBox.innerHTML = `⏱️ <strong>আজকের হাজিরার সময় (বায়োমেট্রিক/RFID থেকে):</strong> `
+        + (todayTimes.in ? `প্রবেশ: <strong>${todayTimes.in}</strong>` : 'প্রবেশের সময় নেই')
+        + (todayTimes.out ? ` &nbsp;•&nbsp; বাহির: <strong>${todayTimes.out}</strong>` : '');
+    } else {
+      ppTimesBox.style.display = 'none';
+    }
+  }
 
   // Result body
   const resultEl = document.getElementById('pp-result-body');
