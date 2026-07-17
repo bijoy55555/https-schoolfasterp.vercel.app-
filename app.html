@@ -225,6 +225,12 @@
     body.id-card-print-mode .main {
       display:none!important;
     }
+    /* উপরের সিলেক্টরগুলো কিছু মোবাইল ব্রাউজারে যথেষ্ট নাও হতে পারে (specificity/rendering কোয়ার্ক),
+       তাই body-এর সরাসরি চাইল্ড লেভেলে ব্যাকআপ রুল হিসেবে — খোলা আইডি কার্ড/QR ওভারলে ছাড়া body-এর
+       বাকি সব সরাসরি চাইল্ড জোরপূর্বক লুকিয়ে দেওয়া হচ্ছে, যাতে শুধু কার্ডটাই প্রিন্ট হয় */
+    body.id-card-print-mode > *:not(.id-card-overlay.open) {
+      display:none!important;
+    }
   }
 
 .student-photo{
@@ -512,8 +518,8 @@
   .id-card-stripe { height:4px; background:linear-gradient(90deg,#e67e22,#f39c12,#e67e22); }
   @media print {
     .id-card-overlay:not(.open) { display:none!important; }
-    .id-card-overlay.open { position:static!important; display:block!important; padding:0!important; background:none!important; }
-    .id-card-wrapper { box-shadow:none!important; padding:0!important; }
+    .id-card-overlay.open { position:static!important; inset:auto!important; display:block!important; padding:0!important; background:none!important; }
+    .id-card-wrapper { box-shadow:none!important; padding:0!important; margin:0 auto!important; }
     .id-card-top-bar { display:none!important; }
     .id-card { width:85.6mm; height:53.98mm; border-radius:8px; }
   }
