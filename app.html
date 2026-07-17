@@ -218,6 +218,13 @@
     .content { padding:0!important; }
     .page { display:block!important; }
     .page:not(.active) { display:none!important; }
+    /* আইডি কার্ড/QR কোড প্রিন্ট করার সময় পিছনের ড্যাশবোর্ড পেজ যাতে সাথে প্রিন্ট না হয় */
+    body.id-card-print-mode .page,
+    body.id-card-print-mode .sidebar,
+    body.id-card-print-mode .topbar,
+    body.id-card-print-mode .main {
+      display:none!important;
+    }
   }
 
 .student-photo{
@@ -3453,7 +3460,7 @@
       <div style="font-size:15px;font-weight:700;color:var(--text)">📱 ছাত্র QR কোড</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="window.print()">🖨️ প্রিন্ট</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('qr-view-overlay').classList.remove('open')">বন্ধ</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('qr-view-overlay').classList.remove('open');document.body.classList.remove('id-card-print-mode')">বন্ধ</button>
       </div>
     </div>
     <div style="background:#fff;border-radius:14px;padding:24px;text-align:center;border:1px solid var(--border)">
@@ -3472,7 +3479,7 @@
       <div style="font-size:15px;font-weight:700;color:var(--text)">🪪 ছাত্র ID কার্ড</div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="window.print()">🖨️ প্রিন্ট</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('id-card-overlay').classList.remove('open')">বন্ধ</button>
+        <button class="btn btn-outline" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('id-card-overlay').classList.remove('open');document.body.classList.remove('id-card-print-mode')">বন্ধ</button>
       </div>
     </div>
     <div class="id-card" id="id-card-render"></div>
@@ -11747,6 +11754,9 @@ document.getElementById('profile-overlay').addEventListener('click', function(e)
 });
 
 // ============ ID CARD ============
+// প্রিন্ট ডায়ালগ বন্ধ হওয়ার পর (বন্ধ বাটনে ক্লিক না করলেও) id-card-print-mode ক্লাস রিমুভ করে দেয়, যাতে পরের কোনো প্রিন্টে এটি প্রভাব না ফেলে
+window.addEventListener('afterprint', function(){ document.body.classList.remove('id-card-print-mode'); });
+
 function openIDCard(idx) {
   const s = students[idx];
   const photoHTML = s.photo
@@ -11783,6 +11793,7 @@ function openIDCard(idx) {
       <div class="id-card-barcode">${barcodeHTML}</div>
     </div>`;
   document.getElementById('id-card-overlay').classList.add('open');
+  document.body.classList.add('id-card-print-mode');
   renderQRCode('id-card-qr-slot', s, 64);
 }
 
@@ -12713,6 +12724,7 @@ function openQRView(idx) {
   document.getElementById('qr-view-sub').textContent = `রোল: ${s.roll} | ${s.cls}${s.section?' - '+s.section:''}`;
   renderQRCode('qr-view-canvas', s, 180);
   document.getElementById('qr-view-overlay').classList.add('open');
+  document.body.classList.add('id-card-print-mode');
 }
 
 // ============ CHARACTER CERTIFICATE ============
