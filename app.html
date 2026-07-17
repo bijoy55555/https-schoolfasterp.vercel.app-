@@ -886,6 +886,127 @@
           <div class="card-body" id="dash-notices"></div>
         </div>
       </div>
+
+      <!-- ===== ADVANCED DASHBOARD & ANALYTICS ===== -->
+      <div style="display:flex;align-items:center;gap:8px;margin:6px 0 14px">
+        <div style="font-size:15px;font-weight:700;color:var(--primary)">📊 অ্যাডভান্সড অ্যানালিটিক্স</div>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <!-- KPI Row 2: Finance & Ops -->
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-icon green">📈</div><div><div class="stat-value" id="dash-income">০৳</div><div class="stat-label">চলতি মাসের আয়</div><div class="stat-change" id="dash-income-sub"></div></div></div>
+        <div class="stat-card"><div class="stat-icon orange">📉</div><div><div class="stat-value" id="dash-expense">০৳</div><div class="stat-label">চলতি মাসের ব্যয়</div><div class="stat-change" id="dash-expense-sub"></div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">⚖️</div><div><div class="stat-value" id="dash-balance">০৳</div><div class="stat-label">নীট ব্যালেন্স</div><div class="stat-change" id="dash-balance-sub"></div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">📌</div><div><div class="stat-value" id="dash-due-total">০৳</div><div class="stat-label">মোট বকেয়া ফি</div><div class="stat-change" id="dash-due-sub"></div></div></div>
+        <div class="stat-card"><div class="stat-icon orange">🚫</div><div><div class="stat-value" id="dash-absent">০</div><div class="stat-label">আজকের অনুপস্থিতি</div><div class="stat-change" id="dash-absent-sub"></div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">🕓</div><div><div class="stat-value" id="dash-pending-adm">০</div><div class="stat-label">মুলতবি ভর্তি</div><div class="stat-change" id="dash-pending-adm-sub"></div></div></div>
+      </div>
+
+      <!-- Smart Alerts + Quick Summary -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">🔔 স্মার্ট এলার্ট</div><span class="badge badge-red" id="dash-alert-count">০</span></div>
+          <div class="card-body" id="dash-alerts" style="padding:0"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📅 আজকের কুইক সামারি</div></div>
+          <div class="card-body" id="dash-summary"></div>
+        </div>
+      </div>
+
+      <!-- Charts Row 1: Fee trend + Income vs Expense -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📈 মাসভিত্তিক ফি সংগ্রহ</div></div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-fee-trend"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">📊 আয় বনাম ব্যয় (মাসভিত্তিক)</div></div>
+          <div class="card-body">
+            <div style="display:flex;gap:14px;font-size:11px;margin-bottom:6px">
+              <span><span style="display:inline-block;width:9px;height:9px;background:#1e8449;border-radius:50%;margin-right:4px"></span>আয়</span>
+              <span><span style="display:inline-block;width:9px;height:9px;background:#c0392b;border-radius:50%;margin-right:4px"></span>ব্যয়</span>
+            </div>
+            <div class="chart-container" style="height:190px"><canvas id="dash-chart-income-expense"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 2: Attendance trend + Admissions -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📉 উপস্থিতির প্রবণতা (গত ৭ দিন)</div></div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-att-trend"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">👨‍🎓 নতুন ভর্তি (মাসভিত্তিক)</div></div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-admissions"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Charts Row 3: Result analysis + Income source -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📝 পরীক্ষার ফলাফল বিশ্লেষণ (বিষয়ভিত্তিক গড়)</div></div>
+          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-results"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">💰 আয়ের উৎস বিশ্লেষণ</div></div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="dash-chart-income-source"></canvas></div>
+            <div class="chart-legend" id="dash-income-source-legend"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts Row 4: Expense breakdown + Fee status -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📉 ব্যয়ের খাত বিশ্লেষণ</div></div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="dash-chart-expense-cat"></canvas></div>
+            <div class="chart-legend" id="dash-expense-cat-legend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">💳 ফি পরিশোধের অবস্থা</div></div>
+          <div class="card-body">
+            <div class="chart-container"><canvas id="dash-chart-fee-status"></canvas></div>
+            <div class="chart-legend" id="dash-fee-status-legend"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Analytics Tables Row 1 -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">⚠️ সর্বোচ্চ Fee Defaulter শ্রেণি</div></div>
+          <div class="card-body" style="padding:0"><table><thead><tr><th>শ্রেণি</th><th>বকেয়া সংখ্যা</th><th>মোট বকেয়া</th></tr></thead><tbody id="dash-fee-defaulters"></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">🏆 Top Performing Students</div></div>
+          <div class="card-body" style="padding:0"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>গড় নম্বর</th></tr></thead><tbody id="dash-top-students"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Analytics Tables Row 2 -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header"><div class="card-title">📉 Low Attendance Students (&lt;৭৫%)</div></div>
+          <div class="card-body" style="padding:0"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>উপস্থিতি</th></tr></thead><tbody id="dash-low-attendance"></tbody></table></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">👨‍🏫 Teacher Attendance Ranking</div></div>
+          <div class="card-body" style="padding:0"><table><thead><tr><th>শিক্ষক</th><th>উপস্থিতি</th><th>মোট দিন</th></tr></thead><tbody id="dash-teacher-ranking"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Class-wise Pass Rate -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🎯 শ্রেণিভিত্তিক পাস রেট</div></div>
+        <div class="card-body" id="dash-pass-rate"></div>
+      </div>
     </div>
 
     <!-- ===== STUDENTS ===== -->
@@ -4520,6 +4641,401 @@ function renderDashboard() {
       <div class="notice-dot" style="background:${n.type==='জরুরি'?'#c0392b':n.type==='ইভেন্ট'?'#1e8449':'#2e86c1'}"></div>
       <div><div class="notice-title">${n.title}</div><div class="notice-date">${n.date} • ${n.type}</div></div>
     </div>`).join('');
+
+  renderDashboardAdvanced();
+}
+
+// ============ ADVANCED DASHBOARD ও অ্যানালিটিক্স ============
+const bnMonthShort = ['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টে','অক্টো','নভে','ডিসে'];
+
+// "১৭/৭/২০২৬" (dd/mm/yyyy, বাংলা সংখ্যায়, toLocaleDateString('bn-BD') আউটপুট) safely পার্স করে
+function parseBnLocaleDate(str) {
+  if(!str) return null;
+  const en = bnDigitsToEn(str);
+  const parts = en.split('/');
+  if(parts.length !== 3) return null;
+  const d = Number(parts[0]), m = Number(parts[1]), y = Number(parts[2]);
+  if(!d || !m || !y) return null;
+  const dt = new Date(y, m-1, d);
+  return isNaN(dt.getTime()) ? null : dt;
+}
+
+// এই মাসের (বা offset মাস পিছনের) মোট আয় (পরিশোধিত ফি), ব্যয় ও ব্যালেন্স
+function computeMonthFinance(monthOffset=0) {
+  const d = new Date(); d.setMonth(d.getMonth()+monthOffset);
+  const m = d.getMonth();
+  const income = fees.filter(f=>f.status==='পরিশোধিত' && f.month===m).reduce((a,f)=>a+Number(f.amount||0),0);
+  const expense = expenses.filter(e=>e.month===m).reduce((a,e)=>a+Number(e.amount||0),0);
+  return {income, expense, balance: income-expense};
+}
+
+// গত n মাসের আয় ও ব্যয়ের সিরিজ (লেবেলসহ) — বছর নয়, শুধু মাস অনুযায়ী হিসাব করা হয়
+function computeMonthlySeries(n=6) {
+  const now = new Date();
+  const monthIdx = [];
+  for(let i=n-1;i>=0;i--) monthIdx.push((now.getMonth()-i+12)%12);
+  const labels = monthIdx.map(m=>bnMonthShort[m]);
+  const income = monthIdx.map(m=>fees.filter(f=>f.status==='পরিশোধিত'&&f.month===m).reduce((a,f)=>a+Number(f.amount||0),0));
+  const expense = monthIdx.map(m=>expenses.filter(e=>e.month===m).reduce((a,e)=>a+Number(e.amount||0),0));
+  return {labels, income, expense};
+}
+
+// গত n মাসে ভর্তি হওয়া ছাত্রছাত্রীর সংখ্যা (admissionDate ফিল্ড থাকা ছাত্রদের ভিত্তিতে)
+function computeAdmissionsMonthly(n=6) {
+  const now = new Date();
+  const monthIdx = [];
+  for(let i=n-1;i>=0;i--) monthIdx.push((now.getMonth()-i+12)%12);
+  const labels = monthIdx.map(m=>bnMonthShort[m]);
+  const data = monthIdx.map(m=>students.filter(s=>{
+    const d = parseBnLocaleDate(s.admissionDate);
+    return d && d.getMonth()===m;
+  }).length);
+  return {labels, data};
+}
+
+// গত n দিনের সামগ্রিক (সব শ্রেণি মিলিয়ে) উপস্থিতির হার (%)
+function computeAttendanceTrend(days=7) {
+  const labels = [], data = [];
+  const now = new Date();
+  for(let i=days-1;i>=0;i--) {
+    const d = new Date(now); d.setDate(now.getDate()-i);
+    const iso = d.toISOString().split('T')[0];
+    let present=0, total=0;
+    Object.keys(attendance).forEach(cls=>{
+      const day = attendance[cls] ? attendance[cls][iso] : null;
+      if(day) Object.values(day).forEach(v=>{ total++; if(v==='P') present++; });
+    });
+    labels.push(toBnNum(d.getDate())+'/'+toBnNum(d.getMonth()+1));
+    data.push(total>0 ? Math.round(present/total*100) : 0);
+  }
+  return {labels, data};
+}
+
+// আজকের (সব শ্রেণি মিলিয়ে) উপস্থিত/অনুপস্থিত/ছুটি সংখ্যা
+function computeTodayAttendanceStats() {
+  const iso = new Date().toISOString().split('T')[0];
+  let present=0, absent=0, leave=0;
+  Object.keys(attendance).forEach(cls=>{
+    const day = attendance[cls] ? attendance[cls][iso] : null;
+    if(day) Object.values(day).forEach(v=>{
+      if(v==='P') present++; else if(v==='A') absent++; else if(v==='L') leave++;
+    });
+  });
+  return {present, absent, leave, total: present+absent+leave};
+}
+
+// বকেয়া/আংশিক ফি অনুযায়ী শ্রেণিভিত্তিক Defaulter র‍্যাংকিং
+function computeFeeDefaulterClasses() {
+  const map = {};
+  fees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').forEach(f=>{
+    map[f.cls] = map[f.cls] || {count:0, amount:0};
+    map[f.cls].count++;
+    map[f.cls].amount += Number(f.amount||0);
+  });
+  return Object.entries(map).map(([cls,v])=>({cls,...v})).sort((a,b)=>b.amount-a.amount).slice(0,6);
+}
+
+// পরীক্ষার ফলাফল থেকে সেরা ছাত্রছাত্রী (গড় নম্বরের ভিত্তিতে)
+function computeTopStudents(n=5) {
+  return results.map(r=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    const avg = vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+    return {name:r.name, cls:r.cls, avg};
+  }).sort((a,b)=>b.avg-a.avg).slice(0,n);
+}
+
+// উপস্থিতির রেকর্ড থেকে কম উপস্থিত ছাত্রছাত্রী (threshold %-এর নিচে)
+function computeLowAttendanceStudents(threshold=75, n=8) {
+  const stats = {};
+  Object.keys(attendance).forEach(cls=>{
+    Object.keys(attendance[cls]).forEach(date=>{
+      const day = attendance[cls][date];
+      Object.keys(day).forEach(name=>{
+        stats[name] = stats[name] || {present:0, total:0, cls};
+        stats[name].total++;
+        if(day[name]==='P') stats[name].present++;
+      });
+    });
+  });
+  return Object.entries(stats)
+    .map(([name,v])=>({name, cls:v.cls, pct: v.total ? Math.round(v.present/v.total*100) : 0}))
+    .filter(s=>s.pct<threshold)
+    .sort((a,b)=>a.pct-b.pct).slice(0,n);
+}
+
+// শিক্ষক উপস্থিতির রেকর্ড থেকে র‍্যাংকিং (সর্বোচ্চ উপস্থিতির হার আগে)
+function computeTeacherAttendanceRanking() {
+  const ta = (typeof teacherAtt!=='undefined') ? teacherAtt : {};
+  const stats = {};
+  Object.keys(ta).forEach(date=>{
+    const day = ta[date];
+    Object.keys(day).forEach(name=>{
+      stats[name] = stats[name] || {present:0, total:0};
+      stats[name].total++;
+      if(day[name]==='P') stats[name].present++;
+    });
+  });
+  return Object.entries(stats)
+    .map(([name,v])=>({name, pct: v.total ? Math.round(v.present/v.total*100) : 0, total:v.total}))
+    .sort((a,b)=>b.pct-a.pct);
+}
+
+// পরীক্ষার ফলাফল থেকে শ্রেণিভিত্তিক পাস রেট (প্রতিটি বিষয়ে ৩৩+ পেলে পাস ধরা হয়েছে)
+function computeClassPassRate() {
+  const map = {};
+  results.forEach(r=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    const passed = vals.length>0 && vals.every(v=>v>=33);
+    map[r.cls] = map[r.cls] || {total:0, pass:0};
+    map[r.cls].total++;
+    if(passed) map[r.cls].pass++;
+  });
+  return Object.entries(map).map(([cls,v])=>({cls, pct: v.total?Math.round(v.pass/v.total*100):0, total:v.total}));
+}
+
+// আজ যাদের জন্মদিন (ছাত্রছাত্রীদের dob ফিল্ড অনুযায়ী)
+function computeBirthdaysToday() {
+  const now = new Date();
+  return students.filter(s=>{
+    const d = parseDateSafe(s.dob);
+    if(!d) return false;
+    return d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
+  });
+}
+
+// আগামীকাল যেসব পরীক্ষা আছে
+function computeExamsTomorrow() {
+  const t = new Date(); t.setDate(t.getDate()+1); t.setHours(0,0,0,0);
+  return (typeof examSchedule!=='undefined'?examSchedule:[]).filter(e=>{
+    const d = parseDateSafe(e.date);
+    if(!d) return false;
+    d.setHours(0,0,0,0);
+    return d.getTime()===t.getTime();
+  });
+}
+
+// ৩০ দিনের বেশি বকেয়া ফি এন্ট্রি
+function computeOverdueFees30() {
+  const now = new Date();
+  return fees.filter(f=>{
+    if(f.status!=='বকেয়া' || !f.dueDate) return false;
+    const d = new Date(f.dueDate);
+    if(isNaN(d.getTime())) return false;
+    const days = Math.floor((now-d)/(1000*60*60*24));
+    return days>=30;
+  });
+}
+
+// দুইটা সিরিজ (যেমন আয় বনাম ব্যয়) পাশাপাশি বার হিসেবে আঁকে
+function drawGroupedBarChart(canvasId, labels, seriesA, seriesB, colorA, colorB) {
+  destroyChart(canvasId);
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400, H = canvas.offsetHeight || 220;
+  canvas.width = W; canvas.height = H;
+  const pad = {top:20, right:16, bottom:40, left:50};
+  const cW = W-pad.left-pad.right, cH = H-pad.top-pad.bottom;
+  const max = Math.max(...seriesA, ...seriesB, 10) * 1.15;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#f0f4f8'; ctx.lineWidth=1;
+  for(let i=0;i<=4;i++) {
+    const y = pad.top + cH*(4-i)/4;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+    ctx.fillStyle='#9aa8b3'; ctx.font='10px Hind Siliguri,sans-serif'; ctx.textAlign='right';
+    ctx.fillText(toBnNum(Math.round(max*i/4)), pad.left-4, y+3);
+  }
+  const gap = cW/labels.length;
+  const bW = Math.min(gap*0.32, 22);
+  labels.forEach((lbl,i)=>{
+    const xC = pad.left + gap*i + gap/2;
+    const hA = (seriesA[i]/max)*cH, hB = (seriesB[i]/max)*cH;
+    const yA = pad.top+cH-hA, yB = pad.top+cH-hB;
+    ctx.fillStyle = colorA;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(xC-bW-2,yA,bW,hA,3) : ctx.rect(xC-bW-2,yA,bW,hA);
+    ctx.fill();
+    ctx.fillStyle = colorB;
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(xC+2,yB,bW,hB,3) : ctx.rect(xC+2,yB,bW,hB);
+    ctx.fill();
+    ctx.fillStyle='#5d6d7e'; ctx.font='10px Hind Siliguri,sans-serif'; ctx.textAlign='center';
+    ctx.fillText(lbl, xC, H-pad.bottom+14);
+  });
+}
+
+// KPI Row 2 (আয়, ব্যয়, ব্যালেন্স, বকেয়া, অনুপস্থিতি, মুলতবি ভর্তি)
+function renderDashboardKPI2() {
+  const fin = computeMonthFinance(0);
+  document.getElementById('dash-income').textContent = toBnNum(fin.income)+'৳';
+  document.getElementById('dash-expense').textContent = toBnNum(fin.expense)+'৳';
+  const balEl = document.getElementById('dash-balance');
+  balEl.textContent = toBnNum(fin.balance)+'৳';
+  balEl.style.color = fin.balance>=0 ? 'var(--success)' : 'var(--danger)';
+  document.getElementById('dash-balance-sub').textContent = fin.balance>=0 ? '↑ লাভজনক' : '↓ ঘাটতি';
+
+  const dueTotal = fees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').reduce((a,f)=>a+Number(f.amount||0),0);
+  document.getElementById('dash-due-total').textContent = toBnNum(dueTotal)+'৳';
+  document.getElementById('dash-due-sub').textContent = `${toBnNum(fees.filter(f=>f.status==='বকেয়া').length)} টি এন্ট্রি বকেয়া`;
+
+  const att = computeTodayAttendanceStats();
+  document.getElementById('dash-absent').textContent = toBnNum(att.absent);
+  document.getElementById('dash-absent-sub').textContent = att.total ? `মোট ${toBnNum(att.total)} জনের মধ্যে` : 'আজকের হাজিরা নেওয়া হয়নি';
+
+  const pendingAdm = students.filter(s=>s.status==='মুলতবি').length;
+  document.getElementById('dash-pending-adm').textContent = toBnNum(pendingAdm);
+  document.getElementById('dash-pending-adm-sub').textContent = 'অনুমোদনের অপেক্ষায়';
+}
+
+// স্মার্ট এলার্ট প্যানেল (জন্মদিন, আগামীকালের পরীক্ষা, বকেয়া ৩০+ দিন, মুলতবি ভর্তি, ছুটির আবেদন, কম উপস্থিতি)
+function renderDashboardAlerts() {
+  const items = [];
+  computeBirthdaysToday().forEach(s=>items.push({color:'#8e44ad', title:`🎂 আজ ${s.name}-এর জন্মদিন`, sub:`${s.cls} • রোল ${s.roll}`}));
+  computeExamsTomorrow().forEach(e=>items.push({color:'#2e86c1', title:`📝 আগামীকাল পরীক্ষা: ${e.subject} (${e.cls})`, sub:`${e.time||''} ${e.hall?'• '+e.hall:''}`}));
+  const overdue = computeOverdueFees30();
+  if(overdue.length) items.push({color:'#c0392b', title:`💸 ৩০+ দিনের বকেয়া ফি`, sub:`${toBnNum(overdue.length)} টি এন্ট্রি ৩০ দিনের বেশি বকেয়া`});
+  const pendingAdm = students.filter(s=>s.status==='মুলতবি');
+  if(pendingAdm.length) items.push({color:'#e67e22', title:`🕓 মুলতবি ভর্তি`, sub:`${toBnNum(pendingAdm.length)} জন ছাত্রছাত্রীর ভর্তি এখনো মুলতবি`});
+  const pendingLeave = (typeof leaveRequests!=='undefined'?leaveRequests:[]).filter(l=>l.status==='অপেক্ষমান');
+  if(pendingLeave.length) items.push({color:'#e67e22', title:`📋 অপেক্ষমান ছুটির আবেদন`, sub:`${toBnNum(pendingLeave.length)} টি আবেদন অনুমোদনের অপেক্ষায়`});
+  const lowAtt = computeLowAttendanceStudents(75, 100);
+  if(lowAtt.length) items.push({color:'#c0392b', title:`📉 কম উপস্থিতির ছাত্রছাত্রী`, sub:`${toBnNum(lowAtt.length)} জনের উপস্থিতি ৭৫%-এর নিচে`});
+
+  const el = document.getElementById('dash-alerts');
+  if(el) {
+    el.innerHTML = items.length ? items.map(it=>`
+      <div class="notice-item" style="padding:12px 16px">
+        <div class="notice-dot" style="background:${it.color}"></div>
+        <div><div class="notice-title">${it.title}</div><div class="notice-date">${it.sub}</div></div>
+      </div>`).join('') : `<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">✅ কোনো জরুরি এলার্ট নেই</div>`;
+  }
+  const cnt = document.getElementById('dash-alert-count');
+  if(cnt) cnt.textContent = toBnNum(items.length);
+}
+
+// আজকের কুইক সামারি (উপস্থিতি, মাসিক আদায়/ব্যয়, অপেক্ষমান অনুমোদন, সাম্প্রতিক কার্যক্রম)
+function renderDashboardSummary() {
+  const att = computeTodayAttendanceStats();
+  const fin = computeMonthFinance(0);
+  const pendingLeave = (typeof leaveRequests!=='undefined'?leaveRequests:[]).filter(l=>l.status==='অপেক্ষমান').length;
+  const recent = (typeof auditLog!=='undefined'?auditLog:[]).slice(0,4);
+  const el = document.getElementById('dash-summary');
+  if(!el) return;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:#f0f6ff;border-radius:10px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--text-muted)">আজকের উপস্থিতি</div>
+        <div style="font-size:16px;font-weight:700">${att.total ? toBnNum(Math.round(att.present/att.total*100))+'%' : 'রেকর্ড নেই'}</div>
+      </div>
+      <div style="background:#f0fff4;border-radius:10px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--text-muted)">এই মাসের আদায়</div>
+        <div style="font-size:16px;font-weight:700">${toBnNum(fin.income)}৳</div>
+      </div>
+      <div style="background:#fff5f0;border-radius:10px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--text-muted)">এই মাসের ব্যয়</div>
+        <div style="font-size:16px;font-weight:700">${toBnNum(fin.expense)}৳</div>
+      </div>
+      <div style="background:#f8f0ff;border-radius:10px;padding:10px 12px">
+        <div style="font-size:11px;color:var(--text-muted)">অপেক্ষমান অনুমোদন</div>
+        <div style="font-size:16px;font-weight:700">${toBnNum(pendingLeave)} টি</div>
+      </div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:6px">সাম্প্রতিক কার্যক্রম</div>
+    ${recent.length ? recent.map(a=>`
+      <div style="font-size:12px;padding:6px 0;border-bottom:1px solid #f0f4f8">
+        <b>${a.user||''}</b> ${a.action} <span style="color:var(--text-muted);font-size:11px">• ${a.time}</span>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--text-muted)">কোনো সাম্প্রতিক কার্যক্রম নেই</div>'}
+  `;
+}
+
+// অ্যানালিটিক্স টেবিলগুলো (Fee Defaulter, Top Students, Low Attendance, Teacher Ranking, Pass Rate)
+function renderDashboardTables() {
+  const defaulters = computeFeeDefaulterClasses();
+  const dEl = document.getElementById('dash-fee-defaulters');
+  if(dEl) dEl.innerHTML = defaulters.length ? defaulters.map(d=>`<tr><td>${d.cls}</td><td>${toBnNum(d.count)}</td><td>${toBnNum(d.amount)}৳</td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">কোনো বকেয়া নেই</td></tr>`;
+
+  const top = computeTopStudents(5);
+  const tEl = document.getElementById('dash-top-students');
+  if(tEl) tEl.innerHTML = top.length ? top.map(s=>`<tr><td>${s.name}</td><td>${s.cls}</td><td><span class="badge badge-green">${toBnNum(Math.round(s.avg))}</span></td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">ফলাফলের ডেটা নেই</td></tr>`;
+
+  const low = computeLowAttendanceStudents(75, 8);
+  const lEl = document.getElementById('dash-low-attendance');
+  if(lEl) lEl.innerHTML = low.length ? low.map(s=>`<tr><td>${s.name}</td><td>${s.cls}</td><td><span class="badge badge-red">${toBnNum(s.pct)}%</span></td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">উপস্থিতির রেকর্ড নেই</td></tr>`;
+
+  const tr = computeTeacherAttendanceRanking();
+  const trEl = document.getElementById('dash-teacher-ranking');
+  if(trEl) trEl.innerHTML = tr.length ? tr.map(t=>`<tr><td>${t.name}</td><td><span class="badge ${t.pct>=90?'badge-green':t.pct>=75?'badge-orange':'badge-red'}">${toBnNum(t.pct)}%</span></td><td>${toBnNum(t.total)}</td></tr>`).join('')
+    : `<tr><td colspan="3" style="text-align:center;color:var(--text-muted)">শিক্ষক উপস্থিতির রেকর্ড নেই</td></tr>`;
+
+  const pr = computeClassPassRate();
+  const prEl = document.getElementById('dash-pass-rate');
+  if(prEl) prEl.innerHTML = pr.length ? pr.map(p=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="font-weight:600">${p.cls}</span><span style="font-weight:700;color:${p.pct>=80?'#1e8449':p.pct>=50?'#d4ac0d':'#c0392b'}">${toBnNum(p.pct)}% (${toBnNum(p.total)} জন)</span>
+      </div>
+      <div class="att-bar"><div class="att-fill" style="width:${p.pct}%;background:${p.pct>=80?'linear-gradient(90deg,#1e8449,#27ae60)':p.pct>=50?'linear-gradient(90deg,#d4ac0d,#f1c40f)':'linear-gradient(90deg,#c0392b,#e74c3c)'}"></div>
+      </div>
+    </div>`).join('') : `<div style="padding:10px;color:var(--text-muted);font-size:13px">পরীক্ষার ফলাফলের ডেটা এখনো নেই</div>`;
+}
+
+// সব চার্ট আঁকে (canvas DOM-এ বসার পর, তাই ছোট setTimeout দেওয়া হয়েছে)
+function renderDashboardChartsAll() {
+  setTimeout(()=>{
+    const fin6 = computeMonthlySeries(6);
+    drawLineChart('dash-chart-fee-trend', fin6.labels, fin6.income);
+    drawGroupedBarChart('dash-chart-income-expense', fin6.labels, fin6.income, fin6.expense, '#1e8449', '#c0392b');
+
+    const attTrend = computeAttendanceTrend(7);
+    drawLineChart('dash-chart-att-trend', attTrend.labels, attTrend.data);
+
+    const admissions = computeAdmissionsMonthly(6);
+    drawBarChart('dash-chart-admissions', admissions.labels, admissions.data,
+      ['#2e86c1','#1e8449','#e67e22','#8e44ad','#c0392b','#16a085'], 'count');
+
+    const subNames = ['বাংলা','ইংরেজি','গণিত','বিজ্ঞান','ইতিহাস','ধর্ম'];
+    const subKeys = ['bangla','english','math','science','history','religion'];
+    const avgs = subKeys.map(k=>{
+      const vals = results.map(r=>r.subjects[k]||0).filter(v=>v>0);
+      return vals.length>0 ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+    });
+    drawBarChart('dash-chart-results', subNames, avgs,
+      ['#1a5276','#2e86c1','#1e8449','#e67e22','#8e44ad','#c0392b'], 'marks');
+
+    const typeMap = {};
+    fees.filter(f=>f.status==='পরিশোধিত').forEach(f=>{ typeMap[f.type] = (typeMap[f.type]||0)+Number(f.amount||0); });
+    const typeLabels = Object.keys(typeMap);
+    if(typeLabels.length) {
+      drawDonutChart('dash-chart-income-source', typeLabels, Object.values(typeMap),
+        ['#1e8449','#2e86c1','#e67e22','#8e44ad','#c0392b','#16a085'], 'dash-income-source-legend');
+    }
+
+    const catMap = {};
+    expenses.forEach(e=>{ catMap[e.cat] = (catMap[e.cat]||0)+Number(e.amount||0); });
+    const catLabels = Object.keys(catMap);
+    if(catLabels.length) {
+      drawDonutChart('dash-chart-expense-cat', catLabels, Object.values(catMap),
+        ['#c0392b','#e67e22','#8e44ad','#2e86c1','#1e8449','#16a085'], 'dash-expense-cat-legend');
+    }
+
+    const paid = fees.filter(f=>f.status==='পরিশোধিত').length;
+    const due = fees.filter(f=>f.status==='বকেয়া').length;
+    const partial = fees.filter(f=>f.status==='আংশিক').length;
+    drawDonutChart('dash-chart-fee-status', ['পরিশোধিত','বকেয়া','আংশিক'], [paid,due,partial],
+      ['#1e8449','#c0392b','#e67e22'], 'dash-fee-status-legend');
+  }, 90);
+}
+
+// ড্যাশবোর্ডের নতুন অ্যাডভান্সড অ্যানালিটিক্স অংশের মূল এন্ট্রি পয়েন্ট — renderDashboard() থেকে কল হয়
+function renderDashboardAdvanced() {
+  renderDashboardKPI2();
+  renderDashboardAlerts();
+  renderDashboardSummary();
+  renderDashboardTables();
+  renderDashboardChartsAll();
 }
 
 // ============ STUDENTS ============
@@ -10823,7 +11339,8 @@ function drawBarChart(canvasId, labels, data, colors, title) {
   });
 }
 
-function drawDonutChart(canvasId, labels, data, colors) {
+function drawDonutChart(canvasId, labels, data, colors, legendId) {
+  legendId = legendId || 'fee-legend';
   destroyChart(canvasId);
   const canvas = document.getElementById(canvasId);
   if(!canvas) return;
@@ -10858,7 +11375,7 @@ function drawDonutChart(canvasId, labels, data, colors) {
   ctx.fillText('মোট', cx, cy+16);
 
   // legend separately
-  const legendEl = document.getElementById('fee-legend');
+  const legendEl = document.getElementById(legendId);
   if(legendEl) {
     legendEl.innerHTML = labels.map((l,i)=>`
       <div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l}: ${toBnNum(data[i])}</div>
