@@ -849,7 +849,7 @@
         <div class="stat-card"><div class="stat-icon blue">👨‍🎓</div><div><div class="stat-value" id="dash-students">০</div><div class="stat-label">মোট ছাত্রছাত্রী</div><div class="stat-change" id="dash-students-sub"></div></div></div>
         <div class="stat-card"><div class="stat-icon green">👨‍🏫</div><div><div class="stat-value" id="dash-teachers">০</div><div class="stat-label">মোট শিক্ষক</div><div class="stat-change" id="dash-teachers-sub"></div></div></div>
         <div class="stat-card"><div class="stat-icon orange">✅</div><div><div class="stat-value" id="dash-att">—</div><div class="stat-label">আজকের উপস্থিতি</div><div class="stat-change" id="dash-att-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon purple">💰</div><div><div class="stat-value" id="dash-fee">—</div><div class="stat-label">মোট ফি সংগ্রহ</div><div class="stat-change" id="dash-fee-sub"></div></div></div>
+        <div class="stat-card" id="dash-fee-card"><div class="stat-icon purple">💰</div><div><div class="stat-value" id="dash-fee">—</div><div class="stat-label">মোট ফি সংগ্রহ</div><div class="stat-change" id="dash-fee-sub"></div></div></div>
       </div>
       <div class="two-col">
         <div class="card">
@@ -887,7 +887,8 @@
         </div>
       </div>
 
-      <!-- ===== ADVANCED DASHBOARD & ANALYTICS ===== -->
+      <!-- ===== ADVANCED DASHBOARD & ANALYTICS (শুধু এডমিন/প্রধান শিক্ষকের জন্য — আর্থিক ও স্কুল-ওয়াইড তথ্য থাকায় renderDashboard() এ role-check দিয়ে হাইড করা হয়) ===== -->
+      <div id="dash-advanced-section">
       <div style="display:flex;align-items:center;gap:8px;margin:6px 0 14px">
         <div style="font-size:15px;font-weight:700;color:var(--primary)">📊 অ্যাডভান্সড অ্যানালিটিক্স</div>
         <div style="flex:1;height:1px;background:var(--border)"></div>
@@ -1007,6 +1008,7 @@
         <div class="card-header"><div class="card-title">🎯 শ্রেণিভিত্তিক পাস রেট</div></div>
         <div class="card-body" id="dash-pass-rate"></div>
       </div>
+      </div><!-- /dash-advanced-section -->
     </div>
 
     <!-- ===== STUDENTS ===== -->
@@ -4613,6 +4615,17 @@ document.addEventListener('click', e=>{
 
 // ============ DASHBOARD ============
 function renderDashboard() {
+  // ✅ ফি সংগ্রহ, আয়-ব্যয়, ফি ডিফল্টার, বকেয়া রিপোর্ট, শিক্ষক-অ্যাটেন্ডেন্স-র‍্যাংকিং —
+  // এগুলো স্কুল-ওয়াইড আর্থিক/প্রশাসনিক তথ্য, শুধু admin/principal-এর জন্য প্রাসঙ্গিক।
+  // permissions.teacher-এ fees/finance-report/payroll ইত্যাদি আগে থেকেই view:false করা
+  // আছে (মেনু থেকে হাইড হয়), কিন্তু ড্যাশবোর্ডের উইজেটগুলোতে সেই একই ডেটা role-check
+  // ছাড়াই দেখানো হচ্ছিল — এখানে সেটা ঠিক করা হলো।
+  const isAdminDashView = !currentUser || currentUser.role==='admin' || currentUser.role==='principal';
+  const feeCard = document.getElementById('dash-fee-card');
+  if(feeCard) feeCard.style.display = isAdminDashView ? '' : 'none';
+  const advSection = document.getElementById('dash-advanced-section');
+  if(advSection) advSection.style.display = isAdminDashView ? '' : 'none';
+
   document.getElementById('topbar-date').textContent = todayBn();
   const active = students.filter(s=>s.status==='সক্রিয়').length;
   document.getElementById('dash-students').textContent = toBnNum(students.length);
@@ -4652,7 +4665,7 @@ function renderDashboard() {
       <div><div class="notice-title">${n.title}</div><div class="notice-date">${n.date} • ${n.type}</div></div>
     </div>`).join('');
 
-  renderDashboardAdvanced();
+  if(isAdminDashView) renderDashboardAdvanced();
 }
 
 // ============ ADVANCED DASHBOARD ও অ্যানালিটিক্স ============
