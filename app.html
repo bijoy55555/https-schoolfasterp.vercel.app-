@@ -3566,7 +3566,12 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">শ্রেণি</label><input class="form-input" id="t-class" placeholder="যেমন: ৬ষ্ঠ - ১০ম"></div>
+        <div class="form-group" style="flex:1">
+          <label class="form-label">নিজের ক্লাস (একাধিক নির্বাচন করা যায়) — এই শিক্ষক শুধু এই ক্লাসগুলোর উপস্থিতি/হোমওয়ার্ক/মার্কশিট/ফলাফল এডিট করতে পারবেন</label>
+          <select class="form-select" id="t-class" multiple style="height:110px">
+            <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option>
+          </select>
+        </div>
         <div class="form-group"><label class="form-label">যোগদানের তারিখ</label><input class="form-input" id="t-joindate" type="date"></div>
       </div>
       <div class="form-row">
@@ -5202,6 +5207,7 @@ async function uploadStudentPhoto(schoolId, studentId, file) {
 }
 
 async function saveStudent() {
+  if(!requirePerm('students','edit')) return;
   const name = document.getElementById('s-name').value.trim();
   const roll = document.getElementById('s-roll').value.trim();
   const cls = document.getElementById('s-class').value;
@@ -5249,6 +5255,7 @@ async function saveStudent() {
   showToast('ছাত্র সফলভাবে ভর্তি হয়েছে!');
 }
 function deleteStudent(idx) {
+  if(!requirePerm('students','del')) return;
   if(!confirm('এই ছাত্রকে তালিকা থেকে সরাবেন?')) return;
   students.splice(idx,1);
   renderStudents(); renderDashboard();
@@ -5353,15 +5360,17 @@ function filterTeachers() {
   renderTeachers(teachers.filter(t=>t.name.toLowerCase().includes(q)||t.subject.toLowerCase().includes(q)));
 }
 function saveTeacher() {
+  if(!requirePerm('teachers','edit')) return;
   const name = document.getElementById('t-name').value.trim();
   const subject = document.getElementById('t-subject').value;
   if(!name){showErr('t-error','শিক্ষকের নাম লিখুন');return;}
   if(!subject){showErr('t-error','বিষয় নির্বাচন করুন');return;}
   hideErr('t-error');
+  const selectedClasses = Array.from(document.getElementById('t-class').selectedOptions).map(o=>o.value);
   teachers.push({
     name, subject,
     designation: document.getElementById('t-designation').value,
-    cls: document.getElementById('t-class').value.trim()||'—',
+    cls: selectedClasses.join(', ')||'—',
     joinDate: document.getElementById('t-joindate').value||'—',
     phone: document.getElementById('t-phone').value.trim()||'—',
     email: document.getElementById('t-email').value.trim()||'—',
@@ -5372,13 +5381,15 @@ function saveTeacher() {
     deduction: parseInt(document.getElementById('t-deduction').value)||0,
     status: document.getElementById('t-status').value,
   });
-  ['t-name','t-class','t-phone','t-email','t-nid','t-address','t-salary','t-allowance','t-deduction','t-joindate'].forEach(id=>document.getElementById(id).value='');
+  ['t-name','t-phone','t-email','t-nid','t-address','t-salary','t-allowance','t-deduction','t-joindate'].forEach(id=>document.getElementById(id).value='');
+  Array.from(document.getElementById('t-class').options).forEach(o=>o.selected=false);
   document.getElementById('t-subject').value='';
   closeModal('teacher-modal');
   renderTeachers(); renderDashboard();
   showToast('শিক্ষক সফলভাবে যোগ হয়েছে!');
 }
 function deleteTeacher(idx) {
+  if(!requirePerm('teachers','del')) return;
   if(!confirm('এই শিক্ষককে তালিকা থেকে সরাবেন?')) return;
   teachers.splice(idx,1);
   renderTeachers(); renderDashboard();
@@ -5839,7 +5850,9 @@ async function migrateAttendanceToCollection(schoolId, oldAttendance) {
 }
 
 async function saveAttendance() {
+  if(!requirePerm('attendance','edit')) return;
   const cls = document.getElementById('att-class-select').value;
+  if(!canAccessClass(cls)){ showToast('⛔ এই শ্রেণির উপস্থিতি সেভ করার অনুমতি আপনার নেই','error'); return; }
   const dk = getSelectedAttDate();
   const btn = event ? event.target : null;
   const origText = btn ? btn.textContent : '';
@@ -5860,7 +5873,8 @@ async function saveAttendance() {
 
 // ============ RESULTS ============
 function renderResults(list) {
-  const data = list || results;
+  let data = list || results;
+  if(!list && currentUser && currentUser.role==='teacher') data = data.filter(r=>canAccessClass(r.cls));
   const container = document.getElementById('result-list');
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো ফলাফল পাওয়া যায়নি</div></div>';return;}
   container.innerHTML = data.map((r,idx)=>{
@@ -5915,16 +5929,20 @@ function filterResults() {
   renderResults(results.filter(r=>{
     const matchQ = !q||r.name.toLowerCase().includes(q)||r.roll.includes(q);
     const matchC = !cls||r.cls===cls;
-    return matchQ&&matchC;
+    // ✅ "সব শ্রেণি" নির্বাচিত থাকলেও শিক্ষক শুধু নিজের ক্লাসের ফলাফল দেখবে
+    const matchScope = canAccessClass(r.cls);
+    return matchQ&&matchC&&matchScope;
   }));
 }
 function saveResult() {
+  if(!requirePerm('result','edit')) return;
   const name = document.getElementById('r-name').value.trim();
   const roll = document.getElementById('r-roll').value.trim();
   if(!name){showErr('r-error','ছাত্রের নাম লিখুন');return;}
   if(!roll){showErr('r-error','রোল নম্বর লিখুন');return;}
-  hideErr('r-error');
   const cls = document.getElementById('r-class').value;
+  if(!canAccessClass(cls)){ showErr('r-error','এই শ্রেণির জন্য ফলাফল দেওয়ার অনুমতি আপনার নেই'); return; }
+  hideErr('r-error');
   const group = isGroupClass(cls) ? document.getElementById('r-group').value : null;
   const subjects = {};
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>{
@@ -5945,6 +5963,9 @@ function saveResult() {
   showToast('ফলাফল সফলভাবে যোগ হয়েছে!');
 }
 function deleteResult(idx) {
+  const r = results[idx];
+  if(r && !canAccessClass(r.cls)){ showToast('⛔ এই শ্রেণির ফলাফল মোছার অনুমতি আপনার নেই','error'); return; }
+  if(!requirePerm('result','del')) return;
   if(!confirm('এই ফলাফল মুছবেন?')) return;
   results.splice(idx,1);
   renderResults();
@@ -6031,6 +6052,7 @@ function filterFees() {
 }
 
 function saveFee() {
+  if(!requirePerm('fees','edit')) return;
   const student = document.getElementById('f-student').value.trim();
   const cls = document.getElementById('f-class').value;
   const amount = parseFloat(document.getElementById('f-amount').value);
@@ -6058,6 +6080,7 @@ function saveFee() {
 }
 
 function deleteFee(idx) {
+  if(!requirePerm('fees','del')) return;
   if(!confirm('এই পেমেন্ট রেকর্ড মুছবেন?')) return;
   fees.splice(idx,1);
   renderFees(); renderDashboard();
@@ -6979,7 +7002,9 @@ function deleteSyllabus(idx){syllabuses.splice(idx,1);renderSyllabus();showToast
 // ============ HOMEWORK ============
 function renderHomework() {
   const clsFilter = document.getElementById('hw-class-filter').value;
-  const data = clsFilter ? homeworks.filter(h=>h.cls===clsFilter) : homeworks;
+  let data = clsFilter ? homeworks.filter(h=>h.cls===clsFilter) : homeworks;
+  // ✅ "সব শ্রেণি" নির্বাচিত থাকলেও শিক্ষক শুধু নিজের ক্লাসের হোমওয়ার্কই দেখবে
+  if(currentUser && currentUser.role==='teacher') data = data.filter(h=>canAccessClass(h.cls));
   const today = new Date().toISOString().split('T')[0];
   const container = document.getElementById('homework-list');
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো হোমওয়ার্ক নেই</div></div>';return;}
@@ -7008,10 +7033,12 @@ function renderHomework() {
 }
 
 function saveHomework() {
+  if(!requirePerm('homework','edit')) return;
   const cls = document.getElementById('hw-class').value;
   const desc = document.getElementById('hw-desc').value.trim();
   const due = document.getElementById('hw-due').value;
   if(!cls){showErr('hw-error','শ্রেণি নির্বাচন করুন');return;}
+  if(!canAccessClass(cls)){showErr('hw-error','এই শ্রেণির জন্য হোমওয়ার্ক দেওয়ার অনুমতি আপনার নেই');return;}
   if(!desc){showErr('hw-error','হোমওয়ার্কের বিবরণ লিখুন');return;}
   if(!due){showErr('hw-error','জমার তারিখ দিন');return;}
   hideErr('hw-error');
@@ -7043,6 +7070,7 @@ function renderSessions() {
     </td></tr>`).join('');
 }
 function saveSession() {
+  if(!requirePerm('session','edit')) return;
   const name = document.getElementById('ses-name').value.trim();
   const start = document.getElementById('ses-start').value;
   const end = document.getElementById('ses-end').value;
@@ -7057,8 +7085,8 @@ function saveSession() {
   renderSessions();
   showToast('সেশন যোগ হয়েছে!');
 }
-function setActiveSession(idx){ sessions.forEach(s=>s.active=false); sessions[idx].active=true; renderSessions(); showToast('সেশন সক্রিয় করা হয়েছে!'); }
-function deleteSession(idx){ sessions.splice(idx,1); renderSessions(); showToast('মুছা হয়েছে','error'); }
+function setActiveSession(idx){ if(!requirePerm('session','edit')) return; sessions.forEach(s=>s.active=false); sessions[idx].active=true; renderSessions(); showToast('সেশন সক্রিয় করা হয়েছে!'); }
+function deleteSession(idx){ if(!requirePerm('session','del')) return; sessions.splice(idx,1); renderSessions(); showToast('মুছা হয়েছে','error'); }
 
 // ============ MASTER DATA (CLASS/SECTION/SUBJECT/GROUP) ============
 let currentMasterTab = 'class';
@@ -7110,6 +7138,7 @@ function openMasterAddModal() {
   openModal('master-add-modal');
 }
 function saveMasterItem() {
+  if(!requirePerm('master-data','edit')) return;
   const cfg = masterConfig[currentMasterTab];
   const name = document.getElementById('md-name').value.trim();
   if(!name){showErr('md-error','নাম লিখুন');return;}
@@ -7124,6 +7153,7 @@ function saveMasterItem() {
   showToast('যোগ করা হয়েছে!');
 }
 function deleteMasterItem(idx) {
+  if(!requirePerm('master-data','del')) return;
   masterConfig[currentMasterTab].list().splice(idx,1);
   renderMasterData();
   showToast('মুছা হয়েছে','error');
@@ -8499,7 +8529,12 @@ function renderTabulation() {
 }
 
 
-function deleteHomework(idx){homeworks.splice(idx,1);renderHomework();showToast('মুছা হয়েছে','error');}
+function deleteHomework(idx){
+  const h = homeworks[idx];
+  if(h && !canAccessClass(h.cls)){ showToast('⛔ এই শ্রেণির হোমওয়ার্ক মোছার অনুমতি আপনার নেই','error'); return; }
+  if(!requirePerm('homework','del')) return;
+  homeworks.splice(idx,1);renderHomework();showToast('মুছা হয়েছে','error');
+}
 
 // ============ EXAM SCHEDULE ============
 function renderExam() {
@@ -8523,6 +8558,7 @@ function renderExam() {
 }
 
 function saveExam() {
+  if(!requirePerm('exam','edit')) return;
   const date = document.getElementById('ex-date').value;
   const time = document.getElementById('ex-time').value.trim();
   if(!date){showErr('ex-error','তারিখ দিন');return;}
@@ -8541,7 +8577,7 @@ function saveExam() {
   renderExam();
   showToast('পরীক্ষা যোগ হয়েছে!');
 }
-function deleteExam(idx){examSchedule.splice(idx,1);renderExam();showToast('মুছা হয়েছে','error');}
+function deleteExam(idx){ if(!requirePerm('exam','del')) return; examSchedule.splice(idx,1);renderExam();showToast('মুছা হয়েছে','error');}
 
 // ============ প্রশ্নপত্র তৈরি (QUESTION PAPER GENERATOR) ============
 function qpUid(prefix){ return prefix + '_' + Date.now() + '_' + Math.floor(Math.random()*10000); }
@@ -9182,6 +9218,8 @@ function renderMarksheet() {
   let data = results;
   if(cls) data = data.filter(r=>r.cls===cls);
   if(exam) data = data.filter(r=>r.exam===exam);
+  // ✅ "সব শ্রেণি" নির্বাচিত থাকলেও শিক্ষক শুধু নিজের ক্লাসের মার্কশিট দেখবে
+  if(currentUser && currentUser.role==='teacher') data = data.filter(r=>canAccessClass(r.cls));
   const school = document.getElementById('s-school-name')?.value||'আদর্শ উচ্চ বিদ্যালয়';
   const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   const container = document.getElementById('marksheet-list');
@@ -9450,7 +9488,10 @@ let permissions = {
     del: ['students','attendance','notice','event-calendar','homework','session','master-data','lesson-plan','assignment','online-class','academic-calendar','voucher'].includes(m.id)
   }])),
   teacher: Object.fromEntries(permModules.map(m=>[m.id,{
-    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report'].includes(m.id),
+    // ✅ সংশোধিত: fees (আর্থিক লেনদেন), sms-notify (SMS পাঠানো), master-data
+    // (স্কুল-ওয়াইড সেটিংস) — এগুলো স্পর্শকাতর/প্রশাসনিক, তাই ডিফল্টে শিক্ষকের
+    // জন্য বন্ধ রাখা হলো। প্রয়োজনে অ্যাডমিন পারমিশন ম্যাট্রিক্স থেকে চালু করতে পারবেন।
+    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report','fees','sms-notify','master-data'].includes(m.id),
     edit: ['attendance','homework','marksheet','result','notice','syllabus','teacher-att','lesson-plan','assignment','online-class','admit-card','seat-plan'].includes(m.id),
     del: false
   }])),
@@ -9482,6 +9523,39 @@ function userHasPerm(pageId, type) {
   return !!p[type];
 }
 
+// ✅ ফাংশন-লেভেল পারমিশন গার্ড — শুধু মেনু/বাটন লুকানো যথেষ্ট না, কারণ কনসোল থেকে
+// সরাসরি ফাংশন কল করা যায়। তাই সেভ/ডিলিট করার আগে এখানেও চেক করা হচ্ছে।
+function requirePerm(pageId, type) {
+  if(currentUser && currentUser.role==='admin') return true;
+  if(!userHasPerm(pageId, type)) {
+    showToast('⛔ এই কাজের অনুমতি আপনার নেই', 'error');
+    return false;
+  }
+  return true;
+}
+
+// শিক্ষক ইউজারকে teachers তালিকার সাথে নাম মিলিয়ে সংযুক্ত করে
+function getLinkedTeacher() {
+  if(!currentUser || currentUser.role!=='teacher') return null;
+  return teachers.find(t=>t.name===currentUser.name) || null;
+}
+
+// একজন শিক্ষকের নিজস্ব ক্লাস তালিকা — t.cls ফিল্ডে কমা দিয়ে একাধিক ক্লাস রাখা যায়
+// (যেমন "ষষ্ঠ - ক, ষষ্ঠ - খ")। admin/principal-এর কোনো বাঁধা নেই (null মানে সব ক্লাস)।
+function getMyClasses() {
+  if(!currentUser || currentUser.role==='admin' || currentUser.role==='principal') return null; // সব ক্লাস
+  const t = getLinkedTeacher();
+  if(!t || !t.cls || t.cls==='—') return [];
+  return t.cls.split(',').map(c=>c.trim()).filter(Boolean);
+}
+// currentUser এই ক্লাসটির জন্য কাজ করতে পারে কিনা (শিক্ষক হলে শুধু নিজের ক্লাস)
+function canAccessClass(cls) {
+  const my = getMyClasses();
+  if(my===null) return true; // admin/principal
+  if(!cls) return true;
+  return my.includes(cls);
+}
+
 function applyNavPermissions() {
   if(!currentUser) return;
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
@@ -9491,6 +9565,26 @@ function applyNavPermissions() {
     if(currentUser.role==='parent' || currentUser.role==='student') { n.style.display='none'; return; }
     const allowed = userHasPerm(page,'view');
     n.style.display = allowed ? '' : 'none';
+  });
+}
+
+// ✅ শিক্ষকের একাউন্টে "নিজের ক্লাস" (teacher.cls, কমা দিয়ে একাধিক) থাকলে
+// attendance/homework/marksheet/result পেজের শ্রেণি-ড্রপডাউনগুলো শুধু সেই
+// ক্লাস(গুলো) দেখাবে — অন্য ক্লাসের জন্য এডিট করার সুযোগ থাকবে না।
+function applyTeacherClassScope() {
+  if(!currentUser || currentUser.role!=='teacher') return;
+  const my = getMyClasses(); // [] হলে কোনো ক্লাস বরাদ্দ নেই, null হলে admin/principal (এখানে আসবে না)
+  const selectIds = ['att-class-select','hw-class-filter','hw-class','ms-class-sel','result-class-filter','r-class'];
+  selectIds.forEach(id=>{
+    const sel = document.getElementById(id);
+    if(!sel) return;
+    Array.from(sel.options).forEach(opt=>{
+      if(opt.value==='') return; // "সব শ্রেণি" অপশন রাখা হলো, রেন্ডার-ফাংশনে ফিল্টার হবে
+      if(!my.includes(opt.value)) opt.remove();
+    });
+    if(sel.options.length && !Array.from(sel.options).some(o=>o.value===sel.value)) {
+      sel.selectedIndex = 0;
+    }
   });
 }
 
@@ -9654,7 +9748,7 @@ function finishLoginUI(u, uid) {
     document.getElementById('nav-parent-portal').style.display='none';
     document.getElementById('nav-student-portal').style.display='none';
     applyNavPermissions();
-    // land on first allowed page
+    applyTeacherClassScope();
     if(u.role!=='admin' && !userHasPerm('dashboard','view')) {
       const firstAllowed = permModules.find(m=>userHasPerm(m.id,'view'));
       if(firstAllowed) {
@@ -11776,6 +11870,7 @@ function updateSMSTemplate() {
   if(el) { el.value = templates[type]||''; document.getElementById('sms-char-count').textContent = toBnNum(el.value.length)+' অক্ষর'; }
 }
 function sendSMSAlert() {
+  if(!requirePerm('sms-notify','edit')) return;
   const msg = document.getElementById('sms-message-text').value.trim();
   if(!msg){ showToast('বার্তা লিখুন','error'); return; }
   if(smsRecipients.length===0){ showToast('প্রাপক নির্বাচন করুন','error'); return; }
@@ -12791,6 +12886,7 @@ function filterAlumni() {
 }
 
 function moveToAlumni(idx) {
+  if(!requirePerm('alumni','edit') || !requirePerm('students','del')) return;
   const s = students[idx];
   if(!confirm(`${s.name}-কে প্রাক্তন ছাত্র হিসেবে স্থানান্তর করবেন? এটি তাকে সক্রিয় ছাত্র তালিকা থেকে সরিয়ে দেবে।`)) return;
   const currentYear = new Date().getFullYear().toString();
@@ -12804,6 +12900,7 @@ function moveToAlumni(idx) {
 }
 
 function deleteAlumni(idx) {
+  if(!requirePerm('alumni','del')) return;
   if(!confirm('এই প্রাক্তন ছাত্রকে তালিকা থেকে মুছবেন?')) return;
   alumni.splice(idx,1);
   renderAlumni();
@@ -12833,6 +12930,18 @@ function calcLeaveDays() {
 
 function populateLeaveTeacherSelect() {
   const sel = document.getElementById('lv-teacher');
+  // ✅ শিক্ষক নিজে লগইন করলে শুধু নিজের নাম দেখবে ও নির্বাচন লক থাকবে —
+  // যাতে অন্য কারো নামে ছুটির আবেদন জমা দিতে না পারে
+  if(currentUser && currentUser.role==='teacher') {
+    const me = getLinkedTeacher();
+    if(me) {
+      sel.innerHTML = `<option value="${me.name}">${me.name} — ${me.designation||'শিক্ষক'}</option>`;
+      sel.value = me.name;
+      sel.disabled = true;
+      return;
+    }
+  }
+  sel.disabled = false;
   sel.innerHTML = teachers.map(t=>`<option value="${t.name}">${t.name} — ${t.designation||'শিক্ষক'}</option>`).join('');
 }
 
@@ -12845,6 +12954,11 @@ function saveLeave() {
   const err = document.getElementById('lv-error');
   err.style.display='none';
   if(!teacher) { err.textContent='শিক্ষক নির্বাচন করুন'; err.style.display='block'; return; }
+  // ✅ ফাংশন-লেভেল গার্ড: শিক্ষক শুধু নিজের নামেই আবেদন জমা দিতে পারবে,
+  // ড্রপডাউন লক করা থাকলেও কনসোল থেকে সরাসরি কল করলে ঠেকানোর জন্য
+  if(currentUser && currentUser.role==='teacher' && teacher!==currentUser.name) {
+    err.textContent='আপনি শুধু নিজের নামে ছুটির আবেদন জমা দিতে পারবেন'; err.style.display='block'; return;
+  }
   if(!start||!end) { err.textContent='শুরু ও শেষ তারিখ দিন'; err.style.display='block'; return; }
   const days = Math.round((new Date(end)-new Date(start))/(1000*60*60*24))+1;
   if(days<=0) { err.textContent='শেষ তারিখ শুরুর তারিখের পরে হতে হবে'; err.style.display='block'; return; }
@@ -12857,7 +12971,13 @@ function saveLeave() {
 }
 
 function approveLeave(idx) {
+  if(!requirePerm('leave','edit')) return;
   const lv = leaveRequests[idx];
+  if(!lv) return;
+  // ✅ কেউ নিজের ছুটি নিজে অনুমোদন করতে পারবে না, এমনকি এডিট পারমিশন থাকলেও
+  if(currentUser && currentUser.role==='teacher' && lv.teacher===currentUser.name) {
+    showToast('⛔ নিজের ছুটির আবেদন নিজে অনুমোদন করা যাবে না', 'error'); return;
+  }
   const balanceKey = lv.type;
   const bal = getLeaveBalance(lv.teacher);
   if(bal[balanceKey]!==undefined && bal[balanceKey] < lv.days) {
@@ -12877,14 +12997,25 @@ function approveLeave(idx) {
 }
 
 function rejectLeave(idx) {
-  leaveRequests[idx].status = 'প্রত্যাখ্যাত';
+  if(!requirePerm('leave','edit')) return;
+  const lv = leaveRequests[idx];
+  if(!lv) return;
+  if(currentUser && currentUser.role==='teacher' && lv.teacher===currentUser.name) {
+    showToast('⛔ নিজের ছুটির আবেদন নিজে প্রত্যাখ্যান করা যাবে না', 'error'); return;
+  }
+  lv.status = 'প্রত্যাখ্যাত';
   renderLeaveList();
   showToast('ছুটির আবেদন প্রত্যাখ্যাত হয়েছে','error');
 }
 
 function renderLeaveList() {
   const filter = document.getElementById('leave-status-filter').value;
-  const data = filter ? leaveRequests.filter(l=>l.status===filter) : leaveRequests;
+  let data = filter ? leaveRequests.filter(l=>l.status===filter) : leaveRequests;
+  // ✅ গোপনীয়তা: যেসব শিক্ষকের ছুটি অনুমোদন/প্রত্যাখ্যান করার অনুমতি নেই, তারা
+  // শুধু নিজের ছুটির আবেদনই দেখবে — অন্য শিক্ষকের ছুটির কারণ/তথ্য দেখতে পারবে না
+  if(currentUser && currentUser.role==='teacher' && !userHasPerm('leave','edit')) {
+    data = data.filter(l=>l.teacher===currentUser.name);
+  }
   const typeClassMap = {'অসুস্থতাজনিত':'sick','নৈমিত্তিক':'casual','অর্জিত':'earned','মাতৃত্বকালীন':'maternity','অন্যান্য':'other'};
   document.getElementById('leave-list').innerHTML = data.length===0
     ? '<div style="text-align:center;color:var(--text-muted);padding:24px">কোনো আবেদন পাওয়া যায়নি</div>'
@@ -12901,7 +13032,7 @@ function renderLeaveList() {
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">📅 ${lv.start} থেকে ${lv.end} (${toBnNum(lv.days)} দিন) • আবেদন: ${lv.appliedOn}</div>
         <div style="font-size:13px;margin-bottom:8px">${lv.reason}</div>
-        ${lv.status==='অপেক্ষমান' ? `<div style="display:flex;gap:8px">
+        ${(lv.status==='অপেক্ষমান' && userHasPerm('leave','edit') && !(currentUser && currentUser.role==='teacher' && lv.teacher===currentUser.name)) ? `<div style="display:flex;gap:8px">
           <button class="btn btn-success" style="font-size:11px;padding:5px 12px" onclick="approveLeave(${idx})">✓ অনুমোদন</button>
           <button class="btn btn-danger" style="font-size:11px;padding:5px 12px" onclick="rejectLeave(${idx})">✕ প্রত্যাখ্যান</button>
         </div>` : ''}
@@ -12916,7 +13047,9 @@ function renderLeaveList() {
 
   // Balances
   const maxDays = {'অসুস্থতাজনিত':14,'নৈমিত্তিক':10,'অর্জিত':20};
-  document.getElementById('leave-balance-list').innerHTML = teachers.map(t=>{
+  const balTeachers = (currentUser && currentUser.role==='teacher' && !userHasPerm('leave','edit'))
+    ? teachers.filter(t=>t.name===currentUser.name) : teachers;
+  document.getElementById('leave-balance-list').innerHTML = balTeachers.map(t=>{
     const bal = getLeaveBalance(t.name);
     return `<div class="leave-balance-card" style="margin-bottom:10px">
       <div style="font-size:13px;font-weight:700;margin-bottom:8px">${t.name}</div>
