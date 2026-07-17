@@ -5031,11 +5031,14 @@ function renderDashboardChartsAll() {
 
 // ড্যাশবোর্ডের নতুন অ্যাডভান্সড অ্যানালিটিক্স অংশের মূল এন্ট্রি পয়েন্ট — renderDashboard() থেকে কল হয়
 function renderDashboardAdvanced() {
-  renderDashboardKPI2();
-  renderDashboardAlerts();
-  renderDashboardSummary();
-  renderDashboardTables();
-  renderDashboardChartsAll();
+  // প্রতিটা অংশ আলাদাভাবে try/catch-এ মোড়ানো — যাতে কোনো একটা অংশে ভবিষ্যতে কোনো
+  // এরর হলেও (যেমন কোনো ডেটা এখনো লোড হয়নি), পুরো ড্যাশবোর্ড বা অ্যাপ ভেঙে না পড়ে,
+  // শুধু ওই একটা ছোট অংশ ফাঁকা থেকে যাবে।
+  try { renderDashboardKPI2(); } catch(e) { console.error('renderDashboardKPI2 এরর:', e); }
+  try { renderDashboardAlerts(); } catch(e) { console.error('renderDashboardAlerts এরর:', e); }
+  try { renderDashboardSummary(); } catch(e) { console.error('renderDashboardSummary এরর:', e); }
+  try { renderDashboardTables(); } catch(e) { console.error('renderDashboardTables এরর:', e); }
+  try { renderDashboardChartsAll(); } catch(e) { console.error('renderDashboardChartsAll এরর:', e); }
 }
 
 // ============ STUDENTS ============
@@ -6488,7 +6491,13 @@ function printPage() {
 // ============ INIT ============
 document.getElementById('topbar-date').textContent = todayBn();
 generateAutoFees(); // অ্যাপ খোলার সাথে সাথেই মিসিং মাসগুলোর বকেয়া অটো তৈরি করে নেয়
-renderDashboard();
+// setTimeout(...,0) দিয়ে পরের টিকে ঠেলে দেওয়া হয়েছে — renderDashboard() এখন examSchedule/teacherAtt/
+// auditLog/leaveRequests-এর মতো ভ্যারিয়েবল ব্যবহার করে যেগুলো এই লাইনের নিচে "let" দিয়ে ডিক্লেয়ার করা।
+// সরাসরি সিঙ্ক্রোনাসভাবে কল করলে সেগুলো তখনো Temporal Dead Zone-এ থাকে ("Cannot access ... before
+// initialization" এরর দেয়) — যা পুরো স্ক্রিপ্ট থামিয়ে দিত এবং তার নিচের লগইন/Firebase সেটআপ কোড
+// কখনো রান-ই হতো না, ফলে লগইন করা যাচ্ছিল না। setTimeout ব্যবহার করলে পুরো স্ক্রিপ্ট (সব let ডিক্লারেশনসহ)
+// আগে সম্পূর্ণভাবে চলে যায়, তারপর ড্যাশবোর্ড রেন্ডার হয়।
+setTimeout(renderDashboard, 0);
 // পেমেন্ট গেটওয়ে থেকে ফেরত এলে (?payment=success/fail/cancel&tran_id=...) তা প্রসেস করা —
 // সেশন/লগইন রিস্টোর হতে একটু সময় লাগতে পারে বলে সামান্য দেরি করা হলো
 setTimeout(()=>{ if(typeof handlePaymentReturn==='function') handlePaymentReturn(); }, 1200);
