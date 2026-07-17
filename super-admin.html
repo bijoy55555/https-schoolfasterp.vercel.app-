@@ -130,10 +130,15 @@
     <div style="overflow-x:auto">
       <table id="sc-table">
         <thead>
-          <tr><th>স্কুল</th><th>প্যাকেজ</th><th>মূল্য</th><th>মেয়াদ শেষ</th><th>অবস্থা</th><th>কাজ</th></tr>
+          <tr><th>স্কুল</th><th>প্যাকেজ</th><th>মূল্য</th><th>মেয়াদ শেষ</th><th>অবস্থা</th><th>ব্যবহারের অবস্থা</th><th>কাজ</th></tr>
         </thead>
-        <tbody id="sc-tbody"><tr><td colspan="6" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
+        <tbody id="sc-tbody"><tr><td colspan="7" style="color:#999">"তালিকা রিফ্রেশ করুন" বাটনে চাপুন</td></tr></tbody>
       </table>
+    </div>
+    <div class="hint" style="margin-top:8px">
+      💡 <b>ব্যবহারের অবস্থা</b> কলামে দেখা যাবে কোনো স্কুল আসলেই ব্যবহার হচ্ছে কিনা (ছাত্র/হাজিরা ডেটা আছে কিনা)।
+      অনেক সময় কেউ ফ্রি ট্রায়াল একাউন্ট খুলে আর ব্যবহার করে না — এমন স্কুল "⚠️ কোনো ডেটা ব্যবহার নেই" দেখাবে,
+      যেগুলো নিশ্চিন্তে ডিলিট করা যায়।
     </div>
     <div class="msg" id="sc-msg"></div>
   </div>
@@ -323,17 +328,37 @@
 
   window.loadSchools = async function() {
     if (!auth.currentUser) { showMsg('sc-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন।', 'err'); return; }
-    document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#999">লোড হচ্ছে...</td></tr>';
+    document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="7" style="color:#999">লোড হচ্ছে...</td></tr>';
     try {
       const snap = await getDocs(collection(db, 'schools'));
       allSchools = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderSchoolTable();
       document.getElementById('sc-msg').style.display = 'none';
       renderBackupMonitor();
+      loadUsageStatus(); // ✅ নতুন: প্রতিটা স্কুলে আসলেই ডেটা ব্যবহার হচ্ছে কিনা চেক করা
     } catch (e) {
       showMsg('sc-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
-      document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="6" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+      document.getElementById('sc-tbody').innerHTML = '<tr><td colspan="7" style="color:#b03030">লোড ব্যর্থ</td></tr>';
     }
+  };
+
+  // ===== নতুন: প্রতিটা স্কুলের "ব্যবহারের অবস্থা" চেক করা =====
+  // students ও attendance সাব-কালেকশনে কোনো ডেটা আছে কিনা দেখেই বোঝা যায়
+  // স্কুলটা আসলে ব্যবহার হচ্ছে, নাকি শুধু ট্রায়াল একাউন্ট খুলে ফেলে রাখা হয়েছে।
+  const usageInfoCache = {};
+  window.loadUsageStatus = async function() {
+    await Promise.all(allSchools.map(async (s) => {
+      try {
+        const [studentsSnap, attSnap] = await Promise.all([
+          getDocs(collection(db, 'schools', s.id, 'students')),
+          getDocs(query(collection(db, 'schools', s.id, 'attendance'), limit(1))),
+        ]);
+        usageInfoCache[s.id] = { studentCount: studentsSnap.size, hasAttendance: !attSnap.empty, loaded: true };
+      } catch (e) {
+        usageInfoCache[s.id] = { studentCount: 0, hasAttendance: false, loaded: true, error: true };
+      }
+      renderSchoolTable(); // প্রতিটা স্কুলের রেজাল্ট আসার সাথে সাথে ধীরে ধীরে আপডেট হবে
+    }));
   };
 
   // ===== ধাপ ৪: সুপার-অ্যাডমিন ব্যাকআপ মনিটরিং =====
@@ -429,23 +454,39 @@
     document.getElementById('sc-summary').textContent = `মোট ${allSchools.length}টি স্কুল, দেখানো হচ্ছে ${rows.length}টি`;
 
     if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="color:#999">কোনো স্কুল পাওয়া যায়নি</td></tr>';
       return;
     }
 
-    tbody.innerHTML = rows.map(({s, badge}) => `
+    tbody.innerHTML = rows.map(({s, badge}) => {
+      const usage = usageInfoCache[s.id];
+      let usageHtml;
+      if (!usage) {
+        usageHtml = '<span style="color:#999">লোড হচ্ছে...</span>';
+      } else if (usage.error) {
+        usageHtml = '<span style="color:#999">যাচাই করা যায়নি</span>';
+      } else if (usage.studentCount === 0 && !usage.hasAttendance) {
+        usageHtml = '<span style="color:#b03030;font-weight:600">⚠️ কোনো ডেটা ব্যবহার নেই</span>';
+      } else {
+        usageHtml = `<span style="color:#1e7e46;font-weight:600">✅ ব্যবহার হচ্ছে</span><br><span style="color:#888;font-size:11px">${usage.studentCount} জন ছাত্র</span>`;
+      }
+      const safeName = (s.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      return `
       <tr>
         <td><b>${s.name || '—'}</b><br><span style="color:#888;font-size:11px">${s.ownerEmail || ''}</span></td>
         <td>${s.package || '—'}</td>
         <td>৳${s.price ?? 0}</td>
         <td>${fmtDate(toDate(s.expiryDate))}</td>
         <td class="${badge.cls}">${badge.label}</td>
+        <td>${usageHtml}</td>
         <td>
           <button style="margin:2px;padding:5px 9px;font-size:12px" onclick="extendSchool('${s.id}',30)">+৩০ দিন</button>
           <button style="margin:2px;padding:5px 9px;font-size:12px;background:${s.status==='suspended'?'#1e7e46':'#b03030'}" onclick="toggleSuspend('${s.id}','${s.status}')">${s.status==='suspended' ? 'সক্রিয় করুন' : 'সাসপেন্ড'}</button>
+          <button style="margin:2px;padding:5px 9px;font-size:12px;background:#7a1010" onclick="confirmDeleteSchool('${s.id}','${safeName}')">🗑️ ডিলিট</button>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
   };
 
   window.extendSchool = async function(schoolId, days) {
@@ -475,6 +516,52 @@
       loadSchools();
     } catch (e) {
       showMsg('sc-msg', '❌ ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+
+  // ===== নতুন: স্কুল সম্পূর্ণভাবে ডিলিট করা (সব ডেটাসহ, স্থায়ীভাবে) =====
+  // ⚠️ এটা অপরিবর্তনীয় (irreversible) — তাই দুই ধাপে নিশ্চিত করা হয়:
+  // ১) সাধারণ কনফার্ম ডায়ালগ, ২) স্কুলের নাম হুবহু টাইপ করে নিশ্চিত করা।
+  window.confirmDeleteSchool = function(schoolId, schoolName) {
+    const usage = usageInfoCache[schoolId];
+    const usageWarning = usage && usage.studentCount > 0
+      ? `\n\n⚠️ সতর্কতা: এই স্কুলে ${usage.studentCount} জন ছাত্রের ডেটা আছে — মানে এটা সক্রিয়ভাবে ব্যবহার হচ্ছে বলে মনে হচ্ছে।`
+      : '';
+    const step1 = confirm(
+      `⚠️ আপনি কি নিশ্চিত "${schoolName}" স্কুলটা স্থায়ীভাবে ডিলিট করতে চান?\n\n` +
+      `এতে এই স্কুলের সব ছাত্র, হাজিরা, ফি, রেজাল্ট, ডিভাইস, RFID ম্যাপিং, শিক্ষক/অভিভাবক লগইন — ` +
+      `সবকিছু চিরতরে মুছে যাবে। এটা ফিরিয়ে আনা যাবে না।` + usageWarning +
+      `\n\nএগিয়ে যেতে OK চাপুন।`
+    );
+    if (!step1) return;
+
+    const typed = prompt(`নিশ্চিত করতে স্কুলের নামটা হুবহু টাইপ করুন:\n"${schoolName}"`);
+    if (typed === null) return;
+    if (typed.trim() !== schoolName.trim()) {
+      showMsg('sc-msg', '❌ নাম মেলেনি, ডিলিট বাতিল করা হলো।', 'err');
+      return;
+    }
+    deleteSchoolNow(schoolId, schoolName);
+  };
+
+  window.deleteSchoolNow = async function(schoolId, schoolName) {
+    showMsg('sc-msg', `⏳ "${schoolName}" মোছা হচ্ছে, একটু অপেক্ষা করুন...`, 'info');
+    try {
+      const idToken = await auth.currentUser.getIdToken();
+      const resp = await fetch('/api/delete-school', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+        body: JSON.stringify({ schoolId }),
+      });
+      const data = await resp.json();
+      if (data.ok) {
+        showMsg('sc-msg', `✅ ${data.message}`, 'ok');
+        loadSchools();
+      } else {
+        showMsg('sc-msg', '❌ ডিলিট ব্যর্থ: ' + (data.error || 'অজানা এরর'), 'err');
+      }
+    } catch (e) {
+      showMsg('sc-msg', '❌ ডিলিট ব্যর্থ: ' + e.message, 'err');
     }
   };
 
