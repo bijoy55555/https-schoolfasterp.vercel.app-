@@ -9782,6 +9782,9 @@ async function initNoticeBell() {
   // এই ফিচারটা আসল Firebase Auth সেশন লাগবে (ডেমো/লোকাল সাব-ইউজারের ক্ষেত্রে
   // কোনো আসল Firebase Auth uid থাকে না বলে সাইলেন্টলি স্কিপ করা হবে)।
   const hasRealAuth = window.auth && window.auth.currentUser;
+  if (window.debugLog) {
+    window.debugLog(`বেল ডিবাগ: role=${currentUser && currentUser.role} roleOk=${roleOk} hasRealAuth=${!!hasRealAuth} hasFb=${!!window.fb} hasDb=${!!window.db}`);
+  }
   if (!roleOk || !hasRealAuth || !window.fb || !window.db) {
     wrap.style.display = 'none';
     return;
@@ -9800,10 +9803,12 @@ async function initNoticeBell() {
     broadcastNoticesList = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     noticeLastSeenSerial = (readSnap && readSnap.exists && readSnap.exists()) ? (readSnap.data().lastSeenSerial || 0) : 0;
     updateNoticeBellBadge();
+    if (window.debugLog) window.debugLog(`বেল: ${broadcastNoticesList.length}টা নোটিশ লোড হয়েছে, lastSeenSerial=${noticeLastSeenSerial}`);
   } catch (e) {
     // পড়ার অনুমতি না থাকলে বা নেটওয়ার্ক সমস্যা হলে বেল লুকিয়ে রাখা হবে,
     // পুরো ড্যাশবোর্ড যেন ভেঙে না পড়ে
     console.warn('বেল নোটিফিকেশন লোড করা যায়নি:', e);
+    if (window.debugLog) window.debugLog('বেল লোড এরর: ' + (e && e.message ? e.message : e));
     wrap.style.display = 'none';
   }
 }
@@ -13437,6 +13442,7 @@ window.addEventListener('load', ()=>{
     line.textContent = '🔴 ' + msg;
     b.appendChild(line);
   }
+  window.debugLog = logErr; // ✅ অ্যাপের অন্য কোড থেকে ডিবাগ মেসেজ পাঠানোর জন্য
   window.addEventListener('error', (e) => {
     logErr((e.message || 'Unknown error') + ' — ' + (e.filename || '') + ':' + (e.lineno || ''));
   });
