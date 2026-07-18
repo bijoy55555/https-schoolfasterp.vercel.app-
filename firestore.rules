@@ -219,6 +219,28 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ===== broadcastNotices/{noticeId} — সুপার-অ্যাডমিন থেকে সব স্কুলে
+    // পাঠানো নোটিফিকেশন (বেল আইকন)। শুধু সুপার-অ্যাডমিন লিখতে/মুছতে পারবে;
+    // যেকোনো স্কুলের অ্যাডমিন (userIndex-এ role=='admin') পড়তে পারবে,
+    // কিন্তু টিচার/স্টুডেন্ট/অভিভাবক পড়তে পারবে না =====
+    match /broadcastNotices/{noticeId} {
+      allow read: if isSuperAdmin() || (hasIndex() && myIndex().role == 'admin');
+      allow write: if isSuperAdmin();
+    }
+
+    // ===== broadcastCounter/meta — সিরিয়াল নম্বরের জন্য কাউন্টার,
+    // শুধু সুপার-অ্যাডমিন প্যানেল থেকেই বাড়ে =====
+    match /broadcastCounter/{docId} {
+      allow read, write: if isSuperAdmin();
+    }
+
+    // ===== noticeReads/{uid} — প্রতিটা অ্যাডমিন ইউজার কোন সিরিয়াল পর্যন্ত
+    // নোটিফিকেশন পড়ে ফেলেছে সেটা নিজের জন্য সেভ রাখে (বেল আইকনের আনরিড
+    // কাউন্ট হিসাব করতে) — শুধু নিজের ডকুমেন্ট নিজে পড়তে/লিখতে পারবে =====
+    match /noticeReads/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
     // ডিফল্ট: ওপরে উল্লেখ না থাকা যেকোনো কিছুতে অ্যাক্সেস বন্ধ
     match /{document=**} {
       allow read, write: if false;

@@ -166,12 +166,35 @@
     </div>
     <div class="msg" id="bk-msg"></div>
   </div>
+
+  <!-- ধাপ ৫: বেল নোটিফিকেশন পাঠান -->
+  <div class="card">
+    <h2>ধাপ ৫ — 📢 নোটিফিকেশন পাঠান (সব স্কুলে)</h2>
+    <div class="hint" style="margin-top:0">
+      এখানে যা লিখে পাঠাবেন তা <b>সব স্কুলের অ্যাডমিন/প্রধান শিক্ষকের</b> ড্যাশবোর্ডে "ড্যাশবোর্ড" লেখার পাশে 🔔 বেল আইকনে দেখা যাবে
+      (শিক্ষক/ছাত্র/অভিভাবক দেখতে পাবে না)। যেমন: "আজকে সফটওয়্যার আপডেট করা হবে" বা নতুন ফিচার যোগ করলে সেই ঘোষণা।
+    </div>
+    <div class="form-group">
+      <label>মেসেজ লিখুন</label>
+      <textarea id="bn-message" rows="4" placeholder="যেমন: আজকে রাতে সফটওয়্যার আপডেট করা হবে, কিছুক্ষণ সিস্টেম বন্ধ থাকতে পারে।" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px;box-sizing:border-box"></textarea>
+    </div>
+    <button id="send-notice-btn" onclick="sendBroadcastNotice()">📢 নোটিফিকেশন পাঠান</button>
+    <div class="msg" id="bn-msg"></div>
+
+    <div style="margin-top:18px;overflow-x:auto">
+      <h2 style="font-size:15px">পাঠানো নোটিফিকেশনের তালিকা</h2>
+      <table id="bn-table">
+        <thead><tr><th>সিরিয়াল</th><th>মেসেজ</th><th>পাঠানোর সময়</th><th>কাজ</th></tr></thead>
+        <tbody id="bn-tbody"><tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script type="module">
   import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit, Timestamp, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, orderBy, limit, Timestamp, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
   // ✅ আপনার আসল Firebase প্রজেক্ট (school-erp-bd) বসানো হয়েছে
   const firebaseConfig = {
@@ -206,6 +229,7 @@
       if (snap.exists()) {
         isSuperAdminVerified = true;
         showMsg('sa-login-msg', '✅ লগইন সফল — আপনি সুপার-অ্যাডমিন হিসেবে যাচাইকৃত।', 'ok');
+        loadBroadcastNotices();
       } else {
         isSuperAdminVerified = false;
         showMsg('sa-login-msg',
@@ -562,6 +586,84 @@
       }
     } catch (e) {
       showMsg('sc-msg', '❌ ডিলিট ব্যর্থ: ' + e.message, 'err');
+    }
+  };
+
+  // ===== ধাপ ৫: বেল নোটিফিকেশন (broadcastNotices) =====
+  // সিরিয়াল নম্বর atomically বাড়ানোর জন্য একটা ছোট কাউন্টার ডকুমেন্ট
+  // (broadcastCounter/meta) ব্যবহার করা হয়, যাতে দুইজন সুপার-অ্যাডমিন
+  // একসাথে পাঠালেও সিরিয়াল নম্বর কখনো ডুপ্লিকেট না হয়।
+  let broadcastNoticesCache = [];
+
+  window.sendBroadcastNotice = async function() {
+    if (!auth.currentUser || !isSuperAdminVerified) { showMsg('bn-msg', 'আগে সুপার-অ্যাডমিন হিসেবে লগইন করুন (ধাপ ১)।', 'err'); return; }
+    const textEl = document.getElementById('bn-message');
+    const message = textEl.value.trim();
+    if (!message) { showMsg('bn-msg', 'মেসেজ লিখুন।', 'err'); return; }
+
+    const btn = document.getElementById('send-notice-btn');
+    btn.disabled = true; btn.textContent = 'পাঠানো হচ্ছে...';
+    try {
+      const counterRef = doc(db, 'broadcastCounter', 'meta');
+      const serial = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(counterRef);
+        const next = (snap.exists() ? (snap.data().count || 0) : 0) + 1;
+        tx.set(counterRef, { count: next });
+        return next;
+      });
+
+      const noticeRef = doc(collection(db, 'broadcastNotices'));
+      await setDoc(noticeRef, {
+        serial,
+        message,
+        createdAt: serverTimestamp(),
+        createdAtIso: new Date().toISOString(),
+      });
+
+      textEl.value = '';
+      showMsg('bn-msg', `✅ নোটিফিকেশন #${serial} সব স্কুলে পাঠানো হয়েছে।`, 'ok');
+      loadBroadcastNotices();
+    } catch (e) {
+      showMsg('bn-msg', '❌ পাঠানো যায়নি: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false; btn.textContent = '📢 নোটিফিকেশন পাঠান';
+    }
+  };
+
+  window.loadBroadcastNotices = async function() {
+    if (!auth.currentUser || !isSuperAdminVerified) return;
+    const tbody = document.getElementById('bn-tbody');
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    try {
+      const q = query(collection(db, 'broadcastNotices'), orderBy('serial', 'desc'), limit(50));
+      const snap = await getDocs(q);
+      broadcastNoticesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (broadcastNoticesCache.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#999">এখনো কোনো নোটিফিকেশন পাঠানো হয়নি</td></tr>';
+        return;
+      }
+      tbody.innerHTML = broadcastNoticesCache.map(n => `
+        <tr>
+          <td>#${n.serial}</td>
+          <td>${(n.message || '').replace(/</g, '&lt;')}</td>
+          <td>${fmtDateTime(n.createdAtIso)}</td>
+          <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick="deleteBroadcastNotice('${n.id}')">🗑️ মুছুন</button></td>
+        </tr>
+      `).join('');
+    } catch (e) {
+      showMsg('bn-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+    }
+  };
+
+  window.deleteBroadcastNotice = async function(noticeId) {
+    if (!confirm('এই নোটিফিকেশনটা মুছে ফেলতে চান? সব স্কুল থেকে এটা আর দেখা যাবে না।')) return;
+    try {
+      await deleteDoc(doc(db, 'broadcastNotices', noticeId));
+      showMsg('bn-msg', '✅ মুছে ফেলা হয়েছে।', 'ok');
+      loadBroadcastNotices();
+    } catch (e) {
+      showMsg('bn-msg', '❌ মুছতে ব্যর্থ: ' + e.message, 'err');
     }
   };
 

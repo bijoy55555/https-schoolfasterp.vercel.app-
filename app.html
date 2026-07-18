@@ -38,6 +38,18 @@
   @media(max-width:1024px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
+  /* ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন (শুধু অ্যাডমিন/প্রধান শিক্ষক দেখবে) ===== */
+  .notice-bell-wrap { position:relative; display:none; margin-left:10px; }
+  .notice-bell-btn { background:none; border:none; font-size:20px; cursor:pointer; position:relative; padding:4px 6px; line-height:1; color:var(--primary); }
+  .notice-bell-badge { position:absolute; top:-2px; right:0px; background:var(--danger,#c0392b); color:#fff; font-size:10px; font-weight:700; border-radius:50px; min-width:16px; height:16px; padding:0 4px; display:flex; align-items:center; justify-content:center; }
+  .notice-bell-dropdown { display:none; position:absolute; top:36px; left:0; width:320px; max-width:85vw; max-height:400px; overflow-y:auto; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,0.18); z-index:400; }
+  .notice-bell-dropdown.open { display:block; }
+  .notice-bell-header { padding:12px 14px; font-weight:700; font-size:13.5px; border-bottom:1px solid var(--border); color:var(--primary); }
+  .notice-bell-item { padding:10px 14px; border-bottom:1px solid var(--border); font-size:12.5px; }
+  .notice-bell-item:last-child { border-bottom:none; }
+  .notice-bell-item .nb-serial { font-weight:700; color:var(--primary); margin-right:6px; }
+  .notice-bell-item .nb-time { font-size:10.5px; color:var(--text-muted); margin-top:3px; }
+  .notice-bell-empty { padding:16px 14px; text-align:center; color:var(--text-muted); font-size:12.5px; }
   .topbar-date { font-size:12px; color:var(--text-muted); }
   .user-chip { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:50px; padding:6px 14px 6px 6px; font-size:13px; font-weight:600; color:var(--primary); }
   .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
@@ -743,6 +755,15 @@
     <div style="display:flex;align-items:center">
       <button class="hamburger" onclick="toggleSidebar()">☰</button>
       <div class="topbar-title" id="page-title">ড্যাশবোর্ড</div>
+      <div class="notice-bell-wrap" id="notice-bell-wrap">
+        <button class="notice-bell-btn" id="notice-bell-btn" onclick="toggleNoticeBellDropdown()" title="নোটিফিকেশন">
+          🔔<span class="notice-bell-badge" id="notice-bell-badge" style="display:none">0</span>
+        </button>
+        <div class="notice-bell-dropdown" id="notice-bell-dropdown">
+          <div class="notice-bell-header">📢 নোটিফিকেশন</div>
+          <div id="notice-bell-list"><div class="notice-bell-empty">লোড হচ্ছে...</div></div>
+        </div>
+      </div>
     </div>
     <div class="topbar-right">
       <div id="subscription-badge" style="display:none;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px"></div>
@@ -9746,6 +9767,105 @@ function renderProfilePage(){
   }
 }
 
+// ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন — শুধু admin/principal রোলের জন্য =====
+// এই নোটিসগুলো সুপার-অ্যাডমিন প্যানেল (super-admin.html) থেকে পাঠানো হয়
+// (broadcastNotices কালেকশন, সব স্কুলের জন্য কমন)। প্রতিটা ইউজার কোন
+// সিরিয়াল পর্যন্ত পড়েছে তা noticeReads/{uid}-এ সেভ থাকে, যাতে আনরিড
+// কাউন্ট ঠিকভাবে হিসাব হয়।
+let broadcastNoticesList = [];
+let noticeLastSeenSerial = 0;
+
+async function initNoticeBell() {
+  const wrap = document.getElementById('notice-bell-wrap');
+  if (!wrap) return;
+  const roleOk = currentUser && (currentUser.role === 'admin' || currentUser.role === 'principal');
+  // এই ফিচারটা আসল Firebase Auth সেশন লাগবে (ডেমো/লোকাল সাব-ইউজারের ক্ষেত্রে
+  // কোনো আসল Firebase Auth uid থাকে না বলে সাইলেন্টলি স্কিপ করা হবে)।
+  const hasRealAuth = window.auth && window.auth.currentUser;
+  if (!roleOk || !hasRealAuth || !window.fb || !window.db) {
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = '';
+  const uid = window.auth.currentUser.uid;
+  try {
+    const [noticesSnap, readSnap] = await Promise.all([
+      window.fb.getDocs(window.fb.query(
+        window.fb.collection(window.db, 'broadcastNotices'),
+        window.fb.orderBy('serial', 'desc'),
+        window.fb.limit(50)
+      )),
+      window.fb.getDoc(window.fb.doc(window.db, 'noticeReads', uid)).catch(() => null),
+    ]);
+    broadcastNoticesList = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    noticeLastSeenSerial = (readSnap && readSnap.exists && readSnap.exists()) ? (readSnap.data().lastSeenSerial || 0) : 0;
+    updateNoticeBellBadge();
+  } catch (e) {
+    // পড়ার অনুমতি না থাকলে বা নেটওয়ার্ক সমস্যা হলে বেল লুকিয়ে রাখা হবে,
+    // পুরো ড্যাশবোর্ড যেন ভেঙে না পড়ে
+    console.warn('বেল নোটিফিকেশন লোড করা যায়নি:', e);
+    wrap.style.display = 'none';
+  }
+}
+
+function updateNoticeBellBadge() {
+  const badge = document.getElementById('notice-bell-badge');
+  if (!badge) return;
+  const unreadCount = broadcastNoticesList.filter(n => (n.serial || 0) > noticeLastSeenSerial).length;
+  if (unreadCount > 0) {
+    badge.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderNoticeBellList() {
+  const listEl = document.getElementById('notice-bell-list');
+  if (!listEl) return;
+  if (broadcastNoticesList.length === 0) {
+    listEl.innerHTML = '<div class="notice-bell-empty">এখনো কোনো নোটিফিকেশন আসেনি</div>';
+    return;
+  }
+  listEl.innerHTML = broadcastNoticesList.map(n => {
+    let timeStr = '—';
+    try { timeStr = new Date(n.createdAtIso).toLocaleString('bn-BD'); } catch (e) {}
+    return `<div class="notice-bell-item"><span class="nb-serial">#${n.serial}</span>${(n.message || '').replace(/</g, '&lt;')}<div class="nb-time">${timeStr}</div></div>`;
+  }).join('');
+}
+
+async function toggleNoticeBellDropdown() {
+  const dropdown = document.getElementById('notice-bell-dropdown');
+  if (!dropdown) return;
+  const opening = !dropdown.classList.contains('open');
+  dropdown.classList.toggle('open', opening);
+  if (!opening) return;
+
+  renderNoticeBellList();
+
+  // ড্রপডাউন খোলার সাথে সাথেই "পড়া হয়ে গেছে" মার্ক করে দেওয়া হবে
+  const maxSerial = broadcastNoticesList.reduce((m, n) => Math.max(m, n.serial || 0), 0);
+  if (maxSerial > noticeLastSeenSerial && window.auth && window.auth.currentUser) {
+    noticeLastSeenSerial = maxSerial;
+    updateNoticeBellBadge();
+    try {
+      await window.fb.setDoc(
+        window.fb.doc(window.db, 'noticeReads', window.auth.currentUser.uid),
+        { lastSeenSerial: maxSerial }
+      );
+    } catch (e) { console.warn('পড়ার তথ্য সেভ করা যায়নি:', e); }
+  }
+}
+
+// বেলের বাইরে ক্লিক করলে ড্রপডাউন বন্ধ হয়ে যাবে
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('notice-bell-wrap');
+  const dropdown = document.getElementById('notice-bell-dropdown');
+  if (wrap && dropdown && dropdown.classList.contains('open') && !wrap.contains(e.target)) {
+    dropdown.classList.remove('open');
+  }
+});
+
 function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
   document.getElementById('login-screen').classList.remove('active');
@@ -9775,6 +9895,7 @@ function finishLoginUI(u, uid) {
     document.getElementById('nav-student-portal').style.display='none';
     applyNavPermissions();
     applyTeacherClassScope();
+    initNoticeBell();
     if(u.role!=='admin' && !userHasPerm('dashboard','view')) {
       const firstAllowed = permModules.find(m=>userHasPerm(m.id,'view'));
       if(firstAllowed) {
