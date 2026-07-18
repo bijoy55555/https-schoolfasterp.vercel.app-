@@ -9800,7 +9800,9 @@ async function initNoticeBell() {
       )),
       window.fb.getDoc(window.fb.doc(window.db, 'noticeReads', uid)).catch(() => null),
     ]);
-    broadcastNoticesList = noticesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    broadcastNoticesList = noticesSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(n => !n.expiresAtIso || new Date(n.expiresAtIso).getTime() >= Date.now());
     noticeLastSeenSerial = (readSnap && readSnap.exists && readSnap.exists()) ? (readSnap.data().lastSeenSerial || 0) : 0;
     updateNoticeBellBadge();
     if (window.debugLog) window.debugLog(`বেল: ${broadcastNoticesList.length}টা নোটিশ লোড হয়েছে, lastSeenSerial=${noticeLastSeenSerial}`);

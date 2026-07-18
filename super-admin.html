@@ -178,14 +178,26 @@
       <label>মেসেজ লিখুন</label>
       <textarea id="bn-message" rows="4" placeholder="যেমন: আজকে রাতে সফটওয়্যার আপডেট করা হবে, কিছুক্ষণ সিস্টেম বন্ধ থাকতে পারে।" style="width:100%;padding:10px;border-radius:8px;border:1px solid #ccc;font-family:inherit;font-size:14px;box-sizing:border-box"></textarea>
     </div>
+    <div class="form-group">
+      <label>কতদিন পর্যন্ত দেখা যাবে (তারপর নিজে থেকে মুছে যাবে)</label>
+      <select id="bn-days" style="padding:8px;border-radius:8px;border:1px solid #ccc;font-size:14px">
+        <option value="1">১ দিন</option>
+        <option value="3">৩ দিন</option>
+        <option value="7" selected>৭ দিন</option>
+        <option value="15">১৫ দিন</option>
+        <option value="30">৩০ দিন</option>
+        <option value="90">৯০ দিন</option>
+        <option value="0">কখনো মুছবে না (ম্যানুয়ালি মুছতে হবে)</option>
+      </select>
+    </div>
     <button id="send-notice-btn" onclick="sendBroadcastNotice()">📢 নোটিফিকেশন পাঠান</button>
     <div class="msg" id="bn-msg"></div>
 
     <div style="margin-top:18px;overflow-x:auto">
       <h2 style="font-size:15px">পাঠানো নোটিফিকেশনের তালিকা</h2>
       <table id="bn-table">
-        <thead><tr><th>সিরিয়াল</th><th>মেসেজ</th><th>পাঠানোর সময়</th><th>কাজ</th></tr></thead>
-        <tbody id="bn-tbody"><tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr></tbody>
+        <thead><tr><th>সিরিয়াল</th><th>মেসেজ</th><th>পাঠানোর সময়</th><th>মেয়াদ</th><th>কাজ</th></tr></thead>
+        <tbody id="bn-tbody"><tr><td colspan="5" style="color:#999">লোড হচ্ছে...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -600,6 +612,7 @@
     const textEl = document.getElementById('bn-message');
     const message = textEl.value.trim();
     if (!message) { showMsg('bn-msg', 'মেসেজ লিখুন।', 'err'); return; }
+    const days = Number(document.getElementById('bn-days').value) || 0;
 
     const btn = document.getElementById('send-notice-btn');
     btn.disabled = true; btn.textContent = 'পাঠানো হচ্ছে...';
@@ -612,12 +625,16 @@
         return next;
       });
 
+      // days=0 মানে "কখনো মুছবে না" — সেক্ষেত্রে expiresAtIso রাখা হয় না
+      const expiresAtIso = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : null;
+
       const noticeRef = doc(collection(db, 'broadcastNotices'));
       await setDoc(noticeRef, {
         serial,
         message,
         createdAt: serverTimestamp(),
         createdAtIso: new Date().toISOString(),
+        expiresAtIso,
       });
 
       textEl.value = '';
@@ -633,26 +650,47 @@
   window.loadBroadcastNotices = async function() {
     if (!auth.currentUser || !isSuperAdminVerified) return;
     const tbody = document.getElementById('bn-tbody');
-    tbody.innerHTML = '<tr><td colspan="4" style="color:#999">লোড হচ্ছে...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:#999">লোড হচ্ছে...</td></tr>';
     try {
       const q = query(collection(db, 'broadcastNotices'), orderBy('serial', 'desc'), limit(50));
       const snap = await getDocs(q);
-      broadcastNoticesCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      if (broadcastNoticesCache.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="color:#999">এখনো কোনো নোটিফিকেশন পাঠানো হয়নি</td></tr>';
+      const allNotices = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // ✅ মেয়াদ শেষ হওয়া নোটিশ এখানেই (সুপার-অ্যাডমিন প্যানেল থেকে) অটো-মুছে
+      // ফেলা হয়, কারণ শুধু সুপার-অ্যাডমিনেরই delete পারমিশন আছে (দেখুন
+      // firestore.rules) — অ্যাপ থেকে ডিলিট করা সম্ভব না। তালিকা লোড হওয়ার
+      // সময়ই এই ক্লিনআপ চলে, তাই মাঝেমধ্যে এই প্যানেলে ঢুকে দেখাটাই যথেষ্ট।
+      const now = Date.now();
+      const expired = allNotices.filter(n => n.expiresAtIso && new Date(n.expiresAtIso).getTime() < now);
+      const active = allNotices.filter(n => !n.expiresAtIso || new Date(n.expiresAtIso).getTime() >= now);
+      if (expired.length > 0) {
+        Promise.all(expired.map(n => deleteDoc(doc(db, 'broadcastNotices', n.id)).catch(() => {})));
+      }
+
+      broadcastNoticesCache = active;
+      if (active.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="color:#999">এখনো কোনো নোটিফিকেশন পাঠানো হয়নি</td></tr>';
         return;
       }
-      tbody.innerHTML = broadcastNoticesCache.map(n => `
+      tbody.innerHTML = active.map(n => {
+        let expiryLabel = '<span style="color:#999">কখনো মুছবে না</span>';
+        if (n.expiresAtIso) {
+          const daysLeft = Math.ceil((new Date(n.expiresAtIso).getTime() - now) / 86400000);
+          expiryLabel = daysLeft <= 1 ? `<span style="color:#b03030">আজই মুছে যাবে</span>` : `আর ${daysLeft} দিন পর মুছে যাবে`;
+        }
+        return `
         <tr>
           <td>#${n.serial}</td>
           <td>${(n.message || '').replace(/</g, '&lt;')}</td>
           <td>${fmtDateTime(n.createdAtIso)}</td>
+          <td>${expiryLabel}</td>
           <td><button style="margin:2px;padding:5px 9px;font-size:12px" onclick="deleteBroadcastNotice('${n.id}')">🗑️ মুছুন</button></td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     } catch (e) {
       showMsg('bn-msg', '❌ তালিকা লোড করা যায়নি: ' + e.message, 'err');
-      tbody.innerHTML = '<tr><td colspan="4" style="color:#b03030">লোড ব্যর্থ</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" style="color:#b03030">লোড ব্যর্থ</td></tr>';
     }
   };
 
