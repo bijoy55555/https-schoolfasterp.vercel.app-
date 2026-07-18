@@ -39,7 +39,7 @@
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
   /* ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন (শুধু অ্যাডমিন/প্রধান শিক্ষক দেখবে) ===== */
-  .notice-bell-wrap { position:relative; display:none; margin-left:10px; }
+  .notice-bell-wrap { position:relative; display:none; align-items:center; margin-left:10px; }
   .notice-bell-btn { background:none; border:none; font-size:20px; cursor:pointer; position:relative; padding:4px 6px; line-height:1; color:var(--primary); }
   .notice-bell-badge { position:absolute; top:-2px; right:0px; background:var(--danger,#c0392b); color:#fff; font-size:10px; font-weight:700; border-radius:50px; min-width:16px; height:16px; padding:0 4px; display:flex; align-items:center; justify-content:center; }
   .notice-bell-dropdown { display:none; position:absolute; top:36px; left:0; width:320px; max-width:85vw; max-height:400px; overflow-y:auto; background:var(--card-bg); border:1px solid var(--border); border-radius:12px; box-shadow:0 8px 28px rgba(0,0,0,0.18); z-index:400; }
@@ -9789,7 +9789,7 @@ async function initNoticeBell() {
     wrap.style.display = 'none';
     return;
   }
-  wrap.style.display = '';
+  wrap.style.display = 'inline-flex';
   const uid = window.auth.currentUser.uid;
   try {
     const [noticesSnap, readSnap] = await Promise.all([
@@ -13416,40 +13416,6 @@ window.addEventListener('load', ()=>{
   renderDashboard(); // pre-render for after login
 });
 
-</script>
-<script>
-// ===== অস্থায়ী মোবাইল ডিবাগ বক্স — সমস্যা খুঁজে বের করার পর এই পুরো
-// <script> ব্লকটা মুছে ফেলা যাবে। কোনো জাভাস্ক্রিপ্ট এরর হলে স্ক্রিনের
-// নিচে লাল বক্সে দেখাবে, যাতে DevTools ছাড়াই মোবাইল থেকে দেখা যায়। =====
-(function(){
-  let box = null;
-  function ensureBox(){
-    if (box) return box;
-    box = document.createElement('div');
-    box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow-y:auto;background:#7a1010;color:#fff;font-size:11px;font-family:monospace;padding:8px 10px;z-index:999999;white-space:pre-wrap;word-break:break-all;';
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '✕ বন্ধ করুন';
-    closeBtn.style.cssText = 'display:block;margin-bottom:6px;background:#fff;color:#7a1010;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;';
-    closeBtn.onclick = () => { box.style.display = 'none'; };
-    box.appendChild(closeBtn);
-    document.body.appendChild(box);
-    return box;
-  }
-  function logErr(msg){
-    const b = ensureBox();
-    const line = document.createElement('div');
-    line.style.cssText = 'border-top:1px solid rgba(255,255,255,0.25);padding:5px 0';
-    line.textContent = '🔴 ' + msg;
-    b.appendChild(line);
-  }
-  window.debugLog = logErr; // ✅ অ্যাপের অন্য কোড থেকে ডিবাগ মেসেজ পাঠানোর জন্য
-  window.addEventListener('error', (e) => {
-    logErr((e.message || 'Unknown error') + ' — ' + (e.filename || '') + ':' + (e.lineno || ''));
-  });
-  window.addEventListener('unhandledrejection', (e) => {
-    logErr('Promise error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
-  });
-})();
 </script>
 </body>
 </html>
