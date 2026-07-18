@@ -129,6 +129,23 @@
   .feat-tags{display:flex; flex-wrap:wrap; gap:6px;}
   .feat-tags span{font-size:11px; font-weight:600; color:var(--green-dark); background:#eaf7ee; padding:4px 9px; border-radius:100px;}
 
+  /* ===== MOBILE APPS ===== */
+  .app-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:20px;}
+  @media (max-width:900px){ .app-grid{grid-template-columns:1fr; max-width:380px; margin:0 auto;} }
+  .app-card{position:relative; background:#fff; border:1.5px solid var(--line); border-radius:18px; padding:30px 24px; text-align:center; transition:transform .15s ease, box-shadow .15s ease, border-color .15s ease;}
+  .app-card:hover{transform:translateY(-4px); box-shadow:var(--shadow);}
+  .app-card.live{border-color:rgba(22,163,74,.4); box-shadow:0 12px 34px rgba(22,163,74,.14);}
+  .app-icon{width:64px;height:64px;border-radius:16px;background:#eef6f0;display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 16px;}
+  .app-card.soon .app-icon{background:#f4f0e4;}
+  .app-badge{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.3px; padding:4px 12px; border-radius:100px; margin-bottom:12px;}
+  .app-badge.live{background:#eaf7ee; color:var(--green-dark);}
+  .app-badge.soon{background:var(--gold-soft); color:#8a6a12;}
+  .app-card h3{margin:0 0 8px; font-size:17.5px; font-weight:700;}
+  .app-card p{font-size:13.5px; color:var(--muted); margin:0 0 20px; min-height:40px;}
+  .app-note{font-size:11.5px; color:var(--muted); margin-top:12px;}
+  .btn[disabled]{opacity:.5; cursor:not-allowed;}
+  .btn[disabled]:hover{background:transparent;}
+
   /* ===== BIOMETRIC SPOTLIGHT ===== */
   .spotlight{background:linear-gradient(180deg,#0f2740,var(--navy)); color:#fff; border-radius:24px; padding:48px; display:grid; grid-template-columns:1fr 1fr; gap:44px; align-items:center;}
   @media (max-width:900px){ .spotlight{grid-template-columns:1fr; padding:32px 24px;} }
@@ -192,6 +209,7 @@
       <a href="#features">ফিচার</a>
       <a href="#biometric">হাজিরা সিস্টেম</a>
       <a href="#how">কীভাবে কাজ করে</a>
+      <a href="#apps">📱 অ্যাপ</a>
       <a href="#trial">ট্রায়াল</a>
     </div>
     <div class="nav-cta">
@@ -358,6 +376,40 @@
   </div>
 </section>
 
+<section class="section" id="apps" style="background:#fff">
+  <div class="container">
+    <div class="section-head" data-reveal>
+      <div class="section-eyebrow">📱 মোবাইল অ্যাপ</div>
+      <h2>অভিভাবক, শিক্ষার্থী ও শিক্ষক — সবার জন্য আলাদা অ্যাপ</h2>
+      <p>একই স্কুল ERP সিস্টেমের সাথে যুক্ত, কিন্তু প্রত্যেকের প্রয়োজন অনুযায়ী আলাদা মোবাইল অ্যাপ। প্লে স্টোর ছাড়াই সরাসরি ফোনে ডাউনলোড ও ইনস্টল করা যায়।</p>
+    </div>
+    <div class="app-grid">
+      <div class="app-card live" data-reveal>
+        <div class="app-icon">👨‍👩‍👧</div>
+        <div class="app-badge live">✅ চালু আছে</div>
+        <h3>অভিভাবক অ্যাপ</h3>
+        <p>সন্তানের হাজিরা, পরীক্ষার ফলাফল, ফি ও স্কুলের নোটিশ — সব এক জায়গায় দেখুন।</p>
+        <a class="btn btn-primary btn-block" href="/downloads/parent-app.apk" download="Parent-App.apk">⬇️ APK ডাউনলোড করুন</a>
+        <div class="app-note">Android ফোনে সরাসরি ইনস্টল করা যাবে, Play Store লাগবে না।</div>
+      </div>
+      <div class="app-card soon" data-reveal>
+        <div class="app-icon">🧑‍🎓</div>
+        <div class="app-badge soon">🚧 শীঘ্রই আসছে</div>
+        <h3>শিক্ষার্থী অ্যাপ</h3>
+        <p>রুটিন, হোমওয়ার্ক, পরীক্ষার ফলাফল ও নোটিশ শিক্ষার্থীর হাতের মুঠোয়।</p>
+        <button class="btn btn-ghost btn-block" disabled>শীঘ্রই আসছে</button>
+      </div>
+      <div class="app-card soon" data-reveal>
+        <div class="app-icon">🧑‍🏫</div>
+        <div class="app-badge soon">🚧 শীঘ্রই আসছে</div>
+        <h3>শিক্ষক অ্যাপ</h3>
+        <p>হাজিরা নেওয়া, নম্বর দেওয়া ও ছুটির আবেদন — সব মোবাইল থেকেই।</p>
+        <button class="btn btn-ghost btn-block" disabled>শীঘ্রই আসছে</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="section" id="trial">
   <div class="container">
     <div class="trial-band" data-reveal>
@@ -406,6 +458,7 @@
       <div>© <span id="year"></span> স্কুল ERP। সর্বস্বত্ব সংরক্ষিত।</div>
       <div style="display:flex;gap:20px">
         <a href="app.html">লগইন</a>
+        <a href="#apps">📱 মোবাইল অ্যাপ</a>
         <a href="pay.html">পেমেন্ট</a>
         <a href="tel:01858293479">📞 01858293479</a>
       </div>
