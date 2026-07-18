@@ -13384,5 +13384,52 @@ window.addEventListener('load', ()=>{
     });
   }
 </script>
+
+<!-- ✅ Chrome-এ "Desktop site" মোড চালু থাকলে অভিভাবককে সতর্ক করার ব্যানার -->
+<style>
+  #desktop-mode-banner{
+    display:none; position:fixed; left:12px; right:12px; bottom:12px; z-index:99999;
+    background:#fff; border:1.5px solid #f5c26b; border-radius:16px;
+    box-shadow:0 12px 32px rgba(0,0,0,0.22); padding:16px 18px;
+    font-family:'Hind Siliguri',sans-serif;
+  }
+  #desktop-mode-banner.show{ display:block; }
+  #desktop-mode-banner .dmb-title{ font-size:14px; font-weight:700; color:#8a5a12; display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  #desktop-mode-banner .dmb-text{ font-size:12.5px; color:#5d6d7e; line-height:1.6; }
+  #desktop-mode-banner .dmb-actions{ display:flex; justify-content:flex-end; margin-top:10px; }
+  #desktop-mode-banner .dmb-close{
+    border:none; background:#1a5276; color:#fff; font-size:12.5px; font-weight:700;
+    padding:8px 16px; border-radius:8px; cursor:pointer; font-family:'Hind Siliguri',sans-serif;
+  }
+</style>
+<div id="desktop-mode-banner">
+  <div class="dmb-title">⚠️ Desktop Site মোড চালু আছে</div>
+  <div class="dmb-text">
+    আপনার Chrome ব্রাউজারে "Desktop site" অপশনটি চালু আছে, তাই অ্যাপের পেজ ছোট/ওয়েবসাইটের মতো দেখাতে পারে।
+    এটা বন্ধ করতে: Chrome-এর <b>⋮ মেনু বাটনে</b> চাপুন → <b>"Desktop site"</b>-এর পাশের টিক/চেক তুলে দিন → অ্যাপটি আবার খুলুন।
+  </div>
+  <div class="dmb-actions">
+    <button class="dmb-close" onclick="document.getElementById('desktop-mode-banner').classList.remove('show')">বুঝেছি</button>
+  </div>
+</div>
+<script>
+(function(){
+  function looksLikeDesktopMode(){
+    var ua = navigator.userAgent || "";
+    var isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    var uaSaysMobile = /Mobi|Android/i.test(ua);
+    var wideLayoutViewport = window.innerWidth > 550; // মোবাইল হলে সাধারণত ৪০০-এর নিচে থাকে
+    // টাচ-স্ক্রিন ডিভাইস, কিন্তু ইউজার-এজেন্ট মোবাইল বলছে না এবং লেআউট চওড়া — এটাই Desktop-site মোডের চিহ্ন
+    return isTouchDevice && !uaSaysMobile && wideLayoutViewport;
+  }
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      if (looksLikeDesktopMode()) {
+        document.getElementById('desktop-mode-banner').classList.add('show');
+      }
+    }, 800);
+  });
+})();
+</script>
 </body>
 </html>
