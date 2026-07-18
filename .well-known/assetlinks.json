@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "app.vercel.schoolfasterp.twa",
       "sha256_cert_fingerprints": [
-        "EA:B3:28:4A:93:5D:16:87:DF:EA:A4:2C:42:5A:17:4A:64:A0:7D:EE:33:84:23:C9:E8:AD:EF:C0:CC:1D:6F:E5"
+        "EA:B3:28:4A:93:5D:16:87:DF:EA:A4:2C:42:5A:17:4A:64:A0:7D:EE:33:84:23:C9:E8:AD:EF:C0:CC:1D:6F:E5",
+        "C9:06:5F:44:37:F6:E8:EA:60:16:C1:E8:C4:86:99:A6:54:9A:07:FD:37:37:26:27:20:08:2A:7D:33:F5:6D:6F"
       ]
     }
   }
