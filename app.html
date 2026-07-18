@@ -13412,5 +13412,38 @@ window.addEventListener('load', ()=>{
 });
 
 </script>
+<script>
+// ===== অস্থায়ী মোবাইল ডিবাগ বক্স — সমস্যা খুঁজে বের করার পর এই পুরো
+// <script> ব্লকটা মুছে ফেলা যাবে। কোনো জাভাস্ক্রিপ্ট এরর হলে স্ক্রিনের
+// নিচে লাল বক্সে দেখাবে, যাতে DevTools ছাড়াই মোবাইল থেকে দেখা যায়। =====
+(function(){
+  let box = null;
+  function ensureBox(){
+    if (box) return box;
+    box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow-y:auto;background:#7a1010;color:#fff;font-size:11px;font-family:monospace;padding:8px 10px;z-index:999999;white-space:pre-wrap;word-break:break-all;';
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕ বন্ধ করুন';
+    closeBtn.style.cssText = 'display:block;margin-bottom:6px;background:#fff;color:#7a1010;border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;';
+    closeBtn.onclick = () => { box.style.display = 'none'; };
+    box.appendChild(closeBtn);
+    document.body.appendChild(box);
+    return box;
+  }
+  function logErr(msg){
+    const b = ensureBox();
+    const line = document.createElement('div');
+    line.style.cssText = 'border-top:1px solid rgba(255,255,255,0.25);padding:5px 0';
+    line.textContent = '🔴 ' + msg;
+    b.appendChild(line);
+  }
+  window.addEventListener('error', (e) => {
+    logErr((e.message || 'Unknown error') + ' — ' + (e.filename || '') + ':' + (e.lineno || ''));
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    logErr('Promise error: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+  });
+})();
+</script>
 </body>
 </html>
