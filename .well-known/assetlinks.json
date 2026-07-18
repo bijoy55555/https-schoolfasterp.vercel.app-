@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.schoolfasterp.twa",
+      "sha256_cert_fingerprints": [
+        "96:3D:37:6D:B4:90:B9:B8:F6:CD:34:73:CA:24:E0:CD:20:53:29:3A:D1:7F:C7:8B:98:E4:CF:B7:40:B0:C8:82"
+      ]
+    }
+  }
+]
