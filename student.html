@@ -2543,7 +2543,7 @@
       </script>
     </div>
 
-    <!-- ===== ছাত্র পোর্টাল (আলাদা, অভিভাবক পোর্টাল থেকে স্বতন্ত্র) ===== -->
+    <!-- ===== ছাত্র পোর্টাল (আলাদা, অভিভাবক পোর্টাল থেকে স্বতন্ত্র — কিন্তু অভিভাবক পোর্টালের মতোই অ্যাপ-স্টাইল ডিজাইন) ===== -->
     <div class="page" id="page-student-portal">
       <div class="parent-hero">
         <div class="parent-avatar">🎒</div>
@@ -2560,8 +2560,101 @@
         </div>
       </div>
 
-      <!-- পরিবহন তথ্য (রুট ও সময়) — বিদ্যালয়ের সকল পরিবহন রুট, পিকআপ পয়েন্ট, সময়সূচি ও ফি রিড-অনলি আকারে দেখাবে -->
+      <!-- Fee Due Poster/Banner -->
+      <div id="sp-fee-banner" style="display:none;border-radius:14px;padding:18px 22px;margin-bottom:20px;align-items:center;gap:16px;color:#fff;">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="font-size:34px" id="sp-fee-banner-icon">💰</div>
+          <div style="flex:1;min-width:200px">
+            <div style="font-size:16px;font-weight:800" id="sp-fee-banner-title">বেতন পরিশোধের সময় হয়েছে</div>
+            <div style="font-size:13px;opacity:0.95;margin-top:2px" id="sp-fee-banner-sub">বকেয়া: ৳৫০০ — জমার তারিখ: —</div>
+          </div>
+          <button class="btn" style="background:#fff;color:#c0392b;font-weight:700;white-space:nowrap" onclick="openPaymentModal()">📱 এখনই পরিশোধ করুন</button>
+        </div>
+      </div>
+
+      <!-- Quick Stats -->
+      <div class="parent-stat-grid">
+        <div class="parent-stat">
+          <div class="parent-stat-val" id="sp-att-pct">—</div>
+          <div class="parent-stat-lbl">উপস্থিতি</div>
+        </div>
+        <div class="parent-stat">
+          <div class="parent-stat-val" id="sp-gpa">—</div>
+          <div class="parent-stat-lbl">GPA</div>
+        </div>
+        <div class="parent-stat">
+          <div class="parent-stat-val" id="sp-fee-status" style="font-size:14px">—</div>
+          <div class="parent-stat-lbl">ফি অবস্থা</div>
+        </div>
+        <div class="parent-stat">
+          <div class="parent-stat-val" id="sp-hw-count">০</div>
+          <div class="parent-stat-lbl">হোমওয়ার্ক</div>
+        </div>
+      </div>
+
+      <div class="two-col" id="sp-sec-attendance">
+        <!-- Attendance Calendar -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">📅 এই মাসের উপস্থিতি</div><span style="font-size:12px;color:var(--success);font-weight:700" id="sp-att-label">—</span></div>
+          <div class="card-body">
+            <div class="calendar-grid">
+              <div class="cal-day-label">রবি</div><div class="cal-day-label">সোম</div><div class="cal-day-label">মঙ্গল</div><div class="cal-day-label">বুধ</div><div class="cal-day-label">বৃহ</div><div class="cal-day-label">শুক্র</div><div class="cal-day-label">শনি</div>
+            </div>
+            <div class="calendar-grid" id="sp-calendar"></div>
+            <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap">
+              <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#d5f5e3;border-radius:3px;display:inline-block"></span> উপস্থিত</span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#fadbd8;border-radius:3px;display:inline-block"></span> অনুপস্থিত</span>
+              <span style="display:flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#fdebd0;border-radius:3px;display:inline-block"></span> দেরি</span>
+            </div>
+            <div id="sp-today-times" style="display:none;margin-top:12px;padding:10px 12px;background:#f5f9ff;border-radius:8px;font-size:12px"></div>
+          </div>
+        </div>
+
+        <!-- Latest Results -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">📝 সর্বশেষ পরীক্ষার ফলাফল</div></div>
+          <div class="card-body" id="sp-latest-result-body">
+            <div style="text-align:center;color:var(--text-muted);padding:20px">কোনো ফলাফল নেই</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Homework Section -->
+      <div class="card" style="margin-bottom:20px" id="sp-sec-homework">
+        <div class="card-header">
+          <div class="card-title">📚 আমার হোমওয়ার্ক</div>
+          <span class="badge badge-blue" id="sp-hw-badge"></span>
+        </div>
+        <div class="card-body" id="sp-hw-list">
+          <div style="text-align:center;color:var(--text-muted);padding:20px">হোমওয়ার্ক লোড হচ্ছে...</div>
+        </div>
+      </div>
+
+      <div class="two-col" id="sp-sec-fee">
+        <!-- Notices -->
+        <div class="card">
+          <div class="card-header"><div class="card-title">📢 বিদ্যালয়ের নোটিশ</div></div>
+          <div class="card-body" id="sp-notices"></div>
+        </div>
+        <!-- Fee Status + Pay Button -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">💰 ফি বিবরণ</div>
+            <button class="btn btn-success" style="font-size:12px;padding:6px 14px" onclick="openPaymentModal()">📱 অনলাইনে পরিশোধ</button>
+          </div>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>ফি ধরন</th><th>পরিমাণ</th><th>অবস্থা</th></tr></thead>
+          <tbody id="sp-fee-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Academic Calendar (read-only) -->
       <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
+        <div class="card-body" style="padding:0" id="sp-academic-cal"></div>
+      </div>
+
+      <!-- পরিবহন তথ্য (রুট ও সময়) — বিদ্যালয়ের সকল পরিবহন রুট, পিকআপ পয়েন্ট, সময়সূচি ও ফি রিড-অনলি আকারে দেখাবে -->
+      <div class="card" style="margin-bottom:20px" id="sp-sec-transport">
         <div class="card-header"><div class="card-title">🚌 পরিবহন তথ্য (রুট ও সময়)</div></div>
         <div class="card-body" style="padding:0;overflow-x:auto">
           <table>
@@ -2572,7 +2665,7 @@
       </div>
 
       <!-- শিক্ষকের সাথে বার্তা (Two-way: ছাত্র বার্তা পাঠাতে পারবে এবং শিক্ষক/বিদ্যালয়ের উত্তরও এখানে দেখা যাবে) -->
-      <div class="card" style="margin-bottom:20px">
+      <div class="card" style="margin-bottom:20px" id="sp-sec-messages">
         <div class="card-header">
           <div class="card-title">🗨️ শিক্ষকের সাথে বার্তা</div>
           <span class="badge badge-blue" id="sp-msg-badge"></span>
@@ -2664,11 +2757,20 @@
       </div>
 
       <!-- মার্কশিট / রিপোর্ট কার্ড PDF ডাউনলোড -->
-      <div class="card" style="margin-bottom:20px">
+      <div class="card" style="margin-bottom:20px" id="sp-sec-marksheet">
         <div class="card-header"><div class="card-title">📄 মার্কশিট / রিপোর্ট কার্ড</div></div>
         <div class="card-body" id="sp-marksheet-body">
           <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
         </div>
+      </div>
+
+      <!-- ✅ মোবাইল অ্যাপ-স্টাইল বটম নেভিগেশন (শুধু ছোট স্ক্রিনে দেখা যাবে) -->
+      <div class="app-bottom-nav" id="sp-bottom-nav">
+        <button class="active" onclick="spBottomNavGo(this,'top')"><span class="abn-icon">🏠</span>হোম</button>
+        <button onclick="spBottomNavGo(this,'sp-sec-attendance')"><span class="abn-icon">📅</span>হাজিরা</button>
+        <button onclick="spBottomNavGo(this,'sp-sec-homework')"><span class="abn-icon">📚</span>হোমওয়ার্ক</button>
+        <button onclick="spBottomNavGo(this,'sp-sec-fee')"><span class="abn-icon">💰</span>ফি</button>
+        <button onclick="showPage('profile', null)"><span class="abn-icon">👤</span>প্রোফাইল</button>
       </div>
     </div>
 
@@ -10867,6 +10969,8 @@ function renderStudentPortal() {
   const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
+  generateAutoFees(); // ছাত্র পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
+
   document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
   document.getElementById('sp-student-info').textContent = `রোল: ${sRoll} | শ্রেণি: ${sCls}`;
   document.getElementById('sp-date').textContent = todayBn();
@@ -10875,6 +10979,222 @@ function renderStudentPortal() {
   checkAndNotifyHomework(sCls);
   checkAndNotifyResults(sName, sRoll, sCls);
   renderNotifBadge();
+
+  // ===== ফি অবস্থা (কুইক স্ট্যাট + ব্যানার) — অভিভাবক পোর্টালের মতোই =====
+  const spStudentFees = fees.filter(f=>f.student===sName);
+  const spHasDue = spStudentFees.some(f=>f.status==='বকেয়া');
+  const spHasPartial = spStudentFees.some(f=>f.status==='আংশিক');
+  const spFeeEl = document.getElementById('sp-fee-status');
+  spFeeEl.textContent = spHasDue?'বকেয়া':spHasPartial?'আংশিক':'পরিশোধিত';
+  spFeeEl.style.color = spHasDue?'var(--danger)':spHasPartial?'var(--accent)':'var(--success)';
+
+  const spBanner = document.getElementById('sp-fee-banner');
+  const spDueList = spStudentFees.filter(f=>f.status==='বকেয়া');
+  if(spDueList.length>0) {
+    const today0 = new Date(); today0.setHours(0,0,0,0);
+    const withDays = spDueList.map(f=>{
+      const dd = parseDateSafe(f.dueDate);
+      const daysLeft = dd ? Math.round((dd-today0)/(1000*60*60*24)) : null;
+      return {f, daysLeft};
+    }).sort((a,b)=>{
+      if(a.daysLeft===null) return 1;
+      if(b.daysLeft===null) return -1;
+      return a.daysLeft-b.daysLeft;
+    });
+    const top = withDays[0];
+    const totalDueAmt = spDueList.reduce((sum,f)=>sum+Number(f.amount||0),0);
+    let title, sub, bg, icon;
+    if(top.daysLeft===null) {
+      title = 'বেতন বকেয়া আছে';
+      sub = `মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#e67e22,#d35400)'; icon='💰';
+    } else if(top.daysLeft<0) {
+      title = 'বেতন পরিশোধের মেয়াদ শেষ!';
+      sub = `${toBnNum(Math.abs(top.daysLeft))} দিন বিলম্বিত — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#c0392b,#922b21)'; icon='⚠️';
+    } else if(top.daysLeft===0) {
+      title = 'আজই বেতন পরিশোধের শেষ দিন!';
+      sub = `মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#c0392b,#e74c3c)'; icon='⏰';
+    } else if(top.daysLeft<=5) {
+      title = 'বেতন পরিশোধের সময় হয়েছে';
+      sub = `${toBnNum(top.daysLeft)} দিন বাকি — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#e67e22,#d35400)'; icon='⏳';
+    } else {
+      title = 'বেতন বকেয়া আছে';
+      sub = `জমার তারিখ: ${top.f.dueDate||'—'} (${toBnNum(top.daysLeft)} দিন বাকি) — মোট বকেয়া: ৳${toBnNum(totalDueAmt)}`;
+      bg = 'linear-gradient(135deg,#2e86c1,#2874a6)'; icon='💰';
+    }
+    document.getElementById('sp-fee-banner-title').textContent = title;
+    document.getElementById('sp-fee-banner-sub').textContent = sub;
+    document.getElementById('sp-fee-banner-icon').textContent = icon;
+    spBanner.style.background = bg;
+    spBanner.style.display = 'flex';
+  } else {
+    spBanner.style.display = 'none';
+  }
+
+  // ===== GPA (কুইক স্ট্যাট) =====
+  const spResults = results.filter(r=>r.name===sName);
+  if(spResults.length>0){
+    const r = spResults[spResults.length-1];
+    const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
+    document.getElementById('sp-gpa').textContent = avg>=4.5?'৫.০০':avg>=4?'৪.০০':avg>=3.5?'৩.৫০':'৩.০০';
+  } else {
+    document.getElementById('sp-gpa').textContent = '—';
+  }
+
+  // ===== হোমওয়ার্ক (কুইক স্ট্যাট + তালিকা) =====
+  const spClsHWList = homeworks ? homeworks.filter(h=>h.cls===sCls) : [];
+  document.getElementById('sp-hw-count').textContent = toBnNum(spClsHWList.filter(h=>h.status==='সক্রিয়').length);
+  document.getElementById('sp-hw-badge').textContent = `${toBnNum(spClsHWList.filter(h=>h.status==='সক্রিয়').length)} টি সক্রিয়`;
+  if(spClsHWList.length===0) {
+    document.getElementById('sp-hw-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো হোমওয়ার্ক নেই ✅</div>';
+  } else {
+    const spToday = new Date(); spToday.setHours(0,0,0,0);
+    document.getElementById('sp-hw-list').innerHTML = spClsHWList.map(h=>{
+      const dueDate = parseDateSafe(h.due) || spToday;
+      const isOverdue = h.status==='সক্রিয়' && dueDate < spToday;
+      const isDone = h.status==='জমা';
+      let cardCls = 'pp-hw-card';
+      if(isOverdue) cardCls += ' overdue';
+      if(isDone) cardCls += ' done';
+      const daysLeft = Math.ceil((dueDate - spToday)/(1000*60*60*24));
+      let dueLabel = '';
+      if(isDone) dueLabel = '<span class="badge badge-green">✓ জমা দেওয়া হয়েছে</span>';
+      else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
+      else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
+      else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
+      else dueLabel = `<span class="badge badge-blue">${toBnNum(daysLeft)} দিন বাকি</span>`;
+      return `<div class="${cardCls}">
+        <div class="pp-hw-subject">
+          <div class="pp-hw-subject-name">📖 ${h.subject} — ${h.cls}</div>
+          ${dueLabel}
+        </div>
+        <div class="pp-hw-desc">${h.desc}</div>
+        <div class="pp-hw-meta">
+          <span>📅 দেওয়া হয়েছে: ${h.given}</span>
+          <span>⏰ জমার তারিখ: ${h.due}</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ===== এই মাসের উপস্থিতি ক্যালেন্ডার =====
+  const spMonthNames = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const spBnDigits = ['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+  const spBnYear = (y)=>String(y).split('').map(ch=>spBnDigits[ch]||ch).join('');
+  const spNow = new Date();
+  const spY = spNow.getFullYear(), spM = spNow.getMonth();
+  const spFirstDow = new Date(spY,spM,1).getDay();
+  const spDaysInMonth = new Date(spY,spM+1,0).getDate();
+  const spClsAttForMonth = attendance[sCls]||{};
+  const spCalData = [];
+  for(let i=0;i<spFirstDow;i++) spCalData.push(null);
+  let spP=0, spA=0, spL=0;
+  for(let d=1; d<=spDaysInMonth; d++){
+    const dk = `${spY}-${String(spM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayRec = spClsAttForMonth[dk];
+    const st = dayRec ? dayRec[sName] : undefined;
+    if(st==='P') spP++; else if(st==='A') spA++; else if(st==='L') spL++;
+    spCalData.push({day:d, status: st||null});
+  }
+  const spTotal = spP+spA+spL;
+  const spPct = spTotal>0?Math.round((spP/spTotal)*100):0;
+  document.getElementById('sp-att-pct').textContent = toBnNum(spPct)+'%';
+  document.getElementById('sp-att-label').textContent = `${spMonthNames[spM]} ${spBnYear(spY)}`;
+
+  const spTodayDate = spNow.getDate();
+  const spCalGrid = document.getElementById('sp-calendar');
+  spCalGrid.innerHTML = spCalData.map((d)=>{
+    if(d===null) return `<div class="cal-cell cal-empty"></div>`;
+    const isToday = d.day===spTodayDate;
+    const cls = d.status==='P'?'cal-present':d.status==='A'?'cal-absent':d.status==='L'?'cal-late':'cal-empty';
+    return `<div class="cal-cell ${cls}${isToday?' cal-today':''}">${toBnNum(d.day)}</div>`;
+  }).join('');
+
+  const spTimesBox = document.getElementById('sp-today-times');
+  if (spTimesBox) {
+    const spTodayKey = `${spY}-${String(spM+1).padStart(2,'0')}-${String(spTodayDate).padStart(2,'0')}`;
+    const spTodayTimes = ((attendanceTimes[sCls]||{})[spTodayKey]||{})[sName];
+    if (spTodayTimes && (spTodayTimes.in || spTodayTimes.out)) {
+      spTimesBox.style.display = 'block';
+      spTimesBox.innerHTML = `⏱️ <strong>আজকের হাজিরার সময় (বায়োমেট্রিক/RFID থেকে):</strong> `
+        + (spTodayTimes.in ? `প্রবেশ: <strong>${spTodayTimes.in}</strong>` : 'প্রবেশের সময় নেই')
+        + (spTodayTimes.out ? ` &nbsp;•&nbsp; বাহির: <strong>${spTodayTimes.out}</strong>` : '');
+    } else {
+      spTimesBox.style.display = 'none';
+    }
+  }
+
+  // ===== সর্বশেষ পরীক্ষার ফলাফল (কুইক ভিউ) =====
+  const spLatestResultEl = document.getElementById('sp-latest-result-body');
+  if(spResults.length>0){
+    const r = spResults[spResults.length-1];
+    const subjectNames = allSubjectLabels;
+    spLatestResultEl.innerHTML = `<div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">পরীক্ষা: ${r.exam}</div>`+
+      Object.entries(r.subjects).map(([k,m])=>{
+        const g = getGrade(m);
+        const c = gradeColor(g);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="min-width:70px;font-size:12px;font-weight:600">${subjectNames[k]||k}</div>
+          <div style="flex:1;height:8px;background:#f0f4f8;border-radius:4px;overflow:hidden"><div style="width:${m}%;height:100%;background:${c};border-radius:4px"></div></div>
+          <div style="font-size:13px;font-weight:700;color:${c};min-width:50px;text-align:right">${toBnNum(m)} (${g})</div>
+        </div>`;
+      }).join('');
+  } else {
+    spLatestResultEl.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো ফলাফল নেই</div>';
+  }
+
+  // ===== বিদ্যালয়ের নোটিশ =====
+  document.getElementById('sp-notices').innerHTML = notices.slice(0,4).map(n=>`
+    <div class="notice-item">
+      <div class="notice-dot" style="background:${n.type==='জরুরি'?'#c0392b':n.type==='ইভেন্ট'?'#1e8449':'#2e86c1'}"></div>
+      <div><div class="notice-title">${n.title}</div><div class="notice-date">${n.date} • ${n.type}</div></div>
+    </div>`).join('') || '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো নোটিশ নেই</div>';
+
+  // ===== ফি টেবিল =====
+  document.getElementById('sp-fee-tbody').innerHTML = spStudentFees.length>0
+    ? spStudentFees.map(f=>{
+        let statusCell = `<span class="badge ${feeClass(f.status)}">${f.status}</span>`;
+        if(f.status==='বকেয়া' && f.dueDate) {
+          const dd = parseDateSafe(f.dueDate);
+          if(dd) {
+            const today0 = new Date(); today0.setHours(0,0,0,0);
+            const dl = Math.round((dd-today0)/(1000*60*60*24));
+            const extra = dl<0 ? `<div style="font-size:11px;color:var(--danger);margin-top:2px">${toBnNum(Math.abs(dl))} দিন বিলম্বিত</div>`
+              : dl===0 ? `<div style="font-size:11px;color:var(--danger);margin-top:2px">আজই শেষ দিন</div>`
+              : `<div style="font-size:11px;color:var(--text-muted);margin-top:2px">${toBnNum(dl)} দিন বাকি</div>`;
+            statusCell += extra;
+          }
+        }
+        return `<tr>
+        <td>${f.type}</td>
+        <td style="font-weight:700">${toBnNum(f.amount)}৳</td>
+        <td>${statusCell}</td>
+      </tr>`;
+      }).join('')
+    : '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো ফি রেকর্ড নেই</td></tr>';
+
+  // ===== একাডেমিক ক্যালেন্ডার (রিড-অনলি) =====
+  const spAcEl = document.getElementById('sp-academic-cal');
+  if(spAcEl) {
+    const spTodayStr = dateKey();
+    const spUpcoming = (academicEvents||[])
+      .filter(ev => !ev.start || ev.start >= spTodayStr || (ev.end && ev.end >= spTodayStr))
+      .sort((a,b)=>(a.start||'').localeCompare(b.start||''))
+      .slice(0,8);
+    spAcEl.innerHTML = spUpcoming.length===0
+      ? '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো আসন্ন ইভেন্ট নেই</div>'
+      : spUpcoming.map(ev=>`
+        <div class="notice-item">
+          <div class="notice-dot" style="background:${ev.type==='ছুটি'?'#e67e22':ev.type==='পরীক্ষা'?'#c0392b':'#2e86c1'}"></div>
+          <div>
+            <div class="notice-title">${ev.name} <span class="badge badge-blue" style="font-size:10px;margin-left:4px">${ev.type}</span></div>
+            <div class="notice-date">${ev.start}${ev.end?(' — '+ev.end):''}${ev.desc?(' • '+ev.desc):''}</div>
+          </div>
+        </div>`).join('');
+  }
 
   // ===== পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) =====
   renderStudentTransport();
@@ -11003,6 +11323,18 @@ function renderStudentPortal() {
         <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="printSingleMarksheet(${results.indexOf(r)})">📥 PDF ডাউনলোড</button>
       </div>`;
     }).join('');
+  }
+}
+
+// ✅ মোবাইল অ্যাপ-স্টাইল বটম নেভিগেশন (শুধু ছোট স্ক্রিনে দেখা যাবে) — অভিভাবক পোর্টালের মতোই
+function spBottomNavGo(btn, targetId){
+  document.querySelectorAll('#sp-bottom-nav button').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(targetId==='top'){
+    document.querySelector('#page-student-portal').scrollIntoView({behavior:'smooth', block:'start'});
+  } else {
+    var el = document.getElementById(targetId);
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 
