@@ -582,6 +582,51 @@
   #teacher-profile-overlay { display:none; }
   #teacher-profile-overlay.open { display:flex; }
 
+  /* ===== মোবাইল অ্যাপ-এর মতো দেখানোর জন্য (parent/student portal-এ বেশি প্রযোজ্য) ===== */
+  @media(max-width:640px){
+    .parent-hero{ padding:18px 16px; border-radius:18px; gap:12px; flex-wrap:wrap; }
+    .parent-avatar{ width:48px; height:48px; font-size:20px; }
+    .parent-name{ font-size:16px; }
+    .parent-sub{ font-size:11.5px; }
+    .parent-hero > div[style*="margin-left:auto"]{ margin-left:0!important; width:100%; justify-content:space-between; padding-top:8px; border-top:1px solid rgba(255,255,255,0.18); }
+
+    .parent-stat-grid{ grid-template-columns:repeat(2,1fr); gap:10px; }
+    .parent-stat{ padding:14px 10px; border-radius:16px; }
+    .parent-stat-val{ font-size:20px; }
+    .parent-stat-lbl{ font-size:10.5px; }
+
+    .topbar{ padding:10px 12px; }
+    .topbar-title{ font-size:15px; }
+    .topbar-right{ gap:8px; }
+    #subscription-badge{ display:none!important; }
+    .user-chip{ padding:5px; }
+    .user-chip #user-name-label{ display:none; }
+    .topbar-right .btn-outline{ padding:6px 9px; font-size:11px; }
+
+    .card{ border-radius:16px; }
+    .card-header{ padding:14px 16px; }
+    .card-title{ font-size:13.5px; }
+    .content{ padding-bottom:84px!important; }
+  }
+
+  /* ===== বটম অ্যাপ-নেভিগেশন (শুধু ছোট স্ক্রিনে, অভিভাবক/ছাত্র পোর্টালে) ===== */
+  .app-bottom-nav{ display:none; }
+  @media(max-width:640px){
+    .app-bottom-nav{
+      display:flex; position:fixed; left:0; right:0; bottom:0; z-index:150;
+      background:#fff; border-top:1px solid var(--border);
+      box-shadow:0 -6px 20px rgba(0,0,0,0.08);
+      padding:6px 4px calc(6px + env(safe-area-inset-bottom));
+    }
+    .app-bottom-nav button{
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+      background:none; border:none; font-family:'Hind Siliguri',sans-serif;
+      color:var(--text-muted); font-size:10.5px; font-weight:600; padding:6px 2px; cursor:pointer;
+    }
+    .app-bottom-nav button .abn-icon{ font-size:19px; line-height:1; }
+    .app-bottom-nav button.active{ color:var(--primary); }
+  }
+
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';"></script>
 
@@ -2403,7 +2448,7 @@
         </div>
       </div>
 
-      <div class="two-col">
+      <div class="two-col" id="pp-sec-attendance">
         <!-- Attendance Calendar -->
         <div class="card">
           <div class="card-header"><div class="card-title">📅 এই মাসের উপস্থিতি</div><span style="font-size:12px;color:var(--success);font-weight:700" id="pp-att-label">জুন ২০২৫</span></div>
@@ -2432,7 +2477,7 @@
       </div>
 
       <!-- Homework Section -->
-      <div class="card" style="margin-bottom:20px">
+      <div class="card" style="margin-bottom:20px" id="pp-sec-homework">
         <div class="card-header">
           <div class="card-title">📚 সন্তানের হোমওয়ার্ক</div>
           <span class="badge badge-blue" id="pp-hw-badge"></span>
@@ -2453,7 +2498,7 @@
         </div>
       </div>
 
-      <div class="two-col">
+      <div class="two-col" id="pp-sec-fee">
         <!-- Notices -->
         <div class="card">
           <div class="card-header"><div class="card-title">📢 বিদ্যালয়ের নোটিশ</div></div>
@@ -2475,6 +2520,27 @@
         <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
         <div class="card-body" style="padding:0" id="pp-academic-cal"></div>
       </div>
+
+      <!-- ✅ মোবাইল অ্যাপ-স্টাইল বটম নেভিগেশন (শুধু ছোট স্ক্রিনে দেখা যাবে) -->
+      <div class="app-bottom-nav" id="pp-bottom-nav">
+        <button class="active" onclick="ppBottomNavGo(this,'top')"><span class="abn-icon">🏠</span>হোম</button>
+        <button onclick="ppBottomNavGo(this,'pp-sec-attendance')"><span class="abn-icon">📅</span>হাজিরা</button>
+        <button onclick="ppBottomNavGo(this,'pp-sec-homework')"><span class="abn-icon">📚</span>হোমওয়ার্ক</button>
+        <button onclick="ppBottomNavGo(this,'pp-sec-fee')"><span class="abn-icon">💰</span>ফি</button>
+        <button onclick="showPage('profile', null)"><span class="abn-icon">👤</span>প্রোফাইল</button>
+      </div>
+      <script>
+        function ppBottomNavGo(btn, targetId){
+          document.querySelectorAll('#pp-bottom-nav button').forEach(b=>b.classList.remove('active'));
+          if(btn) btn.classList.add('active');
+          if(targetId==='top'){
+            document.querySelector('#page-parent-portal').scrollIntoView({behavior:'smooth', block:'start'});
+          } else {
+            var el = document.getElementById(targetId);
+            if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+          }
+        }
+      </script>
     </div>
 
     <!-- ===== ছাত্র পোর্টাল (আলাদা, অভিভাবক পোর্টাল থেকে স্বতন্ত্র) ===== -->
