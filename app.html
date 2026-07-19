@@ -4214,7 +4214,7 @@
       <div class="form-group"><label class="form-label">অনুষ্ঠানের নাম *</label><input class="form-input" id="evb-ev-name" placeholder="যেমন: বার্ষিক ক্রীড়া প্রতিযোগিতা ২০২৬"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-ev-date" type="date"></div>
-        <div class="form-group"><label class="form-label">টার্গেট বাজেট (৳)</label><input class="form-input" id="evb-ev-target" type="number" placeholder="যেমন: ৫০০০০"></div>
+        <div class="form-group"><label class="form-label">টার্গেট বাজেট (৳)</label><input class="form-input" id="evb-ev-target" type="text" inputmode="decimal" placeholder="যেমন: ৫০০০০"></div>
       </div>
       <div class="form-error" id="evb-ev-error"></div>
       <div class="modal-footer">
@@ -4230,7 +4230,7 @@
     <div class="modal-header"><div class="modal-header-title">🗂️ নতুন খাত যোগ করুন</div><button class="modal-close" onclick="closeModal('evb-head-modal')">×</button></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">খাতের নাম *</label><input class="form-input" id="evb-head-name" placeholder="যেমন: সাজসজ্জা, খাবার, পুরস্কার"></div>
-      <div class="form-group"><label class="form-label">বরাদ্দকৃত টাকা (৳) *</label><input class="form-input" id="evb-head-amount" type="number" placeholder="যেমন: ১০০০০"></div>
+      <div class="form-group"><label class="form-label">বরাদ্দকৃত টাকা (৳) *</label><input class="form-input" id="evb-head-amount" type="text" inputmode="decimal" placeholder="যেমন: ১০০০০"></div>
       <div class="form-error" id="evb-head-error"></div>
       <div class="modal-footer">
         <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-head-modal')">বাতিল</button>
@@ -4247,7 +4247,7 @@
       <div class="form-group"><label class="form-label">নাম / উৎস *</label><input class="form-input" id="evb-inc-name" placeholder="যেমন: মোঃ করিম সাহেব দিলেন"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-inc-date" type="date"></div>
-        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-inc-amount" type="number" placeholder="যেমন: ১০০০"></div>
+        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-inc-amount" type="text" inputmode="decimal" placeholder="যেমন: ১০০০"></div>
       </div>
       <div class="form-group"><label class="form-label">নোট (ঐচ্ছিক)</label><input class="form-input" id="evb-inc-note" placeholder="যেমন: নগদ / বিকাশ"></div>
       <div class="form-error" id="evb-inc-error"></div>
@@ -4267,7 +4267,7 @@
       <div class="form-group"><label class="form-label">বিবরণ *</label><input class="form-input" id="evb-exp-desc" placeholder="যেমন: ব্যানার প্রিন্ট"></div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-exp-date" type="date"></div>
-        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-exp-amount" type="number" placeholder="যেমন: ৫০০"></div>
+        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-exp-amount" type="text" inputmode="decimal" placeholder="যেমন: ৫০০"></div>
       </div>
       <div class="form-error" id="evb-exp-error"></div>
       <div class="modal-footer">
@@ -6633,7 +6633,7 @@ function evbSaveEvent() {
   eventBudgets.unshift({
     id, name,
     date: document.getElementById('evb-ev-date').value,
-    target: parseFloat(document.getElementById('evb-ev-target').value)||0,
+    target: parseFloat(bnDigitsToEn(document.getElementById('evb-ev-target').value))||0,
     heads:[], incomes:[], expenses:[]
   });
   evbCurrentEventId = id;
@@ -6666,7 +6666,7 @@ function evbSaveHead() {
   const ev = evbGetCurrent();
   if(!ev) return;
   const name = document.getElementById('evb-head-name').value.trim();
-  const amount = parseFloat(document.getElementById('evb-head-amount').value);
+  const amount = parseFloat(bnDigitsToEn(document.getElementById('evb-head-amount').value));
   if(!name){ showErr('evb-head-error','খাতের নাম লিখুন'); return; }
   if(!amount || amount<=0){ showErr('evb-head-error','সঠিক পরিমাণ লিখুন'); return; }
   hideErr('evb-head-error');
@@ -6700,7 +6700,7 @@ function evbSaveIncome() {
   const ev = evbGetCurrent();
   if(!ev) return;
   const name = document.getElementById('evb-inc-name').value.trim();
-  const amount = parseFloat(document.getElementById('evb-inc-amount').value);
+  const amount = parseFloat(bnDigitsToEn(document.getElementById('evb-inc-amount').value));
   if(!name){ showErr('evb-inc-error','নাম/উৎস লিখুন'); return; }
   if(!amount || amount<=0){ showErr('evb-inc-error','সঠিক পরিমাণ লিখুন'); return; }
   hideErr('evb-inc-error');
@@ -6743,7 +6743,7 @@ function evbSaveExpense() {
   if(!ev) return;
   const headId = document.getElementById('evb-exp-head').value;
   const desc = document.getElementById('evb-exp-desc').value.trim();
-  const amount = parseFloat(document.getElementById('evb-exp-amount').value);
+  const amount = parseFloat(bnDigitsToEn(document.getElementById('evb-exp-amount').value));
   if(!headId){ showErr('evb-exp-error','খাত নির্বাচন করুন'); return; }
   if(!desc){ showErr('evb-exp-error','বিবরণ লিখুন'); return; }
   if(!amount || amount<=0){ showErr('evb-exp-error','সঠিক পরিমাণ লিখুন'); return; }
