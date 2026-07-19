@@ -11047,38 +11047,55 @@ function renderStudentPortal() {
 
   // ===== হোমওয়ার্ক (কুইক স্ট্যাট + তালিকা) =====
   const spClsHWList = homeworks ? homeworks.filter(h=>h.cls===sCls) : [];
-  document.getElementById('sp-hw-count').textContent = toBnNum(spClsHWList.filter(h=>h.status==='সক্রিয়').length);
-  document.getElementById('sp-hw-badge').textContent = `${toBnNum(spClsHWList.filter(h=>h.status==='সক্রিয়').length)} টি সক্রিয়`;
+  const spActiveHW = spClsHWList.filter(h=>h.status==='সক্রিয়');
+  const spDoneHW = spClsHWList.filter(h=>h.status==='জমা');
+  document.getElementById('sp-hw-count').textContent = toBnNum(spActiveHW.length);
+  document.getElementById('sp-hw-badge').textContent = `${toBnNum(spActiveHW.length)} টি সক্রিয়`;
+
+  function spBuildHWCard(h){
+    const spToday = new Date(); spToday.setHours(0,0,0,0);
+    const dueDate = parseDateSafe(h.due) || spToday;
+    const isOverdue = h.status==='সক্রিয়' && dueDate < spToday;
+    const isDone = h.status==='জমা';
+    let cardCls = 'pp-hw-card';
+    if(isOverdue) cardCls += ' overdue';
+    if(isDone) cardCls += ' done';
+    const daysLeft = Math.ceil((dueDate - spToday)/(1000*60*60*24));
+    let dueLabel = '';
+    if(isDone) dueLabel = '<span class="badge badge-green">✓ জমা দেওয়া হয়েছে</span>';
+    else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
+    else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
+    else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
+    else dueLabel = `<span class="badge badge-blue">${toBnNum(daysLeft)} দিন বাকি</span>`;
+    return `<div class="${cardCls}">
+      <div class="pp-hw-subject">
+        <div class="pp-hw-subject-name">📖 ${h.subject} — ${h.cls}</div>
+        ${dueLabel}
+      </div>
+      <div class="pp-hw-desc">${h.desc}</div>
+      <div class="pp-hw-meta">
+        <span>📅 দেওয়া হয়েছে: ${h.given}</span>
+        <span>⏰ জমার তারিখ: ${h.due}</span>
+      </div>
+    </div>`;
+  }
+
   if(spClsHWList.length===0) {
     document.getElementById('sp-hw-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো হোমওয়ার্ক নেই ✅</div>';
   } else {
-    const spToday = new Date(); spToday.setHours(0,0,0,0);
-    document.getElementById('sp-hw-list').innerHTML = spClsHWList.map(h=>{
-      const dueDate = parseDateSafe(h.due) || spToday;
-      const isOverdue = h.status==='সক্রিয়' && dueDate < spToday;
-      const isDone = h.status==='জমা';
-      let cardCls = 'pp-hw-card';
-      if(isOverdue) cardCls += ' overdue';
-      if(isDone) cardCls += ' done';
-      const daysLeft = Math.ceil((dueDate - spToday)/(1000*60*60*24));
-      let dueLabel = '';
-      if(isDone) dueLabel = '<span class="badge badge-green">✓ জমা দেওয়া হয়েছে</span>';
-      else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
-      else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
-      else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
-      else dueLabel = `<span class="badge badge-blue">${toBnNum(daysLeft)} দিন বাকি</span>`;
-      return `<div class="${cardCls}">
-        <div class="pp-hw-subject">
-          <div class="pp-hw-subject-name">📖 ${h.subject} — ${h.cls}</div>
-          ${dueLabel}
-        </div>
-        <div class="pp-hw-desc">${h.desc}</div>
-        <div class="pp-hw-meta">
-          <span>📅 দেওয়া হয়েছে: ${h.given}</span>
-          <span>⏰ জমার তারিখ: ${h.due}</span>
-        </div>
-      </div>`;
-    }).join('');
+    let html = '';
+    if(spActiveHW.length>0) {
+      html += spActiveHW.map(spBuildHWCard).join('');
+    } else {
+      html += '<div style="text-align:center;color:var(--success);padding:14px;font-weight:600">সব হোমওয়ার্ক সম্পন্ন ✅</div>';
+    }
+    if(spDoneHW.length>0) {
+      html += `<div style="text-align:center;margin-top:8px">
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('sp-hw-done-list').style.display=(document.getElementById('sp-hw-done-list').style.display==='none'?'block':'none'); this.textContent=(this.textContent.indexOf('দেখুন')>-1?'▲ সম্পন্ন হোমওয়ার্ক লুকান':'▼ সম্পন্ন হোমওয়ার্ক দেখুন (${toBnNum(spDoneHW.length)})')">▼ সম্পন্ন হোমওয়ার্ক দেখুন (${toBnNum(spDoneHW.length)})</button>
+      </div>
+      <div id="sp-hw-done-list" style="display:none;margin-top:8px">${spDoneHW.map(spBuildHWCard).join('')}</div>`;
+    }
+    document.getElementById('sp-hw-list').innerHTML = html;
   }
 
   // ===== এই মাসের উপস্থিতি ক্যালেন্ডার =====
