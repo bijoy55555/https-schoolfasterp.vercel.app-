@@ -2310,17 +2310,17 @@
               <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
                 <div class="form-group"><label class="form-label">প্রাপক গ্রুপ</label>
                   <select class="form-select" id="email-group" onchange="document.getElementById('email-custom-group').style.display=this.value==='custom'?'':'none'">
-                    <option value="all-students">সকল ছাত্র</option>
                     <option value="all-teachers">সকল শিক্ষক</option>
-                    <option value="all-parents">সকল অভিভাবক</option>
                     <option value="custom">নির্দিষ্ট ইমেইল</option>
+                    <option value="all-students" disabled>সকল ছাত্র (ইমেইল ঠিকানা যোগ করা নেই)</option>
+                    <option value="all-parents" disabled>সকল অভিভাবক (ইমেইল ঠিকানা যোগ করা নেই)</option>
                   </select>
                 </div>
                 <div class="form-group" id="email-custom-group" style="display:none"><label class="form-label">ইমেইল ঠিকানা</label><input class="form-input" id="email-to" placeholder="example@email.com"></div>
                 <div class="form-group"><label class="form-label">বিষয় *</label><input class="form-input" id="email-subject" placeholder="ইমেইলের বিষয়"></div>
                 <div class="form-group"><label class="form-label">বার্তা *</label><textarea class="form-input" id="email-body" rows="4" placeholder="আপনার বার্তা লিখুন..." style="resize:vertical"></textarea></div>
                 <div class="form-error" id="email-error"></div>
-                <button class="btn btn-primary" onclick="sendEmail()">📧 ইমেইল পাঠান</button>
+                <button class="btn btn-primary" onclick="sendEmail(event)">📧 ইমেইল পাঠান</button>
               </div>
             </div>
 
@@ -8288,21 +8288,66 @@ function renderCommLog(){
     <div style="color:var(--text-muted);font-size:11px;margin-top:2px">${c.time}</div>
   </div>`).join('');
 }
-function sendEmail(){
+// ✅ আগে এটা শুধু সিমুলেটেড ছিল (কোনো ইমেইল আসলে পাঠাতো না)।
+// এখন এটা /api/send-email (Vercel সার্ভারলেস ফাংশন) কল করে, যা প্ল্যাটফর্মের
+// শেয়ার্ড Resend অ্যাকাউন্ট দিয়ে সত্যিকারের ইমেইল পাঠায়।
+// ⚠️ এটা কাজ করার জন্য প্রয়োজন:
+//   ১) /api ফোল্ডার Vercel-এ deploy করা থাকতে হবে
+//   ২) Vercel Dashboard-এ RESEND_API_KEY env variable সেট থাকতে হবে
+async function sendEmail(evt){
   const group = document.getElementById('email-group').value;
-  const to = group==='custom' ? document.getElementById('email-to').value.trim() : ({'all-students':'সকল ছাত্র','all-teachers':'সকল শিক্ষক','all-parents':'সকল অভিভাবক'})[group];
   const subject = document.getElementById('email-subject').value.trim();
   const body = document.getElementById('email-body').value.trim();
-  if(group==='custom' && !to){showErr('email-error','ইমেইল ঠিকানা লিখুন');return;}
+
+  let recipients = [];
+  let toLabel = '';
+  if(group==='custom'){
+    const raw = document.getElementById('email-to').value.trim();
+    recipients = raw.split(/[,\s]+/).filter(Boolean);
+    toLabel = raw;
+  } else if(group==='all-teachers'){
+    recipients = teachers.map(t=>t.email).filter(e=>e && e!=='—' && e.includes('@'));
+    toLabel = 'সকল শিক্ষক';
+  } else {
+    showErr('email-error','এই গ্রুপের জন্য এখনো ইমেইল ঠিকানা যোগ করা নেই — "সকল শিক্ষক" বা "নির্দিষ্ট ইমেইল" ব্যবহার করুন');
+    return;
+  }
+
+  if(group==='custom' && recipients.length===0){showErr('email-error','ইমেইল ঠিকানা লিখুন');return;}
+  if(group==='all-teachers' && recipients.length===0){showErr('email-error','কোনো শিক্ষকের ইমেইল ঠিকানা পাওয়া যায়নি');return;}
   if(!subject){showErr('email-error','বিষয় লিখুন');return;}
   if(!body){showErr('email-error','বার্তা লিখুন');return;}
   hideErr('email-error');
-  // Note: actual delivery requires a backend mail service; this records and simulates the send.
-  logComm('ইমেইল', to, subject, body);
-  logAudit(`ইমেইল পাঠানো হয়েছে: ${to}`);
-  document.getElementById('email-subject').value='';
-  document.getElementById('email-body').value='';
-  showToast('ইমেইল পাঠানো হয়েছে (সিমুলেটেড)!');
+
+  const btn = evt ? evt.target : null;
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ পাঠানো হচ্ছে...'; }
+
+  try {
+    if(!window.currentSchoolId || !window.auth || !window.auth.currentUser) {
+      throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল ইমেইল পাঠাতে আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করতে হবে');
+    }
+    const idToken = await window.auth.currentUser.getIdToken();
+    const resp = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify({ subject, body, recipients }),
+    });
+    const result = await resp.json();
+    if(!resp.ok) throw new Error(result.error || 'ইমেইল পাঠানো যায়নি');
+
+    logComm('ইমেইল', toLabel, subject, body);
+    logAudit(`ইমেইল পাঠানো হয়েছে: ${toLabel} (${result.sentCount}/${recipients.length} জনকে)`);
+    document.getElementById('email-subject').value='';
+    document.getElementById('email-body').value='';
+    let msg = `ইমেইল পাঠানো হয়েছে! (${result.sentCount}/${recipients.length} জনকে সফলভাবে)`;
+    if(result.failed && result.failed.length>0) msg += ` — ব্যর্থ: ${result.failed.join(', ')}`;
+    showToast(msg);
+  } catch(e){
+    console.error('ইমেইল পাঠাতে সমস্যা:', e);
+    showErr('email-error', e.message || 'ইমেইল পাঠানো যায়নি');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '📧 ইমেইল পাঠান'; }
+  }
 }
 function sendWhatsApp(){
   const number = document.getElementById('wa-number').value.trim().replace(/[^0-9]/g,'');
