@@ -4721,6 +4721,19 @@ function parseDateSafe(str) {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// ✅ জমার তারিখের ১৫ দিন পর হোমওয়ার্ক স্বয়ংক্রিয়ভাবে আর্কাইভ হয়ে যায়
+const HW_ARCHIVE_DAYS = 15;
+function isHwArchived(h) {
+  const dueDate = parseDateSafe(h.due);
+  if(!dueDate) return false;
+  const cutoff = new Date(dueDate);
+  cutoff.setDate(cutoff.getDate() + HW_ARCHIVE_DAYS);
+  return new Date() > cutoff;
+}
+function hwSubmittedCount(h) {
+  return Object.values(h.submitted||{}).filter(Boolean).length;
+}
+
 // ============ SIDEBAR / NAV ============
 function toggleSidebar() {
   document.querySelector('.sidebar').classList.toggle('open');
@@ -10781,9 +10794,9 @@ function renderParentPortal() {
     document.getElementById('pp-gpa').textContent = avg>=4.5?'৫.০০':avg>=4?'৪.০০':avg>=3.5?'৩.৫০':'৩.০০';
   }
 
-  // HW count
-  const clsHW = homeworks ? homeworks.filter(h=>h.cls===sCls&&h.status==='সক্রিয়').length : 0;
-  document.getElementById('pp-hw-count').textContent = toBnNum(clsHW||2);
+  // HW count — শুধু এই সন্তানের জন্য এখনো বাকি (জমা দেয়নি, আর্কাইভও হয়নি) হোমওয়ার্ক গণনা
+  const clsHW = homeworks ? homeworks.filter(h=>h.cls===sCls && !(h.submitted&&h.submitted[sName]) && !isHwArchived(h)).length : 0;
+  document.getElementById('pp-hw-count').textContent = toBnNum(clsHW);
 
   // Calendar — আসল সংরক্ষিত উপস্থিতি ডেটা থেকে (তারিখ-ভিত্তিক) বর্তমান মাস রেন্ডার করা হয়
   const ppMonthNames = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
@@ -10924,37 +10937,56 @@ function renderParentPortal() {
 
   // Homework list
   const clsHWList = homeworks ? homeworks.filter(h=>h.cls===sCls) : [];
-  document.getElementById('pp-hw-badge').textContent = `${toBnNum(clsHWList.filter(h=>h.status==='সক্রিয়').length)} টি সক্রিয়`;
+  const ppActiveHW = clsHWList.filter(h=>!(h.submitted&&h.submitted[sName]) && !isHwArchived(h));
+  const ppDoneHW = clsHWList.filter(h=>(h.submitted&&h.submitted[sName]) || isHwArchived(h));
+  document.getElementById('pp-hw-badge').textContent = `${toBnNum(ppActiveHW.length)} টি সক্রিয়`;
+
+  function ppBuildHWCard(h){
+    const today = new Date(); today.setHours(0,0,0,0);
+    const dueDate = parseDateSafe(h.due) || today;
+    const submittedByChild = !!(h.submitted && h.submitted[sName]);
+    const archived = isHwArchived(h);
+    const isOverdue = !submittedByChild && !archived && dueDate < today;
+    let cardCls = 'pp-hw-card';
+    if(isOverdue) cardCls += ' overdue';
+    if(submittedByChild || archived) cardCls += ' done';
+    const daysLeft = Math.ceil((dueDate - today)/(1000*60*60*24));
+    let dueLabel = '';
+    if(submittedByChild) dueLabel = '<span class="badge badge-green">✓ জমা দিয়েছে</span>';
+    else if(archived) dueLabel = '<span class="badge" style="background:#eaeded;color:#7f8c8d">🗄️ মেয়াদ উত্তীর্ণ (জমা দেয়নি)</span>';
+    else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
+    else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
+    else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
+    else dueLabel = `<span class="badge badge-blue">${toBnNum(daysLeft)} দিন বাকি</span>`;
+    return `<div class="${cardCls}">
+      <div class="pp-hw-subject">
+        <div class="pp-hw-subject-name">📖 ${h.subject} — ${h.cls}</div>
+        ${dueLabel}
+      </div>
+      <div class="pp-hw-desc">${h.desc}</div>
+      <div class="pp-hw-meta">
+        <span>📅 দেওয়া হয়েছে: ${h.given}</span>
+        <span>⏰ জমার তারিখ: ${h.due}</span>
+      </div>
+    </div>`;
+  }
+
   if(clsHWList.length===0) {
     document.getElementById('pp-hw-list').innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">কোনো হোমওয়ার্ক নেই ✅</div>';
   } else {
-    const today = new Date(); today.setHours(0,0,0,0);
-    document.getElementById('pp-hw-list').innerHTML = clsHWList.map(h=>{
-      const dueDate = parseDateSafe(h.due) || today;
-      const isOverdue = h.status==='সক্রিয়' && dueDate < today;
-      const isDone = h.status==='জমা';
-      let cardCls = 'pp-hw-card';
-      if(isOverdue) cardCls += ' overdue';
-      if(isDone) cardCls += ' done';
-      const daysLeft = Math.ceil((dueDate - today)/(1000*60*60*24));
-      let dueLabel = '';
-      if(isDone) dueLabel = '<span class="badge badge-green">✓ জমা দেওয়া হয়েছে</span>';
-      else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
-      else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
-      else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
-      else dueLabel = `<span class="badge badge-blue">${toBnNum(daysLeft)} দিন বাকি</span>`;
-      return `<div class="${cardCls}">
-        <div class="pp-hw-subject">
-          <div class="pp-hw-subject-name">📖 ${h.subject} — ${h.cls}</div>
-          ${dueLabel}
-        </div>
-        <div class="pp-hw-desc">${h.desc}</div>
-        <div class="pp-hw-meta">
-          <span>📅 দেওয়া হয়েছে: ${h.given}</span>
-          <span>⏰ জমার তারিখ: ${h.due}</span>
-        </div>
-      </div>`;
-    }).join('');
+    let html = '';
+    if(ppActiveHW.length>0) {
+      html += ppActiveHW.map(ppBuildHWCard).join('');
+    } else {
+      html += '<div style="text-align:center;color:var(--success);padding:14px;font-weight:600">সব হোমওয়ার্ক সম্পন্ন ✅</div>';
+    }
+    if(ppDoneHW.length>0) {
+      html += `<div style="text-align:center;margin-top:8px">
+        <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="document.getElementById('pp-hw-done-list').style.display=(document.getElementById('pp-hw-done-list').style.display==='none'?'block':'none'); this.textContent=(this.textContent.indexOf('দেখুন')>-1?'▲ সম্পন্ন হোমওয়ার্ক লুকান':'▼ সম্পন্ন হোমওয়ার্ক দেখুন (${toBnNum(ppDoneHW.length)})')">▼ সম্পন্ন হোমওয়ার্ক দেখুন (${toBnNum(ppDoneHW.length)})</button>
+      </div>
+      <div id="pp-hw-done-list" style="display:none;margin-top:8px">${ppDoneHW.map(ppBuildHWCard).join('')}</div>`;
+    }
+    document.getElementById('pp-hw-list').innerHTML = html;
   }
 }
 
@@ -11047,22 +11079,24 @@ function renderStudentPortal() {
 
   // ===== হোমওয়ার্ক (কুইক স্ট্যাট + তালিকা) =====
   const spClsHWList = homeworks ? homeworks.filter(h=>h.cls===sCls) : [];
-  const spActiveHW = spClsHWList.filter(h=>h.status==='সক্রিয়');
-  const spDoneHW = spClsHWList.filter(h=>h.status==='জমা');
+  const spActiveHW = spClsHWList.filter(h=>!(h.submitted&&h.submitted[sName]) && !isHwArchived(h));
+  const spDoneHW = spClsHWList.filter(h=>(h.submitted&&h.submitted[sName]) || isHwArchived(h));
   document.getElementById('sp-hw-count').textContent = toBnNum(spActiveHW.length);
   document.getElementById('sp-hw-badge').textContent = `${toBnNum(spActiveHW.length)} টি সক্রিয়`;
 
   function spBuildHWCard(h){
     const spToday = new Date(); spToday.setHours(0,0,0,0);
     const dueDate = parseDateSafe(h.due) || spToday;
-    const isOverdue = h.status==='সক্রিয়' && dueDate < spToday;
-    const isDone = h.status==='জমা';
+    const submittedByMe = !!(h.submitted && h.submitted[sName]);
+    const archived = isHwArchived(h);
+    const isOverdue = !submittedByMe && !archived && dueDate < spToday;
     let cardCls = 'pp-hw-card';
     if(isOverdue) cardCls += ' overdue';
-    if(isDone) cardCls += ' done';
+    if(submittedByMe || archived) cardCls += ' done';
     const daysLeft = Math.ceil((dueDate - spToday)/(1000*60*60*24));
     let dueLabel = '';
-    if(isDone) dueLabel = '<span class="badge badge-green">✓ জমা দেওয়া হয়েছে</span>';
+    if(submittedByMe) dueLabel = '<span class="badge badge-green">✓ জমা দিয়েছি</span>';
+    else if(archived) dueLabel = '<span class="badge" style="background:#eaeded;color:#7f8c8d">🗄️ মেয়াদ উত্তীর্ণ (জমা দেওয়া হয়নি)</span>';
     else if(isOverdue) dueLabel = '<span class="badge badge-red">⚠ মেয়াদ শেষ</span>';
     else if(daysLeft===0) dueLabel = '<span class="badge badge-orange">আজই জমা দিন!</span>';
     else if(daysLeft===1) dueLabel = '<span class="badge badge-orange">আগামীকাল জমা</span>';
@@ -13087,7 +13121,7 @@ function renderPrincipalDash() {
 
   // Today at a glance
   const noticeCount = notices.length;
-  const hwDue = homeworks ? homeworks.filter(h=>h.status==='সক্রিয়').length : 0;
+  const hwDue = homeworks ? homeworks.filter(h=>!isHwArchived(h)).length : 0;
   document.getElementById('pd-today-glance').innerHTML = [
     ['📋', 'মোট নোটিশ', toBnNum(noticeCount)],
     ['📚', 'সক্রিয় হোমওয়ার্ক', toBnNum(hwDue)],

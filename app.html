@@ -3832,6 +3832,23 @@
   </div>
 </div>
 
+<!-- HOMEWORK SUBMISSION TRACKING MODAL (প্রতি ছাত্রের জমা ট্র্যাকিং) -->
+<div class="modal-overlay" id="hw-submission-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title" id="hw-sub-title">📋 জমার তালিকা</div><button class="modal-close" onclick="closeModal('hw-submission-modal')">×</button></div>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--text-muted)" id="hw-sub-progress"></span>
+        <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="markAllHwSubmitted()">✓ সবাইকে জমা দেখান</button>
+      </div>
+      <div id="hw-sub-list" style="max-height:360px;overflow-y:auto"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" style="flex:1" onclick="closeModal('hw-submission-modal')">✓ সম্পন্ন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- SESSION MODAL -->
 <div class="modal-overlay" id="session-modal">
   <div class="modal-box">
@@ -4568,6 +4585,19 @@ function parseDateSafe(str) {
   if(!str) return null;
   const d = new Date(bnDigitsToEn(str));
   return isNaN(d.getTime()) ? null : d;
+}
+
+// ✅ জমার তারিখের ১৫ দিন পর হোমওয়ার্ক স্বয়ংক্রিয়ভাবে আর্কাইভ হয়ে যায় (active লিস্ট থেকে সরে যায়)
+const HW_ARCHIVE_DAYS = 15;
+function isHwArchived(h) {
+  const dueDate = parseDateSafe(h.due);
+  if(!dueDate) return false;
+  const cutoff = new Date(dueDate);
+  cutoff.setDate(cutoff.getDate() + HW_ARCHIVE_DAYS);
+  return new Date() > cutoff;
+}
+function hwSubmittedCount(h) {
+  return Object.values(h.submitted||{}).filter(Boolean).length;
 }
 
 // ============ SIDEBAR / NAV ============
@@ -7056,22 +7086,29 @@ function renderHomework() {
   const container = document.getElementById('homework-list');
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো হোমওয়ার্ক নেই</div></div>';return;}
   container.innerHTML = data.map((h,i)=>{
-    const isOverdue = h.due < today && h.status!=='জমা';
-    const isDone = h.status==='জমা';
+    const isOverdue = h.due < today;
+    const archived = isHwArchived(h);
     const color = dayColors[h.subject]||'var(--primary)';
-    return `<div class="hw-card ${isOverdue?'overdue':isDone?'done':''}">
+    const clsTotal = getClassStudents(h.cls).length;
+    const subCount = hwSubmittedCount(h);
+    let statusBadge;
+    if(archived) statusBadge = '<span class="badge" style="background:#eaeded;color:#7f8c8d">🗄️ আর্কাইভড</span>';
+    else if(isOverdue) statusBadge = '<span class="badge badge-red">মেয়াদ শেষ</span>';
+    else statusBadge = '<span class="badge badge-orange">চলমান</span>';
+    return `<div class="hw-card ${archived?'done':isOverdue?'overdue':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
         <div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
             <span class="badge badge-blue">${h.cls}</span>
             <span style="display:inline-block;padding:2px 10px;border-radius:50px;font-size:11px;font-weight:600;background:${color}18;color:${color}">${h.subject}</span>
-            ${isOverdue?'<span class="badge badge-red">মেয়াদ শেষ</span>':isDone?'<span class="badge badge-green">জমা দেওয়া</span>':'<span class="badge badge-orange">চলমান</span>'}
+            ${statusBadge}
+            <span class="badge badge-green" style="cursor:pointer" onclick="openHwSubmissionModal(${homeworks.indexOf(h)})" title="জমার তালিকা দেখুন">📋 ${toBnNum(subCount)}/${toBnNum(clsTotal)} জমা দিয়েছে</span>
           </div>
           <div style="font-size:14px;font-weight:600;margin-bottom:4px">${h.desc}</div>
           <div style="font-size:12px;color:var(--text-muted)">দেওয়া: ${h.given||'—'} &nbsp;|&nbsp; জমা: <b>${h.due}</b></div>
         </div>
         <div style="display:flex;gap:6px">
-          ${!isDone?`<button class="btn" style="background:#d5f5e3;color:var(--success);font-size:11px;padding:5px 10px" onclick="markHomeworkDone(${homeworks.indexOf(h)})">✓ জমা</button>`:''}
+          <button class="btn" style="background:#d5f5e3;color:var(--success);font-size:11px;padding:5px 10px" onclick="openHwSubmissionModal(${homeworks.indexOf(h)})">📋 জমার তালিকা</button>
           <button class="btn btn-danger" onclick="deleteHomework(${homeworks.indexOf(h)})">মুছুন</button>
         </div>
       </div>
@@ -7095,6 +7132,7 @@ function saveHomework() {
     subject: document.getElementById('hw-subject').value,
     given: document.getElementById('hw-given').value || new Date().toISOString().split('T')[0],
     status:'সক্রিয়',
+    submitted: {}, // ✅ প্রতি ছাত্রের নাম -> true/false (কে জমা দিয়েছে)
   });
   document.getElementById('hw-desc').value='';
   document.getElementById('hw-due').value='';
@@ -7102,7 +7140,51 @@ function saveHomework() {
   renderHomework();
   showToast('হোমওয়ার্ক দেওয়া হয়েছে!');
 }
-function markHomeworkDone(idx){homeworks[idx].status='জমা';renderHomework();showToast('হোমওয়ার্ক জমা চিহ্নিত!');}
+
+// ============ প্রতি ছাত্রের হোমওয়ার্ক জমা ট্র্যাকিং ============
+let hwSubModalIdx = null;
+function openHwSubmissionModal(idx) {
+  hwSubModalIdx = idx;
+  const h = homeworks[idx];
+  if(!h.submitted) h.submitted = {};
+  document.getElementById('hw-sub-title').textContent = `📋 ${h.cls} — ${h.subject} (জমার তালিকা)`;
+  renderHwSubmissionList();
+  openModal('hw-submission-modal');
+}
+function renderHwSubmissionList() {
+  const h = homeworks[hwSubModalIdx];
+  const list = getClassStudents(h.cls);
+  const subCount = hwSubmittedCount(h);
+  document.getElementById('hw-sub-progress').textContent = `${toBnNum(subCount)}/${toBnNum(list.length)} জন জমা দিয়েছে`;
+  document.getElementById('hw-sub-list').innerHTML = list.length===0
+    ? '<div style="text-align:center;color:var(--text-muted);padding:20px">এই শ্রেণিতে কোনো ছাত্র নেই</div>'
+    : list.map(s=>{
+      const done = !!h.submitted[s.name];
+      return `<label style="display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--border);cursor:pointer">
+        <input type="checkbox" ${done?'checked':''} onchange="toggleHwSubmission('${s.name.replace(/'/g,"\\'")}')" style="width:18px;height:18px">
+        <span style="flex:1;font-size:13px">রোল ${s.roll} — ${s.name}</span>
+        ${done?'<span class="badge badge-green">✓ জমা</span>':'<span class="badge badge-red">বাকি</span>'}
+      </label>`;
+    }).join('');
+}
+function toggleHwSubmission(name) {
+  const h = homeworks[hwSubModalIdx];
+  if(!h.submitted) h.submitted = {};
+  h.submitted[name] = !h.submitted[name];
+  saveData();
+  renderHwSubmissionList();
+  renderHomework();
+}
+function markAllHwSubmitted() {
+  const h = homeworks[hwSubModalIdx];
+  const list = getClassStudents(h.cls);
+  if(!h.submitted) h.submitted = {};
+  list.forEach(s=>h.submitted[s.name]=true);
+  saveData();
+  renderHwSubmissionList();
+  renderHomework();
+  showToast('সবাইকে জমা দেওয়া হিসেবে চিহ্নিত করা হয়েছে!');
+}
 
 // ============ SESSION MANAGEMENT ============
 function renderSessions() {
@@ -12781,7 +12863,7 @@ function renderPrincipalDash() {
 
   // Today at a glance
   const noticeCount = notices.length;
-  const hwDue = homeworks ? homeworks.filter(h=>h.status==='সক্রিয়').length : 0;
+  const hwDue = homeworks ? homeworks.filter(h=>!isHwArchived(h)).length : 0;
   document.getElementById('pd-today-glance').innerHTML = [
     ['📋', 'মোট নোটিশ', toBnNum(noticeCount)],
     ['📚', 'সক্রিয় হোমওয়ার্ক', toBnNum(hwDue)],
