@@ -9,5 +9,15 @@
         "C9:06:5F:44:37:F6:E8:EA:60:16:C1:E8:C4:86:99:A6:54:9A:07:FD:37:37:26:27:20:08:2A:7D:33:F5:6D:6F"
       ]
     }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.vercel.schoolfasterp.parent",
+      "sha256_cert_fingerprints": [
+        "8D:94:CB:E1:0F:5E:86:E5:E1:2B:A0:9D:80:D8:CB:D6:A3:FA:F7:70:26:1E:B8:27:0F:7D:35:EF:8F:CC:11:BF"
+      ]
+    }
   }
 ]
