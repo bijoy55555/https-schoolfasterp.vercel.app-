@@ -1803,6 +1803,18 @@
         <button class="btn btn-outline" onclick="window.print()">🖨️ প্রিন্ট</button>
       </div>
 
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-header"><div class="card-title">🔍 সব বছরের/অনুষ্ঠানের খরচ খুঁজুন</div></div>
+        <div class="card-body">
+          <input class="form-input" id="evb-global-search" placeholder="খাতের নাম বা খরচের বিবরণ লিখুন (যেমন: সাজসজ্জা, ব্যানার)..." oninput="evbGlobalSearch()" style="margin-bottom:10px">
+          <div id="evb-global-search-hint" style="font-size:12px;color:var(--text-muted)">এখানে খুঁজলে সব অনুষ্ঠান ও সব বছরের খরচের মধ্যে থেকে ফলাফল দেখাবে — এখন নির্বাচিত অনুষ্ঠানে সীমাবদ্ধ নয়।</div>
+          <div id="evb-global-search-results" style="display:none;margin-top:10px">
+            <table><thead><tr><th>অনুষ্ঠান</th><th>তারিখ</th><th>খাত</th><th>বিবরণ</th><th>পরিমাণ</th></tr></thead>
+            <tbody id="evb-global-search-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
       <div id="evb-empty" style="text-align:center;color:var(--text-muted);padding:70px 20px">
         <div style="font-size:40px;margin-bottom:10px">🎉</div>
         এখনো কোনো ইভেন্ট বাজেট তৈরি হয়নি। "নতুন অনুষ্ঠান" বাটনে চাপ দিয়ে শুরু করুন।
@@ -4231,6 +4243,16 @@
     <div class="modal-body">
       <div class="form-group"><label class="form-label">খাতের নাম *</label><input class="form-input" id="evb-head-name" placeholder="যেমন: সাজসজ্জা, খাবার, পুরস্কার"></div>
       <div class="form-group"><label class="form-label">বরাদ্দকৃত টাকা (৳) *</label><input class="form-input" id="evb-head-amount" type="text" inputmode="decimal" placeholder="যেমন: ১০০০০"></div>
+      <div style="border-top:1px dashed var(--border);margin:14px 0 10px;padding-top:10px">
+        <label class="form-label" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="evb-head-add-expense" onchange="document.getElementById('evb-head-expense-box').style.display=this.checked?'block':'none'">
+          এখনই একটি খরচ যোগ করুন (ঐচ্ছিক)
+        </label>
+        <div id="evb-head-expense-box" style="display:none;margin-top:8px">
+          <div class="form-group"><label class="form-label">খরচের বিবরণ</label><input class="form-input" id="evb-head-exp-desc" placeholder="যেমন: ব্যানার প্রিন্ট"></div>
+          <div class="form-group"><label class="form-label">খরচের পরিমাণ (৳)</label><input class="form-input" id="evb-head-exp-amount" type="text" inputmode="decimal" placeholder="যেমন: ৫০০"></div>
+        </div>
+      </div>
       <div class="form-error" id="evb-head-error"></div>
       <div class="modal-footer">
         <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-head-modal')">বাতিল</button>
@@ -6268,6 +6290,7 @@ let eventBudgets = [
   }
 ];
 let evbCurrentEventId = eventBudgets[0] ? eventBudgets[0].id : null;
+let evbQuickExpenseHeadId = null;
 let parentMessages = []; // { student, cls, msg, time, createdAt, type } — শুধু অভিভাবক পোর্টালে দেখানোর জন্য, আসল SMS না
 let receiptCounter = 1001;
 
@@ -6520,6 +6543,45 @@ function deleteExpense(idx) {
 }
 
 // ============ EVENT BUDGET (ইভেন্ট বাজেট) ============
+function evbGlobalSearch() {
+  const qEl = document.getElementById('evb-global-search');
+  const q = qEl.value.trim().toLowerCase();
+  const hint = document.getElementById('evb-global-search-hint');
+  const resultsBox = document.getElementById('evb-global-search-results');
+  const tbody = document.getElementById('evb-global-search-tbody');
+
+  if(!q){ resultsBox.style.display='none'; hint.style.display='block'; return; }
+  hint.style.display='none'; resultsBox.style.display='block';
+
+  const rows = [];
+  eventBudgets.forEach(ev=>{
+    const heads = ev.heads||[];
+    (ev.expenses||[]).forEach(x=>{
+      const h = heads.find(hh=>hh.id===x.headId);
+      const headName = h ? h.name : '';
+      if(headName.toLowerCase().includes(q) || (x.desc||'').toLowerCase().includes(q)){
+        rows.push({ eventName: ev.name, eventDate: ev.date||'', headName: headName||'—', desc: x.desc, amount: Number(x.amount||0), date: x.date||'' });
+      }
+    });
+  });
+
+  rows.sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+  if(rows.length===0){
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো ফলাফল পাওয়া যায়নি</td></tr>';
+    return;
+  }
+
+  const total = rows.reduce((a,r)=>a+r.amount,0);
+  tbody.innerHTML = rows.map(r=>`<tr>
+      <td><b>${r.eventName}</b>${r.eventDate?` <span style="font-size:11px;color:var(--text-muted)">(${r.eventDate})</span>`:''}</td>
+      <td>${r.date||''}</td>
+      <td><span class="badge badge-orange" style="font-size:11px">${r.headName}</span></td>
+      <td>${r.desc}</td>
+      <td style="color:var(--danger);font-weight:700">-৳${toBnNum(r.amount.toLocaleString())}</td>
+    </tr>`).join('') + `<tr><td colspan="4" style="text-align:right;font-weight:700">মোট</td><td style="font-weight:700;color:var(--danger)">-৳${toBnNum(total.toLocaleString())}</td></tr>`;
+}
+
 function evbGetCurrent() {
   return eventBudgets.find(e=>e.id===evbCurrentEventId) || null;
 }
@@ -6570,20 +6632,32 @@ function renderEventBudgetPage() {
     : heads.map(h=>{
         const spent = (ev.expenses||[]).filter(x=>x.headId===h.id).reduce((a,x)=>a+Number(x.amount||0),0);
         const hp = h.allocated>0 ? Math.min(100, Math.round((spent/h.allocated)*100)) : (spent>0?100:0);
+        const remaining = Number(h.allocated) - spent;
+        const isOpen = evbQuickExpenseHeadId === h.id;
         return `<div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-            <div><b>${h.name}</b> <span style="font-size:11px;color:var(--text-muted)">(বরাদ্দ ৳${toBnNum(Number(h.allocated).toLocaleString())})</span></div>
+            <div><b>${h.name}</b> <span style="font-size:11px;color:var(--text-muted)">(বরাদ্দ ৳${toBnNum(Number(h.allocated).toLocaleString())} · বাকি ৳${toBnNum(remaining.toLocaleString())})</span></div>
             <div style="display:flex;gap:6px;align-items:center">
               <span style="font-size:13px;font-weight:700;color:${hp>90?'var(--danger)':'var(--text)'}">৳${toBnNum(spent.toLocaleString())}</span>
-              <button class="btn" style="font-size:11px;padding:4px 8px;background:#eef4ff;color:var(--primary)" onclick="evbOpenExpenseModal('${h.id}')">+ খরচ</button>
+              <button class="btn" style="font-size:11px;padding:4px 8px;background:${isOpen?'#e2e8f0':'#eef4ff'};color:var(--primary)" onclick="evbToggleQuickExpense('${h.id}')">${isOpen?'✕ বাতিল':'+ খরচ'}</button>
               <button class="btn btn-danger no-print" style="font-size:11px;padding:4px 8px" onclick="evbDeleteHead('${h.id}')">✕</button>
             </div>
           </div>
           <div style="height:8px;background:#f0f4f8;border-radius:4px;overflow:hidden">
             <div style="height:100%;width:${hp}%;background:${hp>90?'var(--danger)':hp>70?'var(--warning)':'var(--success)'};border-radius:4px"></div>
           </div>
+          ${isOpen ? `
+          <div style="display:flex;gap:6px;align-items:flex-start;margin-top:8px;background:#f8fafc;padding:8px;border-radius:8px;flex-wrap:wrap">
+            <input class="form-input" id="evb-qexp-desc-${h.id}" placeholder="বিবরণ (যেমন: ব্যানার প্রিন্ট)" style="flex:2;min-width:120px;padding:8px 10px;font-size:13px" onkeydown="if(event.key==='Enter')evbQuickSaveExpense('${h.id}')">
+            <input class="form-input" id="evb-qexp-amount-${h.id}" type="text" inputmode="decimal" placeholder="৳ পরিমাণ" style="flex:1;min-width:80px;padding:8px 10px;font-size:13px" onkeydown="if(event.key==='Enter')evbQuickSaveExpense('${h.id}')">
+            <button class="btn btn-primary" style="font-size:12px;padding:8px 12px" onclick="evbQuickSaveExpense('${h.id}')">✓ যোগ</button>
+          </div>
+          <div class="form-error" id="evb-qexp-error-${h.id}" style="display:none;margin-top:4px"></div>
+          ` : ''}
         </div>`;
       }).join('');
+  if(evbQuickExpenseHeadId && !document.getElementById('evb-qexp-desc-'+evbQuickExpenseHeadId)) evbQuickExpenseHeadId = null;
+  if(document.getElementById('evb-qexp-desc-'+evbQuickExpenseHeadId)) document.getElementById('evb-qexp-desc-'+evbQuickExpenseHeadId).focus();
 
   // incomes
   const incomes = ev.incomes||[];
@@ -6658,6 +6732,10 @@ function evbOpenHeadModal() {
   if(!evbGetCurrent()){ showToast('আগে একটি অনুষ্ঠান তৈরি করুন','error'); return; }
   document.getElementById('evb-head-name').value='';
   document.getElementById('evb-head-amount').value='';
+  document.getElementById('evb-head-add-expense').checked=false;
+  document.getElementById('evb-head-expense-box').style.display='none';
+  document.getElementById('evb-head-exp-desc').value='';
+  document.getElementById('evb-head-exp-amount').value='';
   hideErr('evb-head-error');
   openModal('evb-head-modal');
 }
@@ -6670,11 +6748,23 @@ function evbSaveHead() {
   if(!name){ showErr('evb-head-error','খাতের নাম লিখুন'); return; }
   if(!amount || amount<=0){ showErr('evb-head-error','সঠিক পরিমাণ লিখুন'); return; }
   hideErr('evb-head-error');
+  const headId = 'h'+Date.now();
   ev.heads = ev.heads||[];
-  ev.heads.push({ id:'h'+Date.now(), name, allocated:amount });
+  ev.heads.push({ id:headId, name, allocated:amount });
+
+  let msg = 'নতুন খাত যোগ হয়েছে!';
+  if(document.getElementById('evb-head-add-expense').checked){
+    const expDesc = document.getElementById('evb-head-exp-desc').value.trim();
+    const expAmount = parseFloat(bnDigitsToEn(document.getElementById('evb-head-exp-amount').value));
+    if(expDesc && expAmount>0){
+      ev.expenses = ev.expenses||[];
+      ev.expenses.unshift({ id:'e'+Date.now(), headId, desc:expDesc, amount:expAmount, date: new Date().toISOString().slice(0,10) });
+      msg = 'নতুন খাত ও খরচ যোগ হয়েছে!';
+    }
+  }
   closeModal('evb-head-modal');
   renderEventBudgetPage();
-  showToast('নতুন খাত যোগ হয়েছে!');
+  showToast(msg);
 }
 
 function evbDeleteHead(headId) {
@@ -6723,6 +6813,30 @@ function evbDeleteIncome(id) {
   ev.incomes = ev.incomes.filter(i=>i.id!==id);
   renderEventBudgetPage();
   showToast('এন্ট্রি মুছে ফেলা হয়েছে','error');
+}
+
+function evbToggleQuickExpense(headId) {
+  if(!requirePerm('event-budget','edit')) return;
+  evbQuickExpenseHeadId = (evbQuickExpenseHeadId === headId) ? null : headId;
+  renderEventBudgetPage();
+}
+
+function evbQuickSaveExpense(headId) {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  const descEl = document.getElementById('evb-qexp-desc-'+headId);
+  const amountEl = document.getElementById('evb-qexp-amount-'+headId);
+  const errEl = document.getElementById('evb-qexp-error-'+headId);
+  const desc = descEl.value.trim();
+  const amount = parseFloat(bnDigitsToEn(amountEl.value));
+  if(!desc){ errEl.textContent='বিবরণ লিখুন'; errEl.style.display='block'; return; }
+  if(!amount || amount<=0){ errEl.textContent='সঠিক পরিমাণ লিখুন'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  ev.expenses = ev.expenses||[];
+  ev.expenses.unshift({ id:'e'+Date.now(), headId, desc, amount, date: new Date().toISOString().slice(0,10) });
+  evbQuickExpenseHeadId = null;
+  renderEventBudgetPage();
+  showToast('খরচ যোগ হয়েছে!');
 }
 
 function evbOpenExpenseModal(headId) {
