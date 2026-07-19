@@ -725,6 +725,7 @@
       <div class="nav-item" data-page="profit-loss" onclick="showPage('profit-loss',this)"><span class="icon">📉</span> লাভ-ক্ষতি বিবরণী</div>
       <div class="nav-item" data-page="voucher" onclick="showPage('voucher',this)"><span class="icon">🧾</span> ভাউচার</div>
       <div class="nav-item" data-page="due-report" onclick="showPage('due-report',this)"><span class="icon">⏰</span> বকেয়া রিপোর্ট</div>
+      <div class="nav-item" data-page="student-annual-report" onclick="showPage('student-annual-report',this)"><span class="icon">📈</span> ছাত্র বার্ষিক রেকর্ড</div>
     </div>
     <div class="nav-section">
       <div class="nav-label">ব্যবস্থাপনা</div>
@@ -1788,6 +1789,62 @@
         <div class="card-body" style="padding:0">
           <table><thead><tr><th>ছাত্র/ছাত্রী</th><th>শ্রেণি</th><th>ফি এর ধরন</th><th>বকেয়ার পরিমাণ</th><th>স্ট্যাটাস</th><th>অভিভাবকের নম্বর</th></tr></thead>
           <tbody id="dre-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== STUDENT ANNUAL RECORD (Admin only) ===== -->
+    <div class="page" id="page-student-annual-report">
+      <div class="page-actions no-print" style="flex-wrap:wrap;gap:10px">
+        <div style="position:relative;flex:1;min-width:220px">
+          <input type="text" class="form-input" id="sar-search" placeholder="🔍 ছাত্রের নাম বা রোল লিখে সার্চ করুন..." autocomplete="off" oninput="sarSearchInput()" onfocus="sarSearchInput()">
+          <div id="sar-search-results" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 24px rgba(0,0,0,0.12);z-index:30;max-height:280px;overflow:auto"></div>
+        </div>
+        <select class="form-select" id="sar-year-sel" style="max-width:140px;padding:9px 12px" onchange="sarLoadReport()"></select>
+        <button class="btn btn-outline no-print" onclick="window.print()">🖨️ প্রিন্ট</button>
+      </div>
+
+      <div id="sar-empty" style="text-align:center;color:var(--text-muted);padding:70px 20px">
+        <div style="font-size:40px;margin-bottom:10px">📈</div>
+        উপরে ছাত্রের নাম বা রোল লিখে সার্চ করুন, তারপর তালিকা থেকে একজন ছাত্র নির্বাচন করুন।
+      </div>
+
+      <div id="sar-report" style="display:none">
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-body" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+            <div id="sar-avatar" style="width:60px;height:60px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0"></div>
+            <div style="flex:1;min-width:180px">
+              <div id="sar-name" style="font-size:18px;font-weight:700"></div>
+              <div id="sar-sub" style="font-size:13px;color:var(--text-muted);margin-top:2px"></div>
+            </div>
+            <div id="sar-year-label" style="font-size:13px;font-weight:700;color:var(--primary);background:#eef4ff;padding:6px 14px;border-radius:20px"></div>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="sar-stats"></div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">📅 বার্ষিক উপস্থিতি বিবরণ (মাস-ওয়াইজ)</div></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>মাস</th><th>উপস্থিত</th><th>অনুপস্থিত</th><th>দেরি/ছুটি</th><th>উপস্থিতির হার</th></tr></thead>
+            <tbody id="sar-att-tbody"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:18px">
+          <div class="card-header"><div class="card-title">📝 পরীক্ষার ফলাফল হিস্ট্রি</div></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>পরীক্ষার নাম</th><th>মোট বিষয়</th><th>গড় নম্বর</th><th>গ্রেড</th></tr></thead>
+            <tbody id="sar-result-tbody"></tbody></table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><div class="card-title">💰 মাস-ওয়াইজ ফি / পেমেন্ট হিস্ট্রি</div></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>মাস</th><th>ধরন</th><th>পরিমাণ</th><th>পরিশোধের তারিখ</th><th>পদ্ধতি</th><th>অবস্থা</th></tr></thead>
+            <tbody id="sar-fee-tbody"></tbody></table>
+          </div>
         </div>
       </div>
     </div>
@@ -4392,7 +4449,7 @@ let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: '
 let attendanceTimes = {};
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -4649,6 +4706,7 @@ function showPage(id, el) {
   if(id==='profit-loss') renderProfitLoss();
   if(id==='voucher') renderVouchers();
   if(id==='due-report') renderDueReport();
+  if(id==='student-annual-report') renderStudentAnnualReport();
   if(id==='marksheet') renderMarksheet();
   if(id==='merit') renderMerit();
   if(id==='teacher-att') renderTeacherAtt();
@@ -8571,6 +8629,168 @@ function renderDueReport() {
   </tr>`).join('');
 }
 
+// ============ ছাত্র বার্ষিক রেকর্ড (Admin-only সম্মিলিত রিপোর্ট: হাজিরা + ফলাফল + ফি) ============
+// ⚠️ এই পেজে হাজিরা, পরীক্ষার ফলাফল ও ফি — তিন ধরনের স্পর্শকাতর ডেটা একসাথে দেখানো হয়,
+// তাই permissions ম্যাট্রিক্সে ডিফল্টে শুধু 'admin' রোলের জন্য view চালু রাখা হয়েছে
+// (দেখুন permModules/permissions — student-annual-report)। নেভ আইটেম হাইড থাকা ছাড়াও
+// এখানে ফাংশন-লেভেলে আরেকবার চেক করা হচ্ছে, যাতে কনসোল থেকে সরাসরি ফাংশন কল করেও
+// অনুমতি ছাড়া কেউ দেখতে না পারে।
+const sarMonthNamesBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+let sarSelectedStudentIdx = null;
+
+function renderStudentAnnualReport() {
+  // ফাংশন-লেভেল গার্ড — নেভ মেনু হাইড থাকলেও এখানে দ্বিতীয়বার নিশ্চিত করা হলো
+  if(currentUser && currentUser.role!=='admin') {
+    document.getElementById('page-student-annual-report').innerHTML =
+      '<div class="card"><div class="card-body" style="text-align:center;padding:50px;color:var(--text-muted)">⛔ এই পেজ দেখার অনুমতি শুধু অ্যাডমিনের আছে।</div></div>';
+    return;
+  }
+  const yearSel = document.getElementById('sar-year-sel');
+  if(yearSel && yearSel.options.length===0) {
+    const curYear = new Date().getFullYear();
+    for(let y=curYear; y>=curYear-4; y--) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = `${toBnNum(y)} সাল`;
+      yearSel.appendChild(opt);
+    }
+  }
+  document.getElementById('sar-search').value = '';
+  document.getElementById('sar-search-results').style.display = 'none';
+}
+
+// সার্চ বক্সে টাইপ করলে নাম/রোল মিলিয়ে ড্রপডাউনে ফলাফল দেখায়
+function sarSearchInput() {
+  const q = document.getElementById('sar-search').value.trim().toLowerCase();
+  const box = document.getElementById('sar-search-results');
+  if(!q) { box.style.display='none'; box.innerHTML=''; return; }
+  const matches = students.filter(s=>
+    (s.name||'').toLowerCase().includes(q) || String(s.roll||'').toLowerCase().includes(q)
+  ).slice(0,10);
+  if(matches.length===0) {
+    box.innerHTML = '<div style="padding:14px;color:var(--text-muted);font-size:13px">কোনো ছাত্র পাওয়া যায়নি</div>';
+    box.style.display='block';
+    return;
+  }
+  box.innerHTML = matches.map(s=>{
+    const idx = students.indexOf(s);
+    return `<div onclick="sarSelectStudent(${idx})" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:10px" onmouseover="this.style.background='#f5f8ff'" onmouseout="this.style.background=''">
+      <span><b>${s.name}</b> <span style="color:var(--text-muted);font-size:12px">(রোল: ${s.roll})</span></span>
+      <span style="color:var(--text-muted);font-size:12px">${s.cls}</span>
+    </div>`;
+  }).join('');
+  box.style.display='block';
+}
+
+function sarSelectStudent(idx) {
+  sarSelectedStudentIdx = idx;
+  document.getElementById('sar-search-results').style.display='none';
+  const s = students[idx];
+  document.getElementById('sar-search').value = `${s.name} (রোল: ${s.roll})`;
+  sarLoadReport();
+}
+
+// নির্বাচিত ছাত্র + নির্বাচিত বছরের জন্য হাজিরা/ফলাফল/ফি — তিনটাই একসাথে লোড ও গণনা করে দেখায়
+async function sarLoadReport() {
+  if(sarSelectedStudentIdx===null) return;
+  const s = students[sarSelectedStudentIdx];
+  if(!s) return;
+  const year = Number(document.getElementById('sar-year-sel').value) || new Date().getFullYear();
+
+  document.getElementById('sar-empty').style.display = 'none';
+  document.getElementById('sar-report').style.display = 'block';
+
+  // সেই বছরের পুরো হাজিরা ডেটা অন-ডিমান্ড লোড (ডিফল্টে শুধু সাম্প্রতিক কয়েক মাস মেমোরিতে থাকে)
+  if(window.currentSchoolId) {
+    try {
+      await loadAttendanceRange(window.currentSchoolId, `${year}-01-01`, `${year}-12-31`);
+    } catch(e) { /* লোড ব্যর্থ হলেও যা মেমোরিতে আছে তা দিয়েই দেখানো হবে */ }
+  }
+
+  // Hero
+  document.getElementById('sar-avatar').textContent = s.name.charAt(0);
+  document.getElementById('sar-name').textContent = s.name;
+  document.getElementById('sar-sub').textContent = `রোল: ${s.roll} | শ্রেণি: ${s.cls} | অভিভাবক: ${s.guardian||'—'} | ফোন: ${s.phone||'—'}`;
+  document.getElementById('sar-year-label').textContent = `${toBnNum(year)} সালের রেকর্ড`;
+
+  // ===== ১) হাজিরা — সব ক্লাসের attendance অবজেক্ট ঘেঁটে এই ছাত্রের নাম মিলিয়ে মাস-ওয়াইজ গণনা =====
+  const monthly = Array.from({length:12}, ()=>({present:0, absent:0, late:0}));
+  Object.keys(attendance||{}).forEach(cls=>{
+    const clsAtt = attendance[cls]||{};
+    Object.keys(clsAtt).forEach(dk=>{
+      if(!dk.startsWith(String(year)+'-')) return;
+      const rec = clsAtt[dk];
+      const st = rec ? rec[s.name] : undefined;
+      if(!st) return;
+      const monthIdx = Number(dk.split('-')[1]) - 1;
+      if(monthIdx<0||monthIdx>11) return;
+      if(st==='P') monthly[monthIdx].present++;
+      else if(st==='A') monthly[monthIdx].absent++;
+      else if(st==='L') monthly[monthIdx].late++;
+    });
+  });
+  let yearPresent=0, yearAbsent=0, yearLate=0;
+  const attTbody = document.getElementById('sar-att-tbody');
+  attTbody.innerHTML = monthly.map((m,i)=>{
+    const total = m.present+m.absent+m.late;
+    if(total===0) return '';
+    yearPresent+=m.present; yearAbsent+=m.absent; yearLate+=m.late;
+    const pct = total>0?Math.round((m.present/total)*100):0;
+    return `<tr><td>${sarMonthNamesBn[i]}</td><td>${toBnNum(m.present)}</td><td>${toBnNum(m.absent)}</td><td>${toBnNum(m.late)}</td><td><b>${toBnNum(pct)}%</b></td></tr>`;
+  }).join('') || '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">এই বছরের কোনো হাজিরা রেকর্ড পাওয়া যায়নি</td></tr>';
+  const yearTotal = yearPresent+yearAbsent+yearLate;
+  const yearPct = yearTotal>0?Math.round((yearPresent/yearTotal)*100):0;
+
+  // ===== ২) পরীক্ষার ফলাফল হিস্ট্রি (নাম বা রোল মিলিয়ে) =====
+  const myResults = results.filter(r=>r.name===s.name || r.roll===s.roll);
+  const resultTbody = document.getElementById('sar-result-tbody');
+  resultTbody.innerHTML = myResults.map(r=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+    const grade = getGrade(avg);
+    const color = gradeColor(grade);
+    return `<tr><td>${r.exam}</td><td>${toBnNum(vals.length)}</td><td><b>${toBnNum(avg)}</b></td><td><span style="color:${color};font-weight:700">${grade}</span></td></tr>`;
+  }).join('') || '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text-muted)">কোনো পরীক্ষার ফলাফল পাওয়া যায়নি</td></tr>';
+  const examAvg = myResults.length ? Math.round(myResults.reduce((sum,r)=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    return sum + (vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0);
+  },0)/myResults.length) : 0;
+
+  // ===== ৩) মাস-ওয়াইজ ফি/পেমেন্ট হিস্ট্রি (নাম মিলিয়ে) =====
+  // ⚠️ autoMonthKey থাকা এন্ট্রিগুলো (অটো-জেনারেটেড মাসিক বেতন) বছর অনুযায়ী নিখুঁতভাবে
+  // ফিল্টার করা যায়। পুরনো ম্যানুয়াল এন্ট্রি (autoMonthKey নেই) সব বছরেই দেখানো হয়,
+  // কারণ সেগুলোর তারিখ বাংলা টেক্সট আকারে সংরক্ষিত (বছরবিহীন), তাই নিশ্চিতভাবে বছর বাছাই করা যায় না।
+  const myFees = fees.filter(f=>{
+    if(f.student!==s.name) return false;
+    if(f.autoMonthKey) return f.autoMonthKey.startsWith(String(year)+'-');
+    return true;
+  });
+  const feeTbody = document.getElementById('sar-fee-tbody');
+  feeTbody.innerHTML = myFees.map(f=>{
+    const monthLabel = f.autoMonthKey ? sarMonthNamesBn[Number(f.autoMonthKey.split('-')[1])-1] : (typeof f.month==='number' ? sarMonthNamesBn[f.month] : '—');
+    const statusBadge = f.status==='পরিশোধিত' ? '<span class="badge badge-green">পরিশোধিত</span>'
+      : f.status==='বকেয়া' ? '<span class="badge badge-red">বকেয়া</span>'
+      : '<span class="badge badge-orange">আংশিক</span>';
+    return `<tr><td>${monthLabel}</td><td>${f.type}</td><td>৳${toBnNum(Number(f.amount||0).toLocaleString())}</td><td>${f.date||'—'}</td><td>${f.method||'—'}</td><td>${statusBadge}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">এই বছরের কোনো ফি রেকর্ড পাওয়া যায়নি</td></tr>';
+  const dueMonths = myFees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').length;
+  const dueAmount = myFees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').reduce((a,f)=>a+Number(f.amount||0),0);
+
+  // ===== সারাংশ স্ট্যাট কার্ড =====
+  document.getElementById('sar-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">✅</div><div><div class="stat-value">${toBnNum(yearPct)}%</div><div class="stat-label">বার্ষিক উপস্থিতির হার</div><div class="stat-change">উপস্থিত ${toBnNum(yearPresent)} | অনুপস্থিত ${toBnNum(yearAbsent)} | দেরি ${toBnNum(yearLate)}</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">📝</div><div><div class="stat-value">${toBnNum(myResults.length)}</div><div class="stat-label">মোট পরীক্ষা দিয়েছে</div><div class="stat-change">গড় নম্বর: ${toBnNum(examAvg)}</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange">💰</div><div><div class="stat-value">৳${toBnNum(dueAmount.toLocaleString())}</div><div class="stat-label">মোট বকেয়া (এই বছর)</div><div class="stat-change">${toBnNum(dueMonths)} টি মাস/এন্ট্রি বকেয়া</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple">📅</div><div><div class="stat-value">${s.status||'—'}</div><div class="stat-label">বর্তমান অবস্থা</div><div class="stat-change">ভর্তি: ${s.admissionDate||'—'}</div></div></div>
+  `;
+}
+
+// সার্চ বক্সের বাইরে ক্লিক করলে ড্রপডাউন বন্ধ হয়ে যাবে
+document.addEventListener('click', (e)=>{
+  const box = document.getElementById('sar-search-results');
+  const input = document.getElementById('sar-search');
+  if(!box || !input) return;
+  if(e.target!==input && !box.contains(e.target)) box.style.display='none';
+});
 
 // ============ ADMIT CARD ============
 function generateAdmitCards() {
@@ -9589,6 +9809,7 @@ const permModules = [
   {id:'profit-loss', name:'লাভ-ক্ষতি বিবরণী', icon:'📉'},
   {id:'voucher', name:'ভাউচার', icon:'🧾'},
   {id:'due-report', name:'বকেয়া রিপোর্ট', icon:'⏰'},
+  {id:'student-annual-report', name:'ছাত্র বার্ষিক রেকর্ড', icon:'📈'},
   {id:'marksheet', name:'মার্কশিট', icon:'📊'},
   {id:'merit', name:'মেরিট লিস্ট', icon:'🏆'},
   {id:'teachers', name:'শিক্ষক', icon:'👨‍🏫'},
@@ -9612,7 +9833,9 @@ const permModules = [
 let permissions = {
   admin: Object.fromEntries(permModules.map(m=>[m.id,{view:true,edit:true,del:true}])),
   principal: Object.fromEntries(permModules.map(m=>[m.id,{
-    view:true,
+    // ✅ ছাত্র বার্ষিক রেকর্ড (হাজিরা+ফলাফল+ফি একসাথে) স্পর্শকাতর সম্মিলিত ডেটা —
+    // ডিফল্টে শুধু অ্যাডমিন দেখবে; প্রয়োজনে অ্যাডমিন পারমিশন ম্যাট্রিক্স থেকে চালু করতে পারবেন।
+    view: !['student-annual-report'].includes(m.id),
     edit: !['settings'].includes(m.id),
     del: ['students','attendance','notice','event-calendar','homework','session','master-data','lesson-plan','assignment','online-class','academic-calendar','voucher'].includes(m.id)
   }])),
@@ -9620,7 +9843,8 @@ let permissions = {
     // ✅ সংশোধিত: fees (আর্থিক লেনদেন), sms-notify (SMS পাঠানো), master-data
     // (স্কুল-ওয়াইড সেটিংস) — এগুলো স্পর্শকাতর/প্রশাসনিক, তাই ডিফল্টে শিক্ষকের
     // জন্য বন্ধ রাখা হলো। প্রয়োজনে অ্যাডমিন পারমিশন ম্যাট্রিক্স থেকে চালু করতে পারবেন।
-    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report','fees','sms-notify','master-data'].includes(m.id),
+    // ছাত্র বার্ষিক রেকর্ড (হাজিরা+ফলাফল+ফি সম্মিলিত) — শুধু অ্যাডমিনের জন্য ডিফল্টে।
+    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report','fees','sms-notify','master-data','student-annual-report'].includes(m.id),
     edit: ['attendance','homework','marksheet','result','notice','syllabus','teacher-att','lesson-plan','assignment','online-class','admit-card','seat-plan'].includes(m.id),
     del: false
   }])),

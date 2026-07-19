@@ -2515,6 +2515,29 @@
         </div>
       </div>
 
+      <!-- ✅ বার্ষিক রেকর্ড — শুধু এই অভিভাবকের নিজের সন্তানের ডেটা, অন্য কোনো ছাত্রের না -->
+      <div class="card" style="margin-bottom:20px" id="pp-sec-annual">
+        <div class="card-header">
+          <div class="card-title">📈 বার্ষিক রেকর্ড</div>
+          <select class="form-select" id="pp-annual-year-sel" style="max-width:120px;padding:6px 10px;font-size:12px" onchange="renderParentAnnualRecord()"></select>
+        </div>
+        <div class="card-body">
+          <div class="stats-grid" id="pp-annual-stats" style="margin-bottom:16px"></div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">📅 মাস-ওয়াইজ হাজিরা</div>
+          <div style="overflow-x:auto;margin-bottom:18px">
+            <table><thead><tr><th>মাস</th><th>উপস্থিত</th><th>অনুপস্থিত</th><th>দেরি</th><th>হার</th></tr></thead><tbody id="pp-annual-att-tbody"></tbody></table>
+          </div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">📝 পরীক্ষার ফলাফল</div>
+          <div style="overflow-x:auto;margin-bottom:18px">
+            <table><thead><tr><th>পরীক্ষা</th><th>মোট বিষয়</th><th>গড় নম্বর</th><th>গ্রেড</th></tr></thead><tbody id="pp-annual-result-tbody"></tbody></table>
+          </div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">💰 ফি / পেমেন্ট হিস্ট্রি</div>
+          <div style="overflow-x:auto">
+            <table><thead><tr><th>মাস</th><th>ধরন</th><th>পরিমাণ</th><th>অবস্থা</th></tr></thead><tbody id="pp-annual-fee-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+
       <!-- Academic Calendar (read-only for parents/students) -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
@@ -5928,6 +5951,96 @@ async function loadAttendanceRange(schoolId, fromDateStr, toDateStr) {
     }
   });
 }
+// ============ অভিভাবক পোর্টাল — বার্ষিক রেকর্ড (শুধু নিজের সন্তানের) ============
+// ⚠️ নিরাপত্তা: এই ফাংশন কোনো সার্চ বক্স নেয় না — শুধু renderParentPortal() থেকে
+// লগইন-করা অভিভাবকের নিজের সন্তান (matchedStudent/sName/sRoll) পাস করা হয়, তাই
+// অন্য কোনো ছাত্রের ডেটা এখানে কখনো দেখানো সম্ভব না।
+const ppAnnualMonthNamesBn = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+async function renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls) {
+  const yearSel = document.getElementById('pp-annual-year-sel');
+  if(!yearSel) return; // student-portal-এ এই সেকশন নেই
+  if(yearSel.options.length===0) {
+    const curYear = new Date().getFullYear();
+    for(let y=curYear; y>=curYear-4; y--) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = `${toBnNum(y)} সাল`;
+      yearSel.appendChild(opt);
+    }
+  }
+  const year = Number(yearSel.value) || new Date().getFullYear();
+
+  // সেই বছরের পুরো হাজিরা ডেটা অন-ডিমান্ড লোড (ডিফল্টে শুধু সাম্প্রতিক কয়েক মাস থাকে)
+  if(window.currentSchoolId) {
+    try { await loadAttendanceRange(window.currentSchoolId, `${year}-01-01`, `${year}-12-31`); }
+    catch(e) { /* লোড ব্যর্থ হলেও যা মেমোরিতে আছে তা দিয়েই দেখানো হবে */ }
+  }
+
+  // ===== হাজিরা — শুধু sCls-এর ভিতরে sName খুঁজে মাস-ওয়াইজ গণনা =====
+  const monthly = Array.from({length:12}, ()=>({present:0, absent:0, late:0}));
+  const clsAtt = attendance[sCls]||{};
+  Object.keys(clsAtt).forEach(dk=>{
+    if(!dk.startsWith(String(year)+'-')) return;
+    const st = (clsAtt[dk]||{})[sName];
+    if(!st) return;
+    const monthIdx = Number(dk.split('-')[1]) - 1;
+    if(monthIdx<0||monthIdx>11) return;
+    if(st==='P') monthly[monthIdx].present++;
+    else if(st==='A') monthly[monthIdx].absent++;
+    else if(st==='L') monthly[monthIdx].late++;
+  });
+  let yearPresent=0, yearAbsent=0, yearLate=0;
+  const attRows = monthly.map((m,i)=>{
+    const total = m.present+m.absent+m.late;
+    if(total===0) return '';
+    yearPresent+=m.present; yearAbsent+=m.absent; yearLate+=m.late;
+    const pct = Math.round((m.present/total)*100);
+    return `<tr><td>${ppAnnualMonthNamesBn[i]}</td><td>${toBnNum(m.present)}</td><td>${toBnNum(m.absent)}</td><td>${toBnNum(m.late)}</td><td><b>${toBnNum(pct)}%</b></td></tr>`;
+  }).join('');
+  document.getElementById('pp-annual-att-tbody').innerHTML = attRows || '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text-muted)">এই বছরের হাজিরা রেকর্ড পাওয়া যায়নি</td></tr>';
+  const yearTotal = yearPresent+yearAbsent+yearLate;
+  const yearPct = yearTotal>0 ? Math.round((yearPresent/yearTotal)*100) : 0;
+
+  // ===== পরীক্ষার ফলাফল হিস্ট্রি =====
+  const myResults = results.filter(r=>r.name===sName || r.roll===sRoll);
+  const resultRows = myResults.map(r=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
+    const grade = getGrade(avg);
+    const color = gradeColor(grade);
+    return `<tr><td>${r.exam}</td><td>${toBnNum(vals.length)}</td><td><b>${toBnNum(avg)}</b></td><td><span style="color:${color};font-weight:700">${grade}</span></td></tr>`;
+  }).join('');
+  document.getElementById('pp-annual-result-tbody').innerHTML = resultRows || '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text-muted)">কোনো পরীক্ষার ফলাফল পাওয়া যায়নি</td></tr>';
+  const examAvg = myResults.length ? Math.round(myResults.reduce((sum,r)=>{
+    const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
+    return sum + (vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0);
+  },0)/myResults.length) : 0;
+
+  // ===== ফি/পেমেন্ট হিস্ট্রি =====
+  const myFees = fees.filter(f=>{
+    if(f.student!==sName) return false;
+    if(f.autoMonthKey) return f.autoMonthKey.startsWith(String(year)+'-');
+    return true;
+  });
+  const feeRows = myFees.map(f=>{
+    const monthLabel = f.autoMonthKey ? ppAnnualMonthNamesBn[Number(f.autoMonthKey.split('-')[1])-1] : (typeof f.month==='number' ? ppAnnualMonthNamesBn[f.month] : '—');
+    const statusBadge = f.status==='পরিশোধিত' ? '<span class="badge badge-green">পরিশোধিত</span>'
+      : f.status==='বকেয়া' ? '<span class="badge badge-red">বকেয়া</span>'
+      : '<span class="badge badge-orange">আংশিক</span>';
+    return `<tr><td>${monthLabel}</td><td>${f.type}</td><td>৳${toBnNum(Number(f.amount||0).toLocaleString())}</td><td>${statusBadge}</td></tr>`;
+  }).join('');
+  document.getElementById('pp-annual-fee-tbody').innerHTML = feeRows || '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--text-muted)">এই বছরের ফি রেকর্ড পাওয়া যায়নি</td></tr>';
+  const dueMonths = myFees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').length;
+  const dueAmount = myFees.filter(f=>f.status==='বকেয়া'||f.status==='আংশিক').reduce((a,f)=>a+Number(f.amount||0),0);
+
+  // ===== সারাংশ স্ট্যাট কার্ড =====
+  document.getElementById('pp-annual-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-icon blue">✅</div><div><div class="stat-value">${toBnNum(yearPct)}%</div><div class="stat-label">বার্ষিক উপস্থিতির হার</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">📝</div><div><div class="stat-value">${toBnNum(myResults.length)}</div><div class="stat-label">মোট পরীক্ষা</div></div></div>
+    <div class="stat-card"><div class="stat-icon orange">💰</div><div><div class="stat-value">৳${toBnNum(dueAmount.toLocaleString())}</div><div class="stat-label">মোট বকেয়া</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple">📊</div><div><div class="stat-value">${toBnNum(examAvg)}</div><div class="stat-label">গড় পরীক্ষার নম্বর</div></div></div>
+  `;
+}
+
 // পুরনো স্কুলের জন্য এক-কালীন মাইগ্রেশন: data/main ডকুমেন্টে যদি পুরনো ফরম্যাটে attendance পাওয়া
 // যায় আর নতুন কালেকশন এখনো খালি থাকে, তাহলে প্রতিটা শ্রেণি+তারিখকে আলাদা ডকুমেন্ট হিসেবে লিখে দেয়
 async function migrateAttendanceToCollection(schoolId, oldAttendance) {
@@ -10627,6 +10740,7 @@ function renderParentPortal() {
   checkAndNotifyHomework(sCls);
   checkAndNotifyResults(sName, sRoll, sCls);
   renderNotifBadge();
+  renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls); // ✅ বার্ষিক রেকর্ড — শুধু এই সন্তানের
 
   // Fee status
   const studentFees = fees.filter(f=>f.student===sName);
