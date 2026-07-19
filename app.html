@@ -725,6 +725,7 @@
       <div class="nav-item" data-page="profit-loss" onclick="showPage('profit-loss',this)"><span class="icon">📉</span> লাভ-ক্ষতি বিবরণী</div>
       <div class="nav-item" data-page="voucher" onclick="showPage('voucher',this)"><span class="icon">🧾</span> ভাউচার</div>
       <div class="nav-item" data-page="due-report" onclick="showPage('due-report',this)"><span class="icon">⏰</span> বকেয়া রিপোর্ট</div>
+      <div class="nav-item" data-page="event-budget" onclick="showPage('event-budget',this)"><span class="icon">🎉</span> ইভেন্ট বাজেট</div>
       <div class="nav-item" data-page="student-annual-report" onclick="showPage('student-annual-report',this)"><span class="icon">📈</span> ছাত্র বার্ষিক রেকর্ড</div>
     </div>
     <div class="nav-section">
@@ -1793,7 +1794,67 @@
       </div>
     </div>
 
-    <!-- ===== STUDENT ANNUAL RECORD (Admin only) ===== -->
+    <!-- ===== EVENT BUDGET ===== -->
+    <div class="page" id="page-event-budget">
+      <div class="page-actions no-print" style="flex-wrap:wrap;gap:10px">
+        <select class="form-select" id="evb-event-select" style="max-width:260px;padding:9px 12px" onchange="evbSelectEvent(this.value)"></select>
+        <button class="btn btn-primary" onclick="evbOpenNewEventModal()">+ নতুন অনুষ্ঠান</button>
+        <button class="btn btn-outline" onclick="evbDeleteCurrentEvent()">🗑️ এই অনুষ্ঠান মুছুন</button>
+        <button class="btn btn-outline" onclick="window.print()">🖨️ প্রিন্ট</button>
+      </div>
+
+      <div id="evb-empty" style="text-align:center;color:var(--text-muted);padding:70px 20px">
+        <div style="font-size:40px;margin-bottom:10px">🎉</div>
+        এখনো কোনো ইভেন্ট বাজেট তৈরি হয়নি। "নতুন অনুষ্ঠান" বাটনে চাপ দিয়ে শুরু করুন।
+      </div>
+
+      <div id="evb-report" style="display:none">
+        <div class="result-header" style="margin-bottom:18px">
+          <div><div class="result-school" id="evb-event-name"></div><div class="result-sub" id="evb-event-date"></div></div>
+          <div class="gpa-badge"><div class="gpa-value" id="evb-target-val">৳০</div><div class="gpa-label">টার্গেট বাজেট</div></div>
+        </div>
+
+        <div class="stats-grid" style="margin-bottom:20px">
+          <div class="stat-card"><div class="stat-icon blue">🎯</div><div><div class="stat-value" id="evb-stat-target">৳০</div><div class="stat-label">টার্গেট বাজেট</div></div></div>
+          <div class="stat-card"><div class="stat-icon green">💚</div><div><div class="stat-value" id="evb-stat-income">৳০</div><div class="stat-label">মোট চাঁদা/আয়</div></div></div>
+          <div class="stat-card"><div class="stat-icon orange">💸</div><div><div class="stat-value" id="evb-stat-expense">৳০</div><div class="stat-label">মোট খরচ</div></div></div>
+          <div class="stat-card"><div class="stat-icon purple">⚖️</div><div><div class="stat-value" id="evb-stat-balance">৳০</div><div class="stat-label">হাতে আছে (ব্যালেন্স)</div></div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-header"><div class="card-title">📊 সার্বিক অগ্রগতি (খরচ বনাম টার্গেট)</div></div>
+          <div class="card-body" id="evb-overall-bar"></div>
+        </div>
+
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">🗂️ খাত-ভিত্তিক বরাদ্দ ও খরচ</div>
+              <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="evbOpenHeadModal()">+ নতুন খাত</button>
+            </div>
+            <div class="card-body" id="evb-heads-body" style="display:flex;flex-direction:column;gap:16px"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">💚 চাঁদা / আয় এন্ট্রি</div>
+              <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="evbOpenIncomeModal()">+ নতুন এন্ট্রি</button>
+            </div>
+            <div class="card-body" style="padding:0">
+              <table><thead><tr><th>নাম/উৎস</th><th>তারিখ</th><th>পরিমাণ</th><th class="no-print"></th></tr></thead>
+              <tbody id="evb-income-tbody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:20px">
+          <div class="card-header"><div class="card-title">📋 সব খরচের বিবরণ</div></div>
+          <div class="card-body" style="padding:0">
+            <table><thead><tr><th>খাত</th><th>বিবরণ</th><th>তারিখ</th><th>পরিমাণ</th><th class="no-print"></th></tr></thead>
+            <tbody id="evb-expense-tbody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="page" id="page-student-annual-report">
       <div class="page-actions no-print" style="flex-wrap:wrap;gap:10px">
         <div style="position:relative;flex:1;min-width:220px">
@@ -4145,6 +4206,78 @@
   </div>
 </div>
 
+<!-- EVENT BUDGET MODALS -->
+<div class="modal-overlay" id="evb-event-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title">🎉 নতুন অনুষ্ঠান / ইভেন্ট</div><button class="modal-close" onclick="closeModal('evb-event-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">অনুষ্ঠানের নাম *</label><input class="form-input" id="evb-ev-name" placeholder="যেমন: বার্ষিক ক্রীড়া প্রতিযোগিতা ২০২৬"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-ev-date" type="date"></div>
+        <div class="form-group"><label class="form-label">টার্গেট বাজেট (৳)</label><input class="form-input" id="evb-ev-target" type="number" placeholder="যেমন: ৫০০০০"></div>
+      </div>
+      <div class="form-error" id="evb-ev-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-event-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="evbSaveEvent()">✓ তৈরি করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="evb-head-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title">🗂️ নতুন খাত যোগ করুন</div><button class="modal-close" onclick="closeModal('evb-head-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">খাতের নাম *</label><input class="form-input" id="evb-head-name" placeholder="যেমন: সাজসজ্জা, খাবার, পুরস্কার"></div>
+      <div class="form-group"><label class="form-label">বরাদ্দকৃত টাকা (৳) *</label><input class="form-input" id="evb-head-amount" type="number" placeholder="যেমন: ১০০০০"></div>
+      <div class="form-error" id="evb-head-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-head-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="evbSaveHead()">✓ সংরক্ষণ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="evb-income-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title">💚 নতুন চাঁদা/আয় এন্ট্রি</div><button class="modal-close" onclick="closeModal('evb-income-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">নাম / উৎস *</label><input class="form-input" id="evb-inc-name" placeholder="যেমন: মোঃ করিম সাহেব দিলেন"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-inc-date" type="date"></div>
+        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-inc-amount" type="number" placeholder="যেমন: ১০০০"></div>
+      </div>
+      <div class="form-group"><label class="form-label">নোট (ঐচ্ছিক)</label><input class="form-input" id="evb-inc-note" placeholder="যেমন: নগদ / বিকাশ"></div>
+      <div class="form-error" id="evb-inc-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-income-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="evbSaveIncome()">✓ যোগ করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="evb-expense-modal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-header-title">💸 নতুন খরচের এন্ট্রি</div><button class="modal-close" onclick="closeModal('evb-expense-modal')">×</button></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">খাত *</label><select class="form-select" id="evb-exp-head"></select></div>
+      <div class="form-group"><label class="form-label">বিবরণ *</label><input class="form-input" id="evb-exp-desc" placeholder="যেমন: ব্যানার প্রিন্ট"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="evb-exp-date" type="date"></div>
+        <div class="form-group"><label class="form-label">পরিমাণ (৳) *</label><input class="form-input" id="evb-exp-amount" type="number" placeholder="যেমন: ৫০০"></div>
+      </div>
+      <div class="form-error" id="evb-exp-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('evb-expense-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="evbSaveExpense()">✓ যোগ করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- EXAM MODAL -->
 <div class="modal-overlay" id="exam-modal">
   <div class="modal-box">
@@ -4449,7 +4582,7 @@ let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: '
 let attendanceTimes = {};
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','event-budget':'ইভেন্ট বাজেট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -4706,6 +4839,7 @@ function showPage(id, el) {
   if(id==='profit-loss') renderProfitLoss();
   if(id==='voucher') renderVouchers();
   if(id==='due-report') renderDueReport();
+  if(id==='event-budget') renderEventBudgetPage();
   if(id==='student-annual-report') renderStudentAnnualReport();
   if(id==='marksheet') renderMarksheet();
   if(id==='merit') renderMerit();
@@ -6116,6 +6250,24 @@ let expenses = [
   {desc:'ফার্নিচার মেরামত', amount:4500, cat:'মেরামত', month:5, date:'১৫ জুন'},
 ];
 let dueSMSLog = [];
+let eventBudgets = [
+  { id:'evb1', name:'বার্ষিক ক্রীড়া প্রতিযোগিতা ২০২৬', date:'2026-02-15', target:50000,
+    heads:[
+      {id:'h1', name:'সাজসজ্জা', allocated:10000},
+      {id:'h2', name:'পুরস্কার', allocated:15000},
+      {id:'h3', name:'খাবার/নাস্তা', allocated:15000},
+      {id:'h4', name:'সাউন্ড সিস্টেম', allocated:5000},
+    ],
+    incomes:[
+      {id:'i1', name:'স্কুল ফান্ড থেকে', amount:20000, date:'2026-01-10', note:''},
+      {id:'i2', name:'মোঃ করিম সাহেব দিলেন', amount:1000, date:'2026-01-12', note:'নগদ'},
+    ],
+    expenses:[
+      {id:'e1', headId:'h1', desc:'ব্যানার ও ফেস্টুন', amount:3000, date:'2026-01-20'},
+    ]
+  }
+];
+let evbCurrentEventId = eventBudgets[0] ? eventBudgets[0].id : null;
 let parentMessages = []; // { student, cls, msg, time, createdAt, type } — শুধু অভিভাবক পোর্টালে দেখানোর জন্য, আসল SMS না
 let receiptCounter = 1001;
 
@@ -6365,6 +6517,255 @@ function deleteExpense(idx) {
   expenses.splice(idx,1);
   renderLedger();
   showToast('ব্যয় রেকর্ড মুছে ফেলা হয়েছে','error');
+}
+
+// ============ EVENT BUDGET (ইভেন্ট বাজেট) ============
+function evbGetCurrent() {
+  return eventBudgets.find(e=>e.id===evbCurrentEventId) || null;
+}
+
+function evbTotals(ev) {
+  const incomeTotal = (ev.incomes||[]).reduce((a,i)=>a+Number(i.amount||0),0);
+  const expenseTotal = (ev.expenses||[]).reduce((a,x)=>a+Number(x.amount||0),0);
+  const target = Number(ev.target||0);
+  return { incomeTotal, expenseTotal, target, balance: incomeTotal - expenseTotal };
+}
+
+function renderEventBudgetPage() {
+  const sel = document.getElementById('evb-event-select');
+  if(!eventBudgets.find(e=>e.id===evbCurrentEventId)) evbCurrentEventId = eventBudgets[0] ? eventBudgets[0].id : null;
+  sel.innerHTML = eventBudgets.map(e=>`<option value="${e.id}" ${e.id===evbCurrentEventId?'selected':''}>${e.name}</option>`).join('');
+
+  const empty = document.getElementById('evb-empty');
+  const report = document.getElementById('evb-report');
+  const ev = evbGetCurrent();
+  if(!ev) { empty.style.display='block'; report.style.display='none'; return; }
+  empty.style.display='none'; report.style.display='block';
+
+  const t = evbTotals(ev);
+  document.getElementById('evb-event-name').textContent = ev.name;
+  document.getElementById('evb-event-date').textContent = ev.date ? `তারিখ: ${ev.date}` : '';
+  document.getElementById('evb-target-val').textContent = '৳'+toBnNum(t.target.toLocaleString());
+  document.getElementById('evb-stat-target').textContent = '৳'+toBnNum(t.target.toLocaleString());
+  document.getElementById('evb-stat-income').textContent = '৳'+toBnNum(t.incomeTotal.toLocaleString());
+  document.getElementById('evb-stat-expense').textContent = '৳'+toBnNum(t.expenseTotal.toLocaleString());
+  const balEl = document.getElementById('evb-stat-balance');
+  balEl.textContent = '৳'+toBnNum(Math.abs(t.balance).toLocaleString());
+  balEl.style.color = t.balance>=0 ? 'var(--success)' : 'var(--danger)';
+
+  const pct = t.target>0 ? Math.min(100, Math.round((t.expenseTotal/t.target)*100)) : (t.expenseTotal>0?100:0);
+  document.getElementById('evb-overall-bar').innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:10px;align-items:center">
+      <span style="font-weight:700;font-size:14px">খরচ হয়েছে: <span style="color:${pct>90?'var(--danger)':pct>70?'var(--warning)':'var(--success)'}">${toBnNum(pct)}%</span></span>
+      <span style="font-size:12px;color:var(--text-muted)">৳${toBnNum(t.expenseTotal.toLocaleString())} / ৳${toBnNum(t.target.toLocaleString())}</span>
+    </div>
+    <div style="height:14px;background:#f0f4f8;border-radius:8px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:${pct>90?'var(--danger)':pct>70?'var(--warning)':'var(--success)'};border-radius:8px;transition:width 0.5s"></div>
+    </div>`;
+
+  // heads
+  const heads = ev.heads||[];
+  document.getElementById('evb-heads-body').innerHTML = heads.length===0
+    ? '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো খাত যোগ করা হয়নি।</div>'
+    : heads.map(h=>{
+        const spent = (ev.expenses||[]).filter(x=>x.headId===h.id).reduce((a,x)=>a+Number(x.amount||0),0);
+        const hp = h.allocated>0 ? Math.min(100, Math.round((spent/h.allocated)*100)) : (spent>0?100:0);
+        return `<div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div><b>${h.name}</b> <span style="font-size:11px;color:var(--text-muted)">(বরাদ্দ ৳${toBnNum(Number(h.allocated).toLocaleString())})</span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <span style="font-size:13px;font-weight:700;color:${hp>90?'var(--danger)':'var(--text)'}">৳${toBnNum(spent.toLocaleString())}</span>
+              <button class="btn" style="font-size:11px;padding:4px 8px;background:#eef4ff;color:var(--primary)" onclick="evbOpenExpenseModal('${h.id}')">+ খরচ</button>
+              <button class="btn btn-danger no-print" style="font-size:11px;padding:4px 8px" onclick="evbDeleteHead('${h.id}')">✕</button>
+            </div>
+          </div>
+          <div style="height:8px;background:#f0f4f8;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${hp}%;background:${hp>90?'var(--danger)':hp>70?'var(--warning)':'var(--success)'};border-radius:4px"></div>
+          </div>
+        </div>`;
+      }).join('');
+
+  // incomes
+  const incomes = ev.incomes||[];
+  document.getElementById('evb-income-tbody').innerHTML = incomes.length===0
+    ? '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো এন্ট্রি নেই</td></tr>'
+    : incomes.map(i=>`<tr>
+        <td><b>${i.name}</b>${i.note?` <span style="font-size:11px;color:var(--text-muted)">(${i.note})</span>`:''}</td>
+        <td>${i.date||''}</td>
+        <td style="color:var(--success);font-weight:700">+৳${toBnNum(Number(i.amount).toLocaleString())}</td>
+        <td class="no-print"><button class="btn btn-danger" onclick="evbDeleteIncome('${i.id}')">✕</button></td>
+      </tr>`).join('');
+
+  // expenses
+  const exps = ev.expenses||[];
+  document.getElementById('evb-expense-tbody').innerHTML = exps.length===0
+    ? '<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted)">কোনো খরচ নেই</td></tr>'
+    : exps.map(x=>{
+        const h = heads.find(hh=>hh.id===x.headId);
+        return `<tr>
+          <td><span class="badge badge-orange" style="font-size:11px">${h?h.name:'—'}</span></td>
+          <td>${x.desc}</td>
+          <td>${x.date||''}</td>
+          <td style="color:var(--danger);font-weight:700">-৳${toBnNum(Number(x.amount).toLocaleString())}</td>
+          <td class="no-print"><button class="btn btn-danger" onclick="evbDeleteExpense('${x.id}')">✕</button></td>
+        </tr>`;
+      }).join('');
+}
+
+function evbSelectEvent(id) {
+  evbCurrentEventId = id;
+  renderEventBudgetPage();
+}
+
+function evbOpenNewEventModal() {
+  if(!requirePerm('event-budget','edit')) return;
+  ['evb-ev-name','evb-ev-date','evb-ev-target'].forEach(id=>document.getElementById(id).value='');
+  hideErr('evb-ev-error');
+  openModal('evb-event-modal');
+}
+
+function evbSaveEvent() {
+  if(!requirePerm('event-budget','edit')) return;
+  const name = document.getElementById('evb-ev-name').value.trim();
+  if(!name){ showErr('evb-ev-error','অনুষ্ঠানের নাম লিখুন'); return; }
+  hideErr('evb-ev-error');
+  const id = 'evb'+Date.now();
+  eventBudgets.unshift({
+    id, name,
+    date: document.getElementById('evb-ev-date').value,
+    target: parseFloat(document.getElementById('evb-ev-target').value)||0,
+    heads:[], incomes:[], expenses:[]
+  });
+  evbCurrentEventId = id;
+  closeModal('evb-event-modal');
+  renderEventBudgetPage();
+  showToast('নতুন অনুষ্ঠান তৈরি হয়েছে!');
+}
+
+function evbDeleteCurrentEvent() {
+  if(!requirePerm('event-budget','del')) return;
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  if(!confirm(`"${ev.name}" অনুষ্ঠানটি সম্পূর্ণভাবে মুছে ফেলবেন? (সব খাত, চাঁদা ও খরচসহ)`)) return;
+  eventBudgets = eventBudgets.filter(e=>e.id!==ev.id);
+  evbCurrentEventId = eventBudgets[0] ? eventBudgets[0].id : null;
+  renderEventBudgetPage();
+  showToast('অনুষ্ঠান মুছে ফেলা হয়েছে','error');
+}
+
+function evbOpenHeadModal() {
+  if(!requirePerm('event-budget','edit')) return;
+  if(!evbGetCurrent()){ showToast('আগে একটি অনুষ্ঠান তৈরি করুন','error'); return; }
+  document.getElementById('evb-head-name').value='';
+  document.getElementById('evb-head-amount').value='';
+  hideErr('evb-head-error');
+  openModal('evb-head-modal');
+}
+
+function evbSaveHead() {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  const name = document.getElementById('evb-head-name').value.trim();
+  const amount = parseFloat(document.getElementById('evb-head-amount').value);
+  if(!name){ showErr('evb-head-error','খাতের নাম লিখুন'); return; }
+  if(!amount || amount<=0){ showErr('evb-head-error','সঠিক পরিমাণ লিখুন'); return; }
+  hideErr('evb-head-error');
+  ev.heads = ev.heads||[];
+  ev.heads.push({ id:'h'+Date.now(), name, allocated:amount });
+  closeModal('evb-head-modal');
+  renderEventBudgetPage();
+  showToast('নতুন খাত যোগ হয়েছে!');
+}
+
+function evbDeleteHead(headId) {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  if(!requirePerm('event-budget','del')) return;
+  if((ev.expenses||[]).some(x=>x.headId===headId) && !confirm('এই খাতে খরচের এন্ট্রি আছে। খাতটি মুছলে সেই খরচগুলোও মুছে যাবে। এগিয়ে যাবেন?')) return;
+  ev.heads = ev.heads.filter(h=>h.id!==headId);
+  ev.expenses = (ev.expenses||[]).filter(x=>x.headId!==headId);
+  renderEventBudgetPage();
+  showToast('খাত মুছে ফেলা হয়েছে','error');
+}
+
+function evbOpenIncomeModal() {
+  if(!requirePerm('event-budget','edit')) return;
+  if(!evbGetCurrent()){ showToast('আগে একটি অনুষ্ঠান তৈরি করুন','error'); return; }
+  ['evb-inc-name','evb-inc-date','evb-inc-amount','evb-inc-note'].forEach(id=>document.getElementById(id).value='');
+  hideErr('evb-inc-error');
+  openModal('evb-income-modal');
+}
+
+function evbSaveIncome() {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  const name = document.getElementById('evb-inc-name').value.trim();
+  const amount = parseFloat(document.getElementById('evb-inc-amount').value);
+  if(!name){ showErr('evb-inc-error','নাম/উৎস লিখুন'); return; }
+  if(!amount || amount<=0){ showErr('evb-inc-error','সঠিক পরিমাণ লিখুন'); return; }
+  hideErr('evb-inc-error');
+  ev.incomes = ev.incomes||[];
+  ev.incomes.unshift({
+    id:'i'+Date.now(), name, amount,
+    date: document.getElementById('evb-inc-date').value,
+    note: document.getElementById('evb-inc-note').value.trim()
+  });
+  closeModal('evb-income-modal');
+  renderEventBudgetPage();
+  showToast('নতুন এন্ট্রি যোগ হয়েছে!');
+}
+
+function evbDeleteIncome(id) {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  if(!requirePerm('event-budget','del')) return;
+  if(!confirm('এই এন্ট্রি মুছবেন?')) return;
+  ev.incomes = ev.incomes.filter(i=>i.id!==id);
+  renderEventBudgetPage();
+  showToast('এন্ট্রি মুছে ফেলা হয়েছে','error');
+}
+
+function evbOpenExpenseModal(headId) {
+  if(!requirePerm('event-budget','edit')) return;
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  const sel = document.getElementById('evb-exp-head');
+  sel.innerHTML = (ev.heads||[]).map(h=>`<option value="${h.id}" ${h.id===headId?'selected':''}>${h.name}</option>`).join('');
+  document.getElementById('evb-exp-desc').value='';
+  document.getElementById('evb-exp-date').value='';
+  document.getElementById('evb-exp-amount').value='';
+  hideErr('evb-exp-error');
+  openModal('evb-expense-modal');
+}
+
+function evbSaveExpense() {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  const headId = document.getElementById('evb-exp-head').value;
+  const desc = document.getElementById('evb-exp-desc').value.trim();
+  const amount = parseFloat(document.getElementById('evb-exp-amount').value);
+  if(!headId){ showErr('evb-exp-error','খাত নির্বাচন করুন'); return; }
+  if(!desc){ showErr('evb-exp-error','বিবরণ লিখুন'); return; }
+  if(!amount || amount<=0){ showErr('evb-exp-error','সঠিক পরিমাণ লিখুন'); return; }
+  hideErr('evb-exp-error');
+  ev.expenses = ev.expenses||[];
+  ev.expenses.unshift({
+    id:'e'+Date.now(), headId, desc, amount,
+    date: document.getElementById('evb-exp-date').value
+  });
+  closeModal('evb-expense-modal');
+  renderEventBudgetPage();
+  showToast('নতুন খরচ যোগ হয়েছে!');
+}
+
+function evbDeleteExpense(id) {
+  const ev = evbGetCurrent();
+  if(!ev) return;
+  if(!requirePerm('event-budget','del')) return;
+  if(!confirm('এই খরচের এন্ট্রি মুছবেন?')) return;
+  ev.expenses = ev.expenses.filter(x=>x.id!==id);
+  renderEventBudgetPage();
+  showToast('খরচের এন্ট্রি মুছে ফেলা হয়েছে','error');
 }
 
 // ---- DUE SMS ----
@@ -7925,7 +8326,7 @@ function buildBackupPayload(){
     students, teachers, fees, results, notices, attendance, parentMessages,
     books, bookIssues, vehicles, transportRoutes,
     routines, syllabuses, homeworks, sessions, classesList, sectionsList, subjectsList, groupsList,
-    lessonPlans, assignments, assignmentSubmissions, onlineClasses, academicEvents, examSchedule, questionPapers, questionBank, vouchers, expenses,
+    lessonPlans, assignments, assignmentSubmissions, onlineClasses, academicEvents, examSchedule, questionPapers, questionBank, vouchers, expenses, eventBudgets,
     payrollStatus, dueSMSLog, teacherAtt, smsLog, leaveBalances,
     users, permissions, exportedAt: new Date().toISOString()
   };
@@ -8010,6 +8411,7 @@ function applyRestoreData(data){
   if(data.questionBank) questionBank = data.questionBank;
   if(data.vouchers) vouchers = data.vouchers;
   if(data.expenses) expenses = data.expenses;
+  if(data.eventBudgets) eventBudgets = data.eventBudgets;
   if(data.classesList) classesList = data.classesList;
   if(data.sectionsList) sectionsList = data.sectionsList;
   if(data.subjectsList) subjectsList = data.subjectsList;
@@ -9809,6 +10211,7 @@ const permModules = [
   {id:'profit-loss', name:'লাভ-ক্ষতি বিবরণী', icon:'📉'},
   {id:'voucher', name:'ভাউচার', icon:'🧾'},
   {id:'due-report', name:'বকেয়া রিপোর্ট', icon:'⏰'},
+  {id:'event-budget', name:'ইভেন্ট বাজেট', icon:'🎉'},
   {id:'student-annual-report', name:'ছাত্র বার্ষিক রেকর্ড', icon:'📈'},
   {id:'marksheet', name:'মার্কশিট', icon:'📊'},
   {id:'merit', name:'মেরিট লিস্ট', icon:'🏆'},
@@ -9844,7 +10247,7 @@ let permissions = {
     // (স্কুল-ওয়াইড সেটিংস) — এগুলো স্পর্শকাতর/প্রশাসনিক, তাই ডিফল্টে শিক্ষকের
     // জন্য বন্ধ রাখা হলো। প্রয়োজনে অ্যাডমিন পারমিশন ম্যাট্রিক্স থেকে চালু করতে পারবেন।
     // ছাত্র বার্ষিক রেকর্ড (হাজিরা+ফলাফল+ফি সম্মিলিত) — শুধু অ্যাডমিনের জন্য ডিফল্টে।
-    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report','fees','sms-notify','master-data','student-annual-report'].includes(m.id),
+    view: !['payroll','finance-report','principal-dash','settings','ledger-gen','cash-book','bank-book','daily-report','profit-loss','voucher','due-report','event-budget','fees','sms-notify','master-data','student-annual-report'].includes(m.id),
     edit: ['attendance','homework','marksheet','result','notice','syllabus','teacher-att','lesson-plan','assignment','online-class','admit-card','seat-plan'].includes(m.id),
     del: false
   }])),
@@ -10484,6 +10887,7 @@ async function loadTenantData(schoolId) {
     if (d.academicEvents) academicEvents = d.academicEvents;
     if (d.vouchers) vouchers = d.vouchers;
     if (d.expenses) expenses = d.expenses;
+    if (d.eventBudgets) eventBudgets = d.eventBudgets;
     if (d.permissions) permissions = d.permissions;
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
     migrateAttendance();
@@ -10599,7 +11003,7 @@ async function saveTenantData() {
       // ✅ বাগ-ফিক্স: আগে এগুলো Firestore-এ সেভ হতো না (শুধু ম্যানুয়াল ব্যাকআপে যেত) —
       // ফলে রুটিন/সিলেবাস/হোমওয়ার্ক/লেসন প্ল্যান/অ্যাসাইনমেন্ট/মাস্টার ডেটা লগআউটের পর হারিয়ে যেত
       vehicles, routines, syllabuses, homeworks, sessions, sectionsList, subjectsList, groupsList,
-      lessonPlans, assignments, assignmentSubmissions, academicEvents, vouchers, expenses, permissions,
+      lessonPlans, assignments, assignmentSubmissions, academicEvents, vouchers, expenses, eventBudgets, permissions,
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
