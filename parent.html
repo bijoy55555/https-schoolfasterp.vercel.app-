@@ -17,6 +17,7 @@
     --border: #d5e8f5; --sidebar-width: 240px;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; max-width:100%; overflow-x:hidden; }
   body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; min-height:100dvh; }
   .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; height:100dvh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
   .sidebar-close { display:none; }
@@ -35,7 +36,7 @@
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:rgba(46,134,193,0.18); color:#fff; border-left-color:var(--accent); font-weight:600; }
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
-  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
+  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; min-width:0; max-width:100%; }
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; }
   .hamburger { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
   @media(max-width:1024px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
@@ -44,7 +45,7 @@
   .topbar-date { font-size:12px; color:var(--text-muted); }
   .user-chip { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:50px; padding:6px 14px 6px 6px; font-size:13px; font-weight:600; color:var(--primary); }
   .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
-  .content { padding:26px 28px; flex:1; }
+  .content { padding:26px 28px; flex:1; min-width:0; max-width:100%; }
   .page { display:none; }
   .page.active { display:block; }
   .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
@@ -114,7 +115,8 @@
   .att-cell:hover { transform:scale(1.08); }
   .att-present{background:#d5f5e3;color:var(--success)} .att-absent{background:#fadbd8;color:var(--danger)}
   .att-holiday{background:#f0f4f8;color:var(--text-muted)} .att-empty{background:transparent}
-  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(2,1fr)} .two-col,.three-col{grid-template-columns:1fr} .fee-summary{grid-template-columns:1fr} }
+  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(2,1fr)!important} .two-col,.three-col{grid-template-columns:1fr!important} .fee-summary{grid-template-columns:1fr!important} }
+  @media(max-width:480px) { .stats-grid{grid-template-columns:1fr!important} }
 
   /* ===== FEE TABS ===== */
   .fee-tab-bar { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
