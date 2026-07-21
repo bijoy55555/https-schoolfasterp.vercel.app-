@@ -4572,6 +4572,7 @@ function generateAutoFees() {
     cursor.setHours(0,0,0,0);
     // ভবিষ্যতে অসীম লুপ ঠেকাতে সর্বোচ্চ ২৪ মাস পর্যন্ত চেক করা হবে
     let guard = 0;
+    let addedNew = false;
     while(cursor <= today && guard < 24) {
       const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`;
       const already = fees.some(f=>f.student===s.name && f.autoMonthKey===monthKey);
@@ -4582,10 +4583,15 @@ function generateAutoFees() {
           dueDate: cursor.toISOString().split('T')[0], // ISO — হিসাবের জন্য
           autoMonthKey: monthKey, auto:true,
         });
+        addedNew = true;
       }
       cursor.setMonth(cursor.getMonth()+1);
       guard++;
     }
+    // ✅ বাগ-ফিক্স: নতুন মাসের বকেয়া অটো-জেনারেট হলে students[].feeStatus-ও সাথে সাথে
+    // "বকেয়া" করে দেওয়া হয় — নাহলে আগের মাস পরিশোধ থাকলে ছাত্র তালিকায় ভুলভাবে "পরিশোধিত"
+    // দেখাতে থাকত, যদিও এই মাসের নতুন বেতন এখনো বাকি।
+    if(addedNew && typeof syncStudentFeeStatus==='function') syncStudentFeeStatus(s.name);
   });
 }
 
