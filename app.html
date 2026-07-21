@@ -686,7 +686,7 @@
       <div class="nav-item" data-page="students" onclick="showPage('students',this)"><span class="icon">👨‍🎓</span> ছাত্র তালিকা</div>
       <div class="nav-item" data-page="alumni" onclick="showPage('alumni',this)"><span class="icon">🎓</span> প্রাক্তন ছাত্র</div>
       <div class="nav-item" data-page="attendance" onclick="showPage('attendance',this)"><span class="icon">✅</span> উপস্থিতি</div>
-      <div class="nav-item" onclick="window.open('biometric.html','_blank')"><span class="icon">🪪</span> বায়োমেট্রিক/RFID</div>
+      <div class="nav-item" onclick="window.open('biometric.html','_blank'); closeSidebar();"><span class="icon">🪪</span> বায়োমেট্রিক/RFID</div>
       <div class="nav-item" data-page="result" onclick="showPage('result',this)"><span class="icon">📝</span> পরীক্ষা ও ফলাফল</div>
       <div class="nav-item" data-page="fees" onclick="showPage('fees',this)"><span class="icon">💰</span> ফি ম্যানেজমেন্ট</div>
     </div>
@@ -2386,9 +2386,21 @@
             <div class="settings-section" style="margin-bottom:20px">
               <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🖼️ লোগো ও স্বাক্ষর</div>
               <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-                <div class="form-group"><label class="form-label">বিদ্যালয়ের লোগো</label><input class="form-input" type="file" id="logo-upload" accept="image/*" onchange="uploadLogo(this)"></div>
+                <div class="form-group">
+                  <label class="form-label">বিদ্যালয়ের লোগো</label>
+                  <input class="form-input" type="file" id="logo-upload" accept="image/*" onchange="uploadLogo(this)">
+                  <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.5">
+                    📐 সাইজ: <b>৩০০×৩০০ পিক্সেল</b> (বর্গাকার, ১:১ অনুপাত) — স্বচ্ছ (transparent) ব্যাকগ্রাউন্ড PNG সবচেয়ে ভালো, ফাইল সাইজ ৫০০ KB-এর কম রাখুন। বর্গাকার হলে কম জায়গায় সুন্দর দেখাবে।
+                  </div>
+                </div>
                 <div id="logo-preview-wrap" style="display:none"><img id="logo-preview" style="height:48px;border-radius:8px;border:1px solid var(--border)"></div>
-                <div class="form-group"><label class="form-label">প্রধান শিক্ষকের স্বাক্ষর</label><input class="form-input" type="file" id="signature-upload" accept="image/*" onchange="uploadSignature(this)"></div>
+                <div class="form-group">
+                  <label class="form-label">প্রধান শিক্ষকের স্বাক্ষর</label>
+                  <input class="form-input" type="file" id="signature-upload" accept="image/*" onchange="uploadSignature(this)">
+                  <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.5">
+                    📐 সাইজ: <b>৩০০×১৫০ পিক্সেল</b> (আয়তাকার, ২:১ অনুপাত) — স্বচ্ছ ব্যাকগ্রাউন্ড PNG, ফাইল সাইজ ২০০ KB-এর কম রাখুন। এতে অ্যাডমিট/আইডি কার্ডের স্বাক্ষরের ঘরে কম জায়গায় স্পষ্টভাবে বসবে।
+                  </div>
+                </div>
                 <div id="signature-preview-wrap" style="display:none"><img id="signature-preview" style="height:48px;border-radius:8px;border:1px solid var(--border);background:#fff;padding:4px"></div>
               </div>
             </div>
@@ -6361,6 +6373,21 @@ function filterFees() {
   renderFees(q ? fees.filter(f=>f.student.toLowerCase().includes(q)||f.cls.includes(q)) : fees);
 }
 
+// ছাত্র তালিকায় (students[].feeStatus) ও ফি ম্যানেজমেন্ট তালিকা (fees[]) — এই দুই জায়গার
+// ডেটা যাতে সবসময় মিলে থাকে, তাই যেকোনো পেমেন্ট যোগ/মুছার পর এই ফাংশন কল করে ছাত্রের
+// feeStatus রিক্যালকুলেট করে দেওয়া হয় (আগে শুধু অনলাইন পেমেন্টের ক্ষেত্রে এটা হতো, ম্যানুয়াল
+// এন্ট্রির ক্ষেত্রে হতো না — যার কারণে ছাত্র তালিকা ও ফি ম্যানেজমেন্টে ভিন্ন ভিন্ন স্ট্যাটাস দেখাত)
+function syncStudentFeeStatus(sName) {
+  if(!sName) return;
+  const stu = students.find(s=>s.name===sName);
+  if(!stu) return;
+  const studentFees = fees.filter(f=>f.student===sName);
+  if(studentFees.length===0) return;
+  const hasDue = studentFees.some(f=>f.status==='বকেয়া');
+  const hasPartial = studentFees.some(f=>f.status==='আংশিক');
+  stu.feeStatus = hasDue ? 'বকেয়া' : (hasPartial ? 'আংশিক' : 'পরিশোধিত');
+}
+
 function saveFee() {
   if(!requirePerm('fees','edit')) return;
   const student = document.getElementById('f-student').value.trim();
@@ -6384,7 +6411,8 @@ function saveFee() {
   ['f-student','f-amount'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-class').value='';
   closeModal('fee-modal');
-  renderFees(); renderDashboard();
+  syncStudentFeeStatus(student);
+  renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   if(status==='পরিশোধিত') { showToast('পেমেন্ট রেকর্ড হয়েছে! রসিদ প্রস্তুত।'); setTimeout(()=>openReceipt(0),600); }
   else showToast('পেমেন্ট রেকর্ড হয়েছে!');
 }
@@ -6392,8 +6420,10 @@ function saveFee() {
 function deleteFee(idx) {
   if(!requirePerm('fees','del')) return;
   if(!confirm('এই পেমেন্ট রেকর্ড মুছবেন?')) return;
+  const sName = fees[idx] ? fees[idx].student : null;
   fees.splice(idx,1);
-  renderFees(); renderDashboard();
+  syncStudentFeeStatus(sName);
+  renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   showToast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে','error');
 }
 
@@ -6406,7 +6436,7 @@ function openReceipt(idx) {
   const amountWords = amountInWords(f.amount);
   document.getElementById('receipt-content').innerHTML = `
     <div class="receipt-header">
-      <div style="font-size:28px;margin-bottom:6px">🏫</div>
+      <div style="margin-bottom:6px">${schoolLogo ? `<img src="${schoolLogo}" style="height:44px;max-width:100px;object-fit:contain">` : '<div style="font-size:28px">🏫</div>'}</div>
       <div class="receipt-school-name">${schoolName}</div>
       <div class="receipt-school-sub">ঢাকা, বাংলাদেশ &nbsp;|&nbsp; ফোন: ০১৭০০-০০০০০০</div>
       <div class="receipt-title">ফি রসিদ</div>
@@ -9367,7 +9397,7 @@ function generateAdmitCards() {
     return `<div class="card" style="border:1.5px solid var(--primary);page-break-inside:avoid">
       <div style="background:var(--primary);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-weight:700;font-size:14px">প্রবেশপত্র / Admit Card</div><div style="font-size:11px;opacity:0.85">${examName}</div></div>
-        <div style="width:46px;height:46px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">🪪</div>
+        <div style="width:46px;height:46px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden">${schoolLogo ? `<img src="${schoolLogo}" style="width:100%;height:100%;object-fit:contain">` : '🪪'}</div>
       </div>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;margin-bottom:10px">
@@ -9379,8 +9409,9 @@ function generateAdmitCards() {
           </div>
         </div>
         <table style="font-size:12px"><thead><tr><th>বিষয়</th><th>তারিখ</th><th>সময়</th></tr></thead><tbody>${subRows}</tbody></table>
-        <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted)">
-          <div>শিক্ষার্থীর স্বাক্ষর</div><div>প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:var(--text-muted)">
+          <div>শিক্ষার্থীর স্বাক্ষর</div>
+          <div style="text-align:center">${principalSignature ? `<img src="${principalSignature}" style="height:28px;max-width:90px;object-fit:contain;display:block;margin:0 auto 2px">` : ''}প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
         </div>
       </div>
     </div>`;
@@ -10512,9 +10543,9 @@ function renderSubscriptionBadge(school){
   const el = document.getElementById('subscription-badge');
   if(!el) return;
   // ✅ সাবস্ক্রিপশন/মেয়াদের তথ্য শুধু এডমিন/প্রধান শিক্ষকের জন্য প্রাসঙ্গিক —
-  // অভিভাবক ও ছাত্র পোর্টালে এই ব্যাজ দেখানোর দরকার নেই
+  // অভিভাবক, ছাত্র ও শিক্ষক পোর্টালে এই ব্যাজ দেখানোর দরকার নেই
   const role = currentUser && currentUser.role;
-  if(role==='parent' || role==='student'){ el.style.display = 'none'; return; }
+  if(role==='parent' || role==='student' || role==='teacher'){ el.style.display = 'none'; return; }
   if(!school || !school.expiryDate){ el.style.display = 'none'; return; }
   window._schoolDoc = school; // ✅ প্যাকেজ কেনার পেজে ফোন নম্বর প্রি-ফিল করার জন্য সংরক্ষণ
   const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
@@ -12271,7 +12302,7 @@ function downloadMyAdmitCard(idx) {
     .sign-box{text-align:center;border-top:1px solid #333;width:180px;padding-top:6px;font-size:12px}
     @media print{body{padding:15px}}
   </style></head><body>
-  <div class="header"><div class="school-name">${escHtml(school)}</div><div class="school-sub">${escHtml(addr)}${phone?' | ফোন: '+escHtml(phone):''}</div></div>
+  <div class="header">${schoolLogo ? `<img src="${schoolLogo}" style="height:50px;max-width:120px;object-fit:contain;margin-bottom:6px">` : ''}<div class="school-name">${escHtml(school)}</div><div class="school-sub">${escHtml(addr)}${phone?' | ফোন: '+escHtml(phone):''}</div></div>
   <div class="title">প্রবেশপত্র / Admit Card — ${escHtml(examType)} পরীক্ষা</div>
   <div class="info-row">
     ${photoHtml}
@@ -12282,7 +12313,7 @@ function downloadMyAdmitCard(idx) {
     </div>
   </div>
   <table><thead><tr><th>বিষয়</th><th>তারিখ</th><th>সময়</th></tr></thead><tbody>${subRows}</tbody></table>
-  <div class="signs"><div class="sign-box">শিক্ষার্থীর স্বাক্ষর</div><div class="sign-box">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div></div>
+  <div class="signs"><div class="sign-box">শিক্ষার্থীর স্বাক্ষর</div><div class="sign-box" style="border-top:none;padding-top:0">${principalSignature ? `<img src="${principalSignature}" style="height:30px;max-width:100px;object-fit:contain;display:block;margin:0 auto 2px">` : ''}<div style="border-top:1px solid #333;padding-top:6px">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div></div></div>
   <scr${''}ipt>window.onload=function(){window.print();}<\/script>
   </body></html>`);
   w.document.close();
@@ -12770,13 +12801,15 @@ function openIDCard(idx) {
   const barHeights = [18,12,20,14,22,10,18,16,24,12,20,10,18,22,14,16,20,12];
   const barcodeHTML = barHeights.map((h,i)=>`<span style="height:${h}px;width:${i%3===0?2:1}px"></span>`).join('');
 
+  const idSchoolName = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const idSchoolAddr = document.getElementById('s-address')?.value || 'Adarsha High School, Dhaka';
   document.getElementById('id-card-render').innerHTML = `
     <div class="id-card-stripe"></div>
     <div class="id-card-header">
-      <div class="id-card-school-icon">🏫</div>
+      <div class="id-card-school-icon" style="${schoolLogo?'padding:0;overflow:hidden':''}">${schoolLogo ? `<img src="${schoolLogo}" style="width:100%;height:100%;object-fit:contain">` : '🏫'}</div>
       <div>
-        <div class="id-card-school-name">আদর্শ উচ্চ বিদ্যালয়</div>
-        <div class="id-card-school-sub">Adarsha High School, Dhaka</div>
+        <div class="id-card-school-name">${idSchoolName}</div>
+        <div class="id-card-school-sub">${idSchoolAddr}</div>
       </div>
     </div>
     <div class="id-card-body">
@@ -12793,6 +12826,7 @@ function openIDCard(idx) {
     </div>
     <div class="id-card-footer">
       <div class="id-card-session">সেশন: ২০২৪-২০২৫</div>
+      ${principalSignature ? `<div style="text-align:center;font-size:7.5px;opacity:0.9;line-height:1.3"><img src="${principalSignature}" style="height:16px;max-width:52px;object-fit:contain;background:#fff;border-radius:3px;padding:1px 4px;display:block;margin:0 auto 1px">অধ্যক্ষ</div>` : ''}
       <div class="id-card-barcode">${barcodeHTML}</div>
     </div>`;
   document.getElementById('id-card-overlay').classList.add('open');
