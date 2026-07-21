@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>গুগল শিট সিঙ্ক — স্কুল ERP</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#0d2137; color:#222; margin:0; padding:24px; }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { color:#fff; font-size:22px; margin-bottom:4px; }
+  .sub { color:#9fb3c8; font-size:13px; margin-bottom:20px; }
+  .card { background:#fff; border-radius:14px; padding:22px; margin-bottom:20px; box-shadow:0 4px 20px rgba(0,0,0,.25); }
+  .card h2 { font-size:16px; margin:0 0 14px; color:#1a5276; }
+  label { display:block; font-size:12px; font-weight:600; color:#555; margin:10px 0 4px; }
+  input { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:8px; font-size:14px; }
+  button { margin-top:16px; background:#1a5276; color:#fff; border:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; }
+  button:hover { background:#154160; }
+  button.danger { background:#b03030; }
+  button.danger:hover { background:#8f2525; }
+  button.ghost { background:#eaf2fb; color:#1a5276; }
+  button:disabled { opacity:.6; cursor:not-allowed; }
+  .msg { margin-top:12px; font-size:13px; padding:10px; border-radius:8px; display:none; }
+  .msg.ok { background:#e8f8ef; color:#1e7e46; display:block; }
+  .msg.err { background:#fdeaea; color:#b03030; display:block; }
+  .msg.info { background:#eaf2fb; color:#1a5276; display:block; }
+  .hint { font-size:12px; color:#777; margin-top:8px; line-height:1.6; }
+  code { background:#f1f1f1; padding:1px 6px; border-radius:4px; font-size:12px; word-break:break-all; }
+  .email-box { background:#0d2137; color:#7CFFB2; padding:14px; border-radius:8px; font-family:monospace; font-size:13px; word-break:break-all; margin-top:10px; }
+  .status-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .dot { width:10px; height:10px; border-radius:50%; background:#ccc; flex-shrink:0; }
+  .dot.on { background:#16A34A; }
+  .dot.off { background:#b03030; }
+  .checks { list-style:none; padding:0; margin:10px 0; font-size:13px; }
+  .checks li { padding:4px 0; }
+  ol { font-size:13px; color:#444; line-height:1.9; padding-left:20px; }
+  .sync-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; text-align:center; margin-top:14px; }
+  .sync-num { font-size:22px; font-weight:700; color:#1a5276; }
+  .sync-lbl { font-size:12px; color:#777; }
+</style>
+<link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/></head>
+<body>
+<div class="wrap">
+  <h1>📊 গুগল শিট মডিউল</h1>
+  <div class="sub">আপনার স্কুলের ছাত্র তালিকা, ফি ও হাজিরার ডেটা নিজের একটা Google Sheet-এ অটো-সিঙ্ক করুন — অন্য কোনো স্কুল এই Sheet দেখতে পারবে না।</div>
+
+  <div id="auth-card" class="card">
+    <h2>লগইন যাচাই হচ্ছে...</h2>
+    <div class="hint">এই পেজটা ব্যবহার করতে হলে আগে app.html-এ স্কুল-অ্যাডমিন হিসেবে লগইন করা থাকতে হবে (একই ব্রাউজারে)। লগইন করা না থাকলে <a href="app.html">app.html</a>-এ গিয়ে আগে লগইন করুন।</div>
+  </div>
+
+  <div id="main" style="display:none">
+
+    <div class="card">
+      <h2>ধাপ ১ — Sheet-এ Editor অ্যাক্সেস দিন</h2>
+      <div class="hint">প্রথমে <a href="https://sheets.google.com" target="_blank">sheets.google.com</a>-এ গিয়ে একটা নতুন Sheet বানান (অথবা আগের কোনো Sheet ব্যবহার করুন)। তারপর সেই Sheet-এর "Share" বাটনে ক্লিক করে নিচের ইমেইলটাকে <b>Editor</b> হিসেবে যোগ করুন:</div>
+      <div class="email-box" id="sa-email">লোড হচ্ছে...</div>
+      <button class="ghost" onclick="copyEmail()">📋 ইমেইল কপি করুন</button>
+    </div>
+
+    <div class="card">
+      <h2>ধাপ ২ — Sheet কানেক্ট করুন</h2>
+      <div class="status-row">
+        <div class="dot" id="conn-dot"></div>
+        <div id="conn-text">স্ট্যাটাস লোড হচ্ছে...</div>
+      </div>
+      <label>Google Sheet-এর লিংক অথবা আইডি</label>
+      <input id="sheet-id-input" placeholder="https://docs.google.com/spreadsheets/d/.../edit">
+      <button onclick="connectSheet()" id="connect-btn">🔗 কানেক্ট করুন</button>
+      <button class="danger" onclick="disconnectSheet()" id="disconnect-btn" style="display:none">❌ ডিসকানেক্ট করুন</button>
+      <div class="msg" id="conn-msg"></div>
+      <div class="hint">Editor অ্যাক্সেস না দিয়ে কানেক্ট করার চেষ্টা করলে এরর দেখাবে — ধাপ ১ আগে করে নিন।</div>
+    </div>
+
+    <div class="card">
+      <h2>ধাপ ৩ — সিঙ্ক করুন</h2>
+      <div class="hint">নিচের বাটনে চাপলেই বর্তমান ছাত্র তালিকা, ফি ও নতুন হাজিরার লগ আপনার Sheet-এ চলে যাবে (৩টা আলাদা ট্যাব: Students, Fees, Attendance Logs)। ছাত্র/ফি ট্যাব প্রতিবার হালনাগাদ (ওভাররাইট) হয়, হাজিরা লগে শুধু নতুনগুলো যোগ হয় — তাই বারবার চাপলেও ডুপ্লিকেট হবে না।</div>
+      <button onclick="syncNow()" id="sync-btn">🔄 এখনই সিঙ্ক করুন</button>
+      <div class="msg" id="sync-msg"></div>
+      <div class="sync-grid" id="sync-grid" style="display:none">
+        <div><div class="sync-num" id="sync-students">—</div><div class="sync-lbl">ছাত্র</div></div>
+        <div><div class="sync-num" id="sync-fees">—</div><div class="sync-lbl">ফি এন্ট্রি</div></div>
+        <div><div class="sync-num" id="sync-attendance">—</div><div class="sync-lbl">নতুন হাজিরা লগ</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ℹ️ এটা কীভাবে কাজ করে</h2>
+      <ol>
+        <li>পুরো ERP-এর জন্য একটাই Google Cloud Service Account ব্যবহার হয় (প্ল্যাটফর্ম মালিকের)।</li>
+        <li>প্রতিটা স্কুল আলাদা Google Sheet বানিয়ে শুধু সেই একটা ইমেইলকে Editor করে দেয়।</li>
+        <li>আপনি লগইন করলে সার্ভার আপনার স্কুল আইডি নিজেই নির্ণয় করে — তাই আপনার ডেটা সবসময় শুধু আপনার নিজের Sheet-এই যাবে, অন্য কোনো স্কুলের Sheet কখনো দেখা বা ছোঁয়া যাবে না।</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD0X7uf_JVVSnMrBj24B8Oeke9fcMrIsLE",
+    authDomain: "school-erp-bd.firebaseapp.com",
+    projectId: "school-erp-bd",
+    storageBucket: "school-erp-bd.firebasestorage.app",
+    messagingSenderId: "951924242207",
+    appId: "1:951924242207:web:c5bd862a9e00ae9d9b622a",
+    measurementId: "G-9E9LHG9HWS"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  let idToken = null;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      document.getElementById('auth-card').innerHTML = '<h2>⚠️ লগইন করা নেই</h2><div class="hint">আগে <a href="app.html">app.html</a>-এ লগইন করুন, তারপর এই পেজে ফিরে আসুন।</div>';
+      return;
+    }
+    try {
+      const idxSnap = await getDoc(doc(db, 'userIndex', user.uid));
+      if (!idxSnap.exists()) throw new Error('এই ইউজারের সাথে কোনো স্কুল যুক্ত নেই');
+      const idx = idxSnap.data();
+      if (idx.role !== 'admin') throw new Error('শুধু স্কুল-অ্যাডমিন এই পেজ ব্যবহার করতে পারবেন');
+      idToken = await user.getIdToken();
+      setInterval(async () => { idToken = await user.getIdToken(true); }, 55 * 60 * 1000);
+      document.getElementById('auth-card').style.display = 'none';
+      document.getElementById('main').style.display = 'block';
+      loadStatus();
+    } catch (e) {
+      document.getElementById('auth-card').innerHTML = `<h2>⚠️ অ্যাক্সেস নেই</h2><div class="hint">${e.message}</div>`;
+    }
+  });
+
+  async function apiCall(path, method, body) {
+    const resp = await fetch(path, {
+      method,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'সার্ভার এরর');
+    return data;
+  }
+
+  let lastEmail = '';
+  async function loadStatus() {
+    try {
+      const r = await apiCall('/api/sheets-config', 'GET');
+      lastEmail = r.serviceAccountEmail;
+      document.getElementById('sa-email').textContent = r.serviceAccountEmail || '(env variable সেট করা নেই)';
+      const dot = document.getElementById('conn-dot');
+      const text = document.getElementById('conn-text');
+      if (r.connected) {
+        dot.className = 'dot on';
+        text.innerHTML = `✅ কানেক্টেড — <b>${r.spreadsheetTitle || r.spreadsheetId}</b>`;
+        document.getElementById('connect-btn').textContent = '🔗 অন্য Sheet-এ পরিবর্তন করুন';
+        document.getElementById('disconnect-btn').style.display = 'inline-block';
+      } else {
+        dot.className = 'dot off';
+        text.textContent = '❌ কোনো Sheet কানেক্ট করা নেই';
+        document.getElementById('disconnect-btn').style.display = 'none';
+      }
+    } catch (e) {
+      document.getElementById('conn-text').textContent = 'স্ট্যাটাস লোড করা যায়নি: ' + e.message;
+    }
+  }
+
+  window.copyEmail = function () {
+    navigator.clipboard.writeText(lastEmail);
+    alert('ইমেইল কপি হয়েছে: ' + lastEmail);
+  };
+
+  window.connectSheet = async function () {
+    const raw = document.getElementById('sheet-id-input').value.trim();
+    const msg = document.getElementById('conn-msg');
+    if (!raw) { msg.className = 'msg err'; msg.textContent = 'Sheet-এর লিংক বা আইডি দিন'; return; }
+    const btn = document.getElementById('connect-btn');
+    btn.disabled = true;
+    msg.className = 'msg info'; msg.textContent = 'যাচাই করা হচ্ছে...';
+    try {
+      const r = await apiCall('/api/sheets-config', 'POST', { spreadsheetId: raw });
+      msg.className = 'msg ok'; msg.textContent = `✅ কানেক্ট হয়েছে: ${r.spreadsheetTitle}`;
+      document.getElementById('sheet-id-input').value = '';
+      loadStatus();
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  window.disconnectSheet = async function () {
+    if (!confirm('এই Sheet-এর সাথে সিঙ্ক বন্ধ করতে চান? (Sheet নিজে মুছে যাবে না)')) return;
+    try {
+      await apiCall('/api/sheets-config', 'DELETE');
+      loadStatus();
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  window.syncNow = async function () {
+    const msg = document.getElementById('sync-msg');
+    const btn = document.getElementById('sync-btn');
+    btn.disabled = true;
+    msg.className = 'msg info'; msg.textContent = 'সিঙ্ক করা হচ্ছে... এটা কয়েক সেকেন্ড সময় নিতে পারে।';
+    try {
+      const r = await apiCall('/api/sheets-sync', 'POST', {});
+      msg.className = 'msg ok'; msg.textContent = '✅ সিঙ্ক সম্পন্ন হয়েছে';
+      document.getElementById('sync-grid').style.display = 'grid';
+      document.getElementById('sync-students').textContent = r.synced.students ?? '—';
+      document.getElementById('sync-fees').textContent = r.synced.fees ?? '—';
+      document.getElementById('sync-attendance').textContent = r.synced.attendance ?? '—';
+    } catch (e) {
+      msg.className = 'msg err'; msg.textContent = e.message;
+    } finally {
+      btn.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
