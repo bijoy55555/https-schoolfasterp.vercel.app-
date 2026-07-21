@@ -4548,11 +4548,11 @@ let students = [
 ];
 
 let teachers = [
-  {name:'মো. রফিকুল ইসলাম',subject:'বাংলা',cls:'৯ম - ১০ম',phone:'০১৭১১-১২৩৪৫৬',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'rafiqul@school.edu',nid:'1234567890',address:'মিরপুর, ঢাকা',joinDate:'২০১৫-০১-১৫',salary:28000,allowance:5000,deduction:2000},
-  {name:'নাসরিন সুলতানা',subject:'গণিত',cls:'৮ম - ১০ম',phone:'০১৮২২-২৩৪৫৬৭',status:'কর্মরত',designation:'সিনিয়র শিক্ষক',email:'nasrin@school.edu',nid:'2345678901',address:'ধানমন্ডি, ঢাকা',joinDate:'২০১২-০৩-০১',salary:35000,allowance:7000,deduction:3000},
-  {name:'আনিসুর রহমান',subject:'ইংরেজি',cls:'৬ষ্ঠ - ১০ম',phone:'০১৯১৩-৩৪৫৬৭৮',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'anis@school.edu',nid:'3456789012',address:'মোহাম্মদপুর, ঢাকা',joinDate:'২০১৮-০৬-১০',salary:25000,allowance:4500,deduction:1800},
-  {name:'ফারজানা আক্তার',subject:'বিজ্ঞান',cls:'৭ম - ১০ম',phone:'০১৫৪৪-৪৫৬৭৮৯',status:'ছুটিতে',designation:'সহকারী শিক্ষক',email:'farjana@school.edu',nid:'4567890123',address:'উত্তরা, ঢাকা',joinDate:'২০১৯-০৯-০১',salary:25000,allowance:4500,deduction:1800},
-  {name:'শামসুল হক',subject:'ইতিহাস',cls:'৮ম - ১০ম',phone:'০১৬৫৫-৫৬৭৮৯০',status:'কর্মরত',designation:'প্রধান শিক্ষক (ভারপ্রাপ্ত)',email:'shamsul@school.edu',nid:'5678901234',address:'গুলশান, ঢাকা',joinDate:'২০১০-০১-০১',salary:50000,allowance:12000,deduction:5000},
+  {name:'মো. রফিকুল ইসলাম',subject:'বাংলা',cls:'নবম - ক, নবম - খ, দশম - ক, দশম - খ',phone:'০১৭১১-১২৩৪৫৬',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'rafiqul@school.edu',nid:'1234567890',address:'মিরপুর, ঢাকা',joinDate:'২০১৫-০১-১৫',salary:28000,allowance:5000,deduction:2000},
+  {name:'নাসরিন সুলতানা',subject:'গণিত',cls:'অষ্টম - ক, নবম - ক, দশম - ক',phone:'০১৮২২-২৩৪৫৬৭',status:'কর্মরত',designation:'সিনিয়র শিক্ষক',email:'nasrin@school.edu',nid:'2345678901',address:'ধানমন্ডি, ঢাকা',joinDate:'২০১২-০৩-০১',salary:35000,allowance:7000,deduction:3000},
+  {name:'আনিসুর রহমান',subject:'ইংরেজি',cls:'ষষ্ঠ - ক, সপ্তম - ক, অষ্টম - ক, নবম - খ, দশম - খ',phone:'০১৯১৩-৩৪৫৬৭৮',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'anis@school.edu',nid:'3456789012',address:'মোহাম্মদপুর, ঢাকা',joinDate:'২০১৮-০৬-১০',salary:25000,allowance:4500,deduction:1800},
+  {name:'ফারজানা আক্তার',subject:'বিজ্ঞান',cls:'সপ্তম - ক, অষ্টম - খ, নবম - গ, দশম - গ',phone:'০১৫৪৪-৪৫৬৭৮৯',status:'ছুটিতে',designation:'সহকারী শিক্ষক',email:'farjana@school.edu',nid:'4567890123',address:'উত্তরা, ঢাকা',joinDate:'২০১৯-০৯-০১',salary:25000,allowance:4500,deduction:1800},
+  {name:'শামসুল হক',subject:'ইতিহাস',cls:'অষ্টম - ক, অষ্টম - খ, নবম - ক, দশম - ক',phone:'০১৬৫৫-৫৬৭৮৯০',status:'কর্মরত',designation:'প্রধান শিক্ষক (ভারপ্রাপ্ত)',email:'shamsul@school.edu',nid:'5678901234',address:'গুলশান, ঢাকা',joinDate:'২০১০-০১-০১',salary:50000,allowance:12000,deduction:5000},
 ];
 
 // ============ AUTO ফি জেনারেশন ============
@@ -10524,8 +10524,14 @@ function applyTeacherClassScope() {
   selectIds.forEach(id=>{
     const sel = document.getElementById(id);
     if(!sel) return;
-    Array.from(sel.options).forEach(opt=>{
-      if(opt.value==='') return; // "সব শ্রেণি" অপশন রাখা হলো, রেন্ডার-ফাংশনে ফিল্টার হবে
+    const realOptions = Array.from(sel.options).filter(o=>o.value!=='');
+    // ✅ সুরক্ষা: শিক্ষকের cls-এ থাকা কোনো একটা মানও যদি আসল অপশনের সাথে না মেলে
+    // (যেমন পুরনো ফরম্যাটের ডেটা "৯ম - ১০ম" যা প্রকৃত অপশন "নবম - ক"-এর সাথে মেলে না),
+    // তাহলে ফিল্টার না করে সবগুলো ক্লাসই রেখে দেওয়া হয় — ড্রপডাউন পুরোপুরি খালি হয়ে
+    // যাওয়ার চেয়ে (এবং ব্যবহারযোগ্য না থাকার চেয়ে) সব ক্লাস দেখানো ভালো।
+    const anyMatch = my.length===0 || realOptions.some(o=>my.includes(o.value));
+    if(!anyMatch) { console.warn(`applyTeacherClassScope: "${id}"-এর কোনো ক্লাস অপশনের সাথে শিক্ষকের নিজের ক্লাস ("${my.join(', ')}") মেলেনি — ফিল্টার বাদ দেওয়া হলো`); return; }
+    realOptions.forEach(opt=>{
       if(!my.includes(opt.value)) opt.remove();
     });
     if(sel.options.length && !Array.from(sel.options).some(o=>o.value===sel.value)) {
