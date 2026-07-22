@@ -48,6 +48,18 @@
   </div>
 
   <div id="main" style="display:none">
+    <div class="card" style="margin-bottom:14px;">
+      <h2 style="margin-top:0">📖 কীভাবে নতুন Excel বানাবেন — নিচের ধাপগুলো আগে পড়ে নিন</h2>
+      <ol style="font-size:12.5px;color:#444;line-height:1.9;padding-left:20px;margin:0;">
+        <li>🔑 নিচের <b>"➕ নতুন Excel তৈরি করুন"</b> বাটনে চাপলে নতুন ট্যাবে Google Sheet খুলবে। আগে থেকে <b>Gmail-এ লগইন</b> করা না থাকলে প্রথমে লগইন করতে বলবে — আপনার Gmail দিয়ে লগইন করে নিন।</li>
+        <li>📝 Sheet খুলে গেলে সেখানে আপনার তালিকা/ডেটা বসান, ওপরে বাঁ-দিকে নাম দিয়ে দিন (যেমন: "জানুয়ারি সেলারি শিট")।</li>
+        <li>🔗 এবার ওপরে ডানদিকে <b>"Share"</b> (শেয়ার) বাটনে চাপুন।</li>
+        <li>🌐 "General access"-এর নিচে লেখা থাকবে <b>"Restricted"</b> — সেটার ওপর চাপুন, তারপর <b>"Anyone with the link"</b> বেছে নিন (এটাকেই বলে লিংক <b>"পাবলিশ/পাবলিক"</b> করা — এতে লিংক যার কাছে থাকবে সে-ই দেখতে পারবে)।</li>
+        <li>👁️ পাশে <b>"Viewer"</b> রাখুন (শুধু দেখা/প্রিন্টের জন্য যথেষ্ট; নিজে ছাড়া অন্য কাউকে এডিট করতে দিতে চাইলে "Editor" বেছে নিন)।</li>
+        <li>📋 নিচে <b>"Copy link"</b> বাটনে চাপুন — লিংকটা কপি হয়ে যাবে।</li>
+        <li>↩️ এই ট্যাবে ফিরে এসে নিচে যে ফর্মটা খুলবে সেখানে নাম দিন এবং লিংক পেস্ট করে <b>"সেভ করুন"</b> চাপুন।</li>
+      </ol>
+    </div>
     <button class="add-btn" onclick="startCreate()">➕ নতুন Excel তৈরি করুন</button>
     <div id="listMsg" class="msg"></div>
     <div class="grid" id="cardsGrid"></div>
@@ -59,15 +71,7 @@
 <div class="modal-bg" id="saveModalBg">
   <div class="modal">
     <h2 style="margin-top:0;color:#1a5276;font-size:16px" id="saveModalTitle">নতুন Excel সেভ করুন</h2>
-    <ol id="saveModalHint" style="font-size:12.5px;color:#444;line-height:1.9;padding-left:20px;margin:0 0 14px;">
-      <li>🔑 <b>"➕ নতুন Excel তৈরি করুন"</b> বাটনে চাপলে নতুন ট্যাবে Google Sheet খুলবে। আগে থেকে <b>Gmail-এ লগইন</b> করা না থাকলে প্রথমে লগইন করতে বলবে — আপনার Gmail দিয়ে লগইন করে নিন।</li>
-      <li>📝 Sheet খুলে গেলে সেখানে আপনার তালিকা/ডেটা বসান, ওপরে বাঁ-দিকে নাম দিয়ে দিন (যেমন: "জানুয়ারি সেলারি শিট")।</li>
-      <li>🔗 এবার ওপরে ডানদিকে <b>"Share"</b> (শেয়ার) বাটনে চাপুন।</li>
-      <li>🌐 "General access"-এর নিচে লেখা থাকবে <b>"Restricted"</b> — সেটার ওপর চাপুন, তারপর <b>"Anyone with the link"</b> বেছে নিন (এটাকেই বলে লিংক <b>"পাবলিশ/পাবলিক"</b> করা — এতে লিংক যার কাছে থাকবে সে-ই দেখতে পারবে)।</li>
-      <li>👁️ পাশে <b>"Viewer"</b> রাখুন (শুধু দেখা/প্রিন্টের জন্য যথেষ্ট; নিজে ছাড়া অন্য কাউকে এডিট করতে দিতে চাইলে "Editor" বেছে নিন)।</li>
-      <li>📋 নিচে <b>"Copy link"</b> বাটনে চাপুন — লিংকটা কপি হয়ে যাবে।</li>
-      <li>↩️ এই ট্যাবে ফিরে এসে নিচে নাম দিন এবং লিংক পেস্ট করে <b>"সেভ করুন"</b> চাপুন।</li>
-    </ol>
+    <div class="hint" id="saveModalHint">Google Sheet নতুন ট্যাবে খোলা হয়েছে (উপরের গাইড অনুযায়ী কাজ শেষ করে এসেছেন তো?)। এখন নিচে নাম ও লিংক বসিয়ে সেভ করুন।</div>
     <div class="hint" id="editModalHint" style="display:none">নাম অথবা লিংক পরিবর্তন করে সেভ করুন।</div>
     <label>নাম (যেমন: জানুয়ারি সেলারি শিট)</label>
     <input id="modalName" placeholder="Sheet-এর নাম দিন">
