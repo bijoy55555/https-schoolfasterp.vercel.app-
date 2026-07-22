@@ -8,6 +8,12 @@
 //   POST   /api/sheets?action=connect  → { spreadsheetId } দিয়ে কানেক্ট করে
 //   DELETE /api/sheets?action=connect  → কানেকশন বিচ্ছিন্ন করে
 //   POST   /api/sheets?action=sync     → { types? } দিয়ে ডেটা সিঙ্ক করে
+//   GET    /api/sheets?action=printpdf&id=<spreadsheetId> → Excel List
+//         মডিউলের "প্রিন্ট" বাটন — যেকোনো লগইন-করা ইউজারের নিজের বানানো
+//         Sheet (কমপক্ষে "Anyone with the link — Viewer" শেয়ার করা)-এর
+//         A4 PDF আমাদের নিজের ডোমেইন থেকে সরাসরি পাঠিয়ে দেয়, যাতে
+//         অ্যান্ড্রয়েডে Google Sheets অ্যাপ খুলে না গিয়ে ব্রাউজারেই
+//         PDF দেখা/ডাউনলোড হয়।
 //
 // schoolId কখনো request body থেকে বিশ্বাস করে নেওয়া হয় না — সবসময় লগইন
 // করা ইউজারের userIndex/{uid} থেকে বের করা হয় (api/devices.js-এর মতো
@@ -18,6 +24,7 @@ const { getAdmin, verifyRequestToken } = require("../lib/firebaseAdmin");
 const {
   serviceAccountEmail,
   extractSpreadsheetId,
+  fetchExportPdf,
   verifySpreadsheetAccess,
   getSchoolSpreadsheetId,
   overwriteTab,
@@ -148,6 +155,20 @@ async function handleSync(admin, db, schoolId, req, res) {
   res.status(200).json({ ok: true, synced: summary });
 }
 
+async function handlePrintPdf(req, res) {
+  const raw = (req.query && (req.query.id || req.query.url)) || "";
+  const spreadsheetId = extractSpreadsheetId(raw) || (raw && /^[a-zA-Z0-9-_]{20,}$/.test(raw) ? raw : null);
+  if (!spreadsheetId) {
+    res.status(400).json({ error: "সঠিক Sheet আইডি/লিংক দিন" });
+    return;
+  }
+  const pdfBuffer = await fetchExportPdf(spreadsheetId);
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", 'inline; filename="excel-list.pdf"');
+  res.setHeader("Cache-Control", "private, max-age=0, no-store");
+  res.status(200).send(pdfBuffer);
+}
+
 module.exports = async function handler(req, res) {
   const action = (req.query && req.query.action) || "status";
   try {
@@ -174,7 +195,15 @@ module.exports = async function handler(req, res) {
       return await handleSync(admin, db, schoolId, req, res);
     }
 
-    res.status(400).json({ error: "অজানা action — status/connect/sync ব্যবহার করুন" });
+    if (action === "printpdf") {
+      // ✅ শুধু লগইন-করা যেকোনো ইউজার হলেই হবে (এটা school-নির্দিষ্ট কোনো
+      // Firestore ডেটা দেখায় না, শুধু ইউজার নিজে যে Sheet-এর লিংক দিয়েছে
+      // — যেটা এমনিতেই তার কাছে আছে — সেটার PDF বানিয়ে দেয়)
+      if (req.method !== "GET") return res.status(405).json({ error: "শুধু GET সমর্থিত" });
+      return await handlePrintPdf(req, res);
+    }
+
+    res.status(400).json({ error: "অজানা action — status/connect/sync/printpdf ব্যবহার করুন" });
   } catch (e) {
     console.error("sheets API এরর:", e.message);
     res.status(e.statusCode || 500).json({ error: e.message || "সার্ভার এরর" });
