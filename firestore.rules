@@ -185,6 +185,15 @@ service cloud.firestore {
         allow read: if belongsToSchool(schoolId) || isSuperAdmin();
         allow write: if isSchoolAdmin(schoolId) || isSuperAdmin();
       }
+
+      // ===== schools/{schoolId}/excelLists/{docId} — "Excel List" মডিউল।
+      // স্কুল-অ্যাডমিন নিজের বানানো Google Sheet-এর লিংক এখানে সেভ করে
+      // রাখে (নাম + URL), যাতে পরে এক-ক্লিকে সেই Sheet-এ ঢোকা/প্রিন্ট করা
+      // যায়। শুধু ওই স্কুলের admin/সুপার-অ্যাডমিন read/write করতে পারবে —
+      // শিক্ষক/অভিভাবক/ছাত্র এই তালিকা দেখতেও পারবে না =====
+      match /excelLists/{docId} {
+        allow read, write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+      }
     }
 
     // ===== paymentRequests/{trxId} — bKash/Manual পেমেন্ট → WhatsApp

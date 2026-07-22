@@ -688,6 +688,7 @@
       <div class="nav-item" data-page="attendance" onclick="showPage('attendance',this)"><span class="icon">✅</span> উপস্থিতি</div>
       <div class="nav-item" onclick="window.open('biometric.html','_blank'); closeSidebar();"><span class="icon">🪪</span> বায়োমেট্রিক/RFID</div>
       <div class="nav-item" onclick="window.open('sheets.html','_blank'); closeSidebar();"><span class="icon">📊</span> গুগল শিট সিঙ্ক</div>
+      <div class="nav-item" id="nav-excel-list" onclick="window.open('excel-list.html','_blank'); closeSidebar();"><span class="icon">📋</span> Excel List</div>
       <div class="nav-item" data-page="result" onclick="showPage('result',this)"><span class="icon">📝</span> পরীক্ষা ও ফলাফল</div>
       <div class="nav-item" data-page="fees" onclick="showPage('fees',this)"><span class="icon">💰</span> ফি ম্যানেজমেন্ট</div>
     </div>
@@ -10511,6 +10512,11 @@ function canAccessClass(cls) {
 
 function applyNavPermissions() {
   if(!currentUser) return;
+  // ✅ Excel List শুধু স্কুল-অ্যাডমিন দেখবে — শিক্ষক/অভিভাবক/ছাত্র/অন্য
+  // কোনো রোলের কাছে এই মেনু আইটেমই দেখা যাবে না
+  const excelNav = document.getElementById('nav-excel-list');
+  if (excelNav) excelNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
+
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
     if(page==='parent-portal' || page==='student-portal') return; // handled separately
