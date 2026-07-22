@@ -149,7 +149,7 @@
   let lastEmail = '';
   async function loadStatus() {
     try {
-      const r = await apiCall('/api/sheets-config', 'GET');
+      const r = await apiCall('/api/sheets?action=status', 'GET');
       lastEmail = r.serviceAccountEmail;
       document.getElementById('sa-email').textContent = r.serviceAccountEmail || '(env variable সেট করা নেই)';
       const dot = document.getElementById('conn-dot');
@@ -182,7 +182,7 @@
     btn.disabled = true;
     msg.className = 'msg info'; msg.textContent = 'যাচাই করা হচ্ছে...';
     try {
-      const r = await apiCall('/api/sheets-config', 'POST', { spreadsheetId: raw });
+      const r = await apiCall('/api/sheets?action=connect', 'POST', { spreadsheetId: raw });
       msg.className = 'msg ok'; msg.textContent = `✅ কানেক্ট হয়েছে: ${r.spreadsheetTitle}`;
       document.getElementById('sheet-id-input').value = '';
       loadStatus();
@@ -196,7 +196,7 @@
   window.disconnectSheet = async function () {
     if (!confirm('এই Sheet-এর সাথে সিঙ্ক বন্ধ করতে চান? (Sheet নিজে মুছে যাবে না)')) return;
     try {
-      await apiCall('/api/sheets-config', 'DELETE');
+      await apiCall('/api/sheets?action=connect', 'DELETE');
       loadStatus();
     } catch (e) {
       alert(e.message);
@@ -209,7 +209,7 @@
     btn.disabled = true;
     msg.className = 'msg info'; msg.textContent = 'সিঙ্ক করা হচ্ছে... এটা কয়েক সেকেন্ড সময় নিতে পারে।';
     try {
-      const r = await apiCall('/api/sheets-sync', 'POST', {});
+      const r = await apiCall('/api/sheets?action=sync', 'POST', {});
       msg.className = 'msg ok'; msg.textContent = '✅ সিঙ্ক সম্পন্ন হয়েছে';
       document.getElementById('sync-grid').style.display = 'grid';
       document.getElementById('sync-students').textContent = r.synced.students ?? '—';
