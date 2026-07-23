@@ -28,6 +28,18 @@
   .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
   .hint { font-size:12px; color:#777; margin-top:8px; line-height:1.5; }
   code { background:#f1f1f1; padding:1px 5px; border-radius:4px; font-size:12px; }
+  .usage-row { margin-bottom:16px; }
+  .usage-row .usage-top { display:flex; justify-content:space-between; font-size:13px; margin-bottom:5px; }
+  .usage-bar-bg { background:#eee; border-radius:6px; height:10px; overflow:hidden; }
+  .usage-bar-fill { height:100%; border-radius:6px; transition:width .3s; }
+  .usage-note { font-size:11px; color:#888; margin-top:3px; }
+  .plan-status { display:inline-block; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:700; }
+  .plan-status.green { background:#e8f8ef; color:#1e7e46; }
+  .plan-status.orange { background:#fff4e0; color:#b06a00; }
+  .plan-status.red { background:#fdeaea; color:#b03030; }
+  .link-btn { display:inline-block; margin:4px 8px 0 0; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; text-decoration:none; }
+  .link-btn.firebase { background:#fef3e0; color:#a35b00; }
+  .link-btn.vercel { background:#111; color:#fff; }
 </style>
 <link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/></head>
 <body>
@@ -141,6 +153,82 @@
       যেগুলো নিশ্চিন্তে ডিলিট করা যায়।
     </div>
     <div class="msg" id="sc-msg"></div>
+  </div>
+
+  <!-- 🔔 ফ্রি প্ল্যান ব্যবহার মনিটর -->
+  <div class="card">
+    <h2>🔔 ফ্রি প্ল্যান মনিটর — কবে পেইড প্ল্যানে যেতে হবে?</h2>
+    <div class="hint" style="margin-top:0">
+      Firebase-এর <b>Spark (ফ্রি)</b> ও Vercel-এর <b>Hobby (ফ্রি)</b> প্ল্যানের একটা নির্দিষ্ট মাসিক/দৈনিক সীমা আছে।
+      সঠিক রিয়েল-টাইম ব্যবহার (কত read/write/bandwidth হলো) শুধু Firebase Console ও Vercel Dashboard-এই দেখা যায় —
+      এই ধরনের বিলিং ডেটা এই প্যানেল থেকে সরাসরি টেনে আনা সম্ভব না (তার জন্য আলাদা পেইড Cloud Monitoring API লাগবে)।
+      তাই নিচে আপনার স্কুল/ছাত্র সংখ্যার ভিত্তিতে একটা <b>আনুমানিক অবস্থা</b> ও ফ্রি সীমার তালিকা দেওয়া হলো, এবং আসল সংখ্যা
+      দেখার জন্য সরাসরি লিংক দেওয়া হলো — মাসে একবার লিংকগুলোতে ঢুকে দেখে নেওয়াই সবচেয়ে নিশ্চিত উপায়।
+    </div>
+    <div id="up-status" style="margin:12px 0"><span class="plan-status green">লোড হচ্ছে...</span></div>
+
+    <div class="usage-row">
+      <div class="usage-top"><span>মোট স্কুল (টেন্যান্ট)</span><span id="up-schools-val">—</span></div>
+      <div class="usage-bar-bg"><div class="usage-bar-fill" id="up-schools-bar" style="width:0%"></div></div>
+      <div class="usage-note">রেফারেন্স: প্রতিটা নতুন স্কুল মানেই বেশি reads/writes — ২০-৩০+ স্কুল হলে ফ্রি সীমা নজরে রাখা উচিত।</div>
+    </div>
+    <div class="usage-row">
+      <div class="usage-top"><span>মোট ছাত্র (সব স্কুল মিলিয়ে)</span><span id="up-students-val">—</span></div>
+      <div class="usage-bar-bg"><div class="usage-bar-fill" id="up-students-bar" style="width:0%"></div></div>
+      <div class="usage-note">রেফারেন্স: প্রতিদিন হাজিরা/রেজাল্ট আপডেটে প্রতি ছাত্রে কয়েকটা read+write হয় — ছাত্র সংখ্যা যত বাড়বে, দৈনিক Firestore ব্যবহার তত বাড়বে।</div>
+    </div>
+
+    <table style="margin-top:6px">
+      <thead><tr><th>সেবা</th><th>ফ্রি প্ল্যানের সীমা</th></tr></thead>
+      <tbody>
+        <tr><td>Firebase Firestore (Spark)</td><td>দৈনিক ৫০,০০০ read · ২০,০০০ write · ২০,০০০ delete · স্টোরেজ ১ GiB</td></tr>
+        <tr><td>Firebase Storage (Spark)</td><td>৫ GB স্টোরেজ · দৈনিক ১ GB ডাউনলোড</td></tr>
+        <tr><td>Vercel (Hobby)</td><td>মাসিক ১০০ GB bandwidth · ফাংশন এক্সিকিউশন ১০০ GB-Hrs</td></tr>
+      </tbody>
+    </table>
+    <div class="hint">
+      উপরের সংখ্যাগুলো Google/Vercel-এর প্রকাশিত সাধারণ ফ্রি-টিয়ার সীমা (সময়ের সাথে পরিবর্তন হতে পারে) —
+      আপনার প্রজেক্টের হুবহু বর্তমান সীমা ও ব্যবহার নিচের বাটনে ঢুকে ভেরিফাই করে নিন।
+    </div>
+
+    <div style="background:#eaf2fb;border-radius:10px;padding:14px 16px;margin-top:10px">
+      <b style="font-size:13px;color:#1a5276">📊 দৈনিক Read/Write গ্রাফ কীভাবে দেখবেন:</b>
+      <ol style="font-size:13px;color:#333;margin:8px 0 0;padding-left:20px;line-height:1.7">
+        <li>নিচের <b>"Firestore Usage দেখুন"</b> বাটনে চাপুন (সরাসরি সঠিক ট্যাবে নিয়ে যাবে)</li>
+        <li>Firebase Console-এ আপনার সুপার-অ্যাডমিন গুগল একাউন্ট দিয়ে লগইন করুন</li>
+        <li><b>Usage</b> ট্যাবে <b>Reads / Writes / Deletes</b> — এই তিনটা আলাদা গ্রাফ দেখা যাবে (প্রতিদিনের হিসাব)</li>
+        <li>গ্রাফের লাইন যদি ক্রমাগত উপরের ফ্রি-সীমার কাছাকাছি চলে যায় বা মাঝেমধ্যে ছুঁয়ে ফেলে (গ্রাফে লাল দাগ/সীমারেখা হিসেবে দেখানো থাকে), তখনই বুঝবেন Blaze প্ল্যানে (pay-as-you-go) সুইচ করার সময় হয়েছে</li>
+      </ol>
+    </div>
+
+    <div style="background:#f6f6f6;border-radius:10px;padding:14px 16px;margin-top:10px">
+      <b style="font-size:13px;color:#333">⚙️ আপনার প্রজেক্টের ১২টা Vercel Function — কোনটা বেশি চাপ ফেলে:</b>
+      <div class="hint" style="margin:8px 0 10px">
+        সবগুলো ফাংশনই একই কোটা (মাসিক ১০০ GB-Hrs) থেকে খরচ হয়, কিন্তু কতবার কল হচ্ছে তার উপর ভিত্তি করে
+        কোনটা <b>বেশি ঘন ঘন</b> (ছাত্র/ডিভাইস সংখ্যার সাথে স্কেল করে) আর কোনটা <b>কালেভদ্রে</b> চলে সেটা আলাদা করে দেখানো হলো।
+      </div>
+      <table style="margin-top:0">
+        <thead><tr><th>ফাংশন</th><th>কতবার চলে</th></tr></thead>
+        <tbody>
+          <tr><td><code>zkteco-adms.js</code></td><td>🔴 ঘন ঘন — প্রতিটা বায়োমেট্রিক ডিভাইস প্রতি কয়েক সেকেন্ডে অটো-পিং করে</td></tr>
+          <tr><td><code>attendance-push.js</code></td><td>🔴 ঘন ঘন — হাজিরা এন্ট্রি হওয়ার সাথে সাথে</td></tr>
+          <tr><td><code>attendance-sync.js</code></td><td>🟠 মাঝারি — ডিভাইস/অ্যাপ সিঙ্ক করার সময়</td></tr>
+          <tr><td><code>devices.js</code></td><td>🟠 মাঝারি — ডিভাইস তালিকা লোড/ম্যানেজ করার সময়</td></tr>
+          <tr><td><code>rfid-map.js</code></td><td>🟠 মাঝারি — RFID কার্ড স্ক্যান হলে</td></tr>
+          <tr><td><code>sheets.js</code></td><td>🟢 কালেভদ্রে — Google Sheets এক্সপোর্ট/সিঙ্ক করলে</td></tr>
+          <tr><td><code>send-email.js</code> / <code>send-sms.js</code></td><td>🟢 কালেভদ্রে — নোটিফিকেশন/রিমাইন্ডার পাঠালে</td></tr>
+          <tr><td><code>initiate-payment.js</code> / <code>payment-ipn.js</code> / <code>payment-redirect.js</code></td><td>🟢 কালেভদ্রে — সাবস্ক্রিপশন পেমেন্টের সময় (মাসে ১ বার/স্কুল)</td></tr>
+          <tr><td><code>delete-school.js</code></td><td>🟢 কালেভদ্রে — শুধু স্কুল ডিলিট করার সময়</td></tr>
+        </tbody>
+      </table>
+      <div class="hint">
+        মূল কথা: <b>ছাত্র সংখ্যা</b> বেশি হলে Firestore-এর reads/writes দ্রুত বাড়ে, আর <b>বায়োমেট্রিক ডিভাইস সংখ্যা</b>
+        বেশি হলে Vercel Function execution বাড়ে — দুটো আলাদা জিনিস, তাই দুটোই আলাদাভাবে নজরে রাখা উচিত।
+      </div>
+    </div>
+
+    <a class="link-btn firebase" href="https://console.firebase.google.com/project/school-erp-bd/firestore/usage" target="_blank" rel="noopener">🔥 Firestore Usage দেখুন (Read/Write গ্রাফ)</a>
+    <a class="link-btn vercel" href="https://vercel.com/dashboard/usage" target="_blank" rel="noopener">▲ Vercel আসল ব্যবহার দেখুন</a>
   </div>
 
   <!-- ধাপ ৪: ব্যাকআপ মনিটরিং -->
@@ -383,6 +471,7 @@
   // স্কুলটা আসলে ব্যবহার হচ্ছে, নাকি শুধু ট্রায়াল একাউন্ট খুলে ফেলে রাখা হয়েছে।
   const usageInfoCache = {};
   window.loadUsageStatus = async function() {
+    renderUsagePlanCard(); // স্কুল সংখ্যা দিয়ে সাথে সাথে একবার দেখানো, ছাত্র গণনা এখনো লোড হচ্ছে
     await Promise.all(allSchools.map(async (s) => {
       try {
         const [studentsSnap, attSnap] = await Promise.all([
@@ -394,7 +483,54 @@
         usageInfoCache[s.id] = { studentCount: 0, hasAttendance: false, loaded: true, error: true };
       }
       renderSchoolTable(); // প্রতিটা স্কুলের রেজাল্ট আসার সাথে সাথে ধীরে ধীরে আপডেট হবে
+      renderUsagePlanCard(); // ছাত্র সংখ্যা যোগ হওয়ার সাথে সাথে "ফ্রি প্ল্যান মনিটর" কার্ডও আপডেট হবে
     }));
+  };
+
+  // ===== 🔔 ফ্রি প্ল্যান মনিটর কার্ড =====
+  // এখানে কোনো real billing/monitoring API কল করা হয় না (সেটার জন্য Blaze
+  // প্ল্যান ও আলাদা Cloud Monitoring API লাগবে) — বরং স্কুল ও ছাত্র সংখ্যার
+  // উপর ভিত্তি করে একটা সহজ, রক্ষণশীল "আনুমানিক" থ্রেশহোল্ড দেখানো হয়,
+  // যাতে ব্যবহারকারী বুঝতে পারেন কখন Firebase/Vercel-এর আসল usage ড্যাশবোর্ড
+  // গিয়ে চেক করা উচিত।
+  const UP_SCHOOL_WARN = 15, UP_SCHOOL_DANGER = 30;
+  const UP_STUDENT_WARN = 1500, UP_STUDENT_DANGER = 3000;
+
+  function upBarColor(ratio) {
+    if (ratio >= 1) return '#b03030';
+    if (ratio >= 0.5) return '#b06a00';
+    return '#1e7e46';
+  }
+
+  window.renderUsagePlanCard = function() {
+    const totalSchools = allSchools.length;
+    const totalStudents = Object.values(usageInfoCache).reduce((sum, u) => sum + (u.studentCount || 0), 0);
+    const studentsStillLoading = allSchools.some(s => !usageInfoCache[s.id]);
+
+    const schoolRatio = Math.min(totalSchools / UP_SCHOOL_DANGER, 1);
+    const studentRatio = Math.min(totalStudents / UP_STUDENT_DANGER, 1);
+
+    const schoolsEl = document.getElementById('up-schools-val');
+    const studentsEl = document.getElementById('up-students-val');
+    if (schoolsEl) schoolsEl.textContent = totalSchools + ' টি (সতর্কতা ' + UP_SCHOOL_WARN + '+, বিপদসীমা ' + UP_SCHOOL_DANGER + '+)';
+    if (studentsEl) studentsEl.textContent = (studentsStillLoading ? 'গণনা হচ্ছে... ' : '') + totalStudents + ' জন (সতর্কতা ' + UP_STUDENT_WARN + '+, বিপদসীমা ' + UP_STUDENT_DANGER + '+)';
+
+    const schoolsBar = document.getElementById('up-schools-bar');
+    const studentsBar = document.getElementById('up-students-bar');
+    if (schoolsBar) { schoolsBar.style.width = (schoolRatio * 100) + '%'; schoolsBar.style.background = upBarColor(schoolRatio); }
+    if (studentsBar) { studentsBar.style.width = (studentRatio * 100) + '%'; studentsBar.style.background = upBarColor(studentRatio); }
+
+    const worstRatio = Math.max(schoolRatio, studentRatio);
+    const statusEl = document.getElementById('up-status');
+    if (statusEl) {
+      if (worstRatio >= 1) {
+        statusEl.innerHTML = '<span class="plan-status red">🔴 সম্ভবত ফ্রি সীমার কাছাকাছি বা পার হয়ে গেছে — এখনই Firebase/Vercel-এর আসল usage ড্যাশবোর্ড চেক করুন, পেইড প্ল্যানে (Blaze/Pro) যাওয়ার কথা ভাবুন</span>';
+      } else if (worstRatio >= 0.5) {
+        statusEl.innerHTML = '<span class="plan-status orange">🟠 বাড়ছে — মাসে একবার আসল usage ড্যাশবোর্ড চেক করে রাখুন</span>';
+      } else {
+        statusEl.innerHTML = '<span class="plan-status green">🟢 এখনো ফ্রি সীমার মধ্যেই আছেন — এখন চিন্তার কিছু নেই</span>';
+      }
+    }
   };
 
   // ===== ধাপ ৪: সুপার-অ্যাডমিন ব্যাকআপ মনিটরিং =====
