@@ -1122,7 +1122,7 @@
     <!-- ===== RESULT ===== -->
     <div class="page" id="page-result">
       <div class="page-actions no-print">
-        <button class="btn btn-primary" onclick="openModal('result-modal')">+ নতুন ফলাফল যোগ</button>
+        <button class="btn btn-primary" onclick="openModal('result-modal'); populateResultStudentSelect();">+ নতুন ফলাফল যোগ</button>
         <input class="search-box" type="text" id="result-search" placeholder="🔍 ছাত্রের নাম বা রোল..." oninput="filterResults()">
         <select class="form-select" id="result-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterResults()">
           <option value="">সব শ্রেণি</option>
@@ -4124,13 +4124,21 @@
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header"><div class="modal-header-title">নতুন ফলাফল যোগ করুন</div><button class="modal-close" onclick="closeModal('result-modal')">×</button></div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম"></div>
-        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১"></div>
+      <div class="form-group" id="r-student-select-wrap">
+        <label class="form-label">তালিকা থেকে ছাত্র নির্বাচন করুন (সুপারিশকৃত)</label>
+        <select class="form-select" id="r-student-select" onchange="fillResultStudentFromSelect()">
+          <option value="">— নিচে আগে শ্রেণি বাছাই করুন —</option>
+        </select>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">✅ তালিকা থেকে ছাত্র বাছাই করলে ফলাফল সরাসরি তার প্রোফাইলের সাথে যুক্ত হবে — নাম/রোল ভুল টাইপ করলেও ছাত্র/অভিভাবক পোর্টালে ফলাফল দেখাতে সমস্যা হবে না। তালিকায় না পেলে নিচে ম্যানুয়ালি লিখুন।</div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+      </div>
+      <input type="hidden" id="r-student-id" value="">
+      <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="r-class" onchange="renderResultSubjectFields()">
+          <select class="form-select" id="r-class" onchange="renderResultSubjectFields(); populateResultStudentSelect();">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">পরীক্ষার ধরন</label>
@@ -6586,6 +6594,29 @@ function filterResults() {
     return matchQ&&matchC&&matchScope;
   }));
 }
+// ✅ নতুন: নির্বাচিত শ্রেণির ছাত্র তালিকা দিয়ে ড্রপডাউন সাজায়, যাতে অ্যাডমিন/শিক্ষক
+// নাম টাইপ না করে সরাসরি প্রকৃত ছাত্র রেকর্ড থেকে বেছে নিতে পারেন (studentId লিংক করতে)
+function populateResultStudentSelect() {
+  const sel = document.getElementById('r-student-select');
+  if(!sel) return;
+  const cls = document.getElementById('r-class').value;
+  const list = students.filter(s => s.cls===cls);
+  sel.innerHTML = '<option value="">— তালিকা থেকে ছাত্র বাছাই করুন —</option>' +
+    list.map(s => `<option value="${s.id}">${escHtml(s.name)} (রোল: ${escHtml(s.roll)})</option>`).join('');
+}
+// ✅ নতুন: ড্রপডাউন থেকে ছাত্র বাছাই করলে নাম/রোল অটো-ফিল হয় এবং আসল studentId
+// হিডেন ফিল্ডে বসে — এতে ফলাফল সরাসরি ছাত্রের প্রোফাইলের সাথে যুক্ত থাকে, স্ট্রিং
+// মিলিয়ে (নাম/রোল/ক্লাস হুবহু এক হতে হবে এমন ভঙ্গুর পদ্ধতি) খুঁজতে হয় না
+function fillResultStudentFromSelect() {
+  const sel = document.getElementById('r-student-select');
+  const sid = sel.value;
+  if(!sid){ document.getElementById('r-student-id').value=''; return; }
+  const s = students.find(x=>x.id===sid);
+  if(!s) return;
+  document.getElementById('r-name').value = s.name;
+  document.getElementById('r-roll').value = s.roll;
+  document.getElementById('r-student-id').value = s.id;
+}
 function saveResult() {
   if(!requirePerm('result','edit')) return;
   const name = document.getElementById('r-name').value.trim();
@@ -6600,19 +6631,39 @@ function saveResult() {
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>{
     subjects[inp.dataset.key] = parseInt(inp.value) || 0;
   });
+  // ✅ studentId: ড্রপডাউন থেকে বাছাই করলে সরাসরি সেট থাকে; ম্যানুয়ালি টাইপ করা
+  // হলে খালি থাকতে পারে — এক্ষেত্রে নাম+রোল+ক্লাস মিলিয়ে ছাত্র রেকর্ড খুঁজে
+  // studentId বসানোর চেষ্টা করা হয় (আগের ম্যানুয়াল এন্ট্রিগুলোর জন্যও একটা ফলব্যাক)
+  let studentId = document.getElementById('r-student-id').value || '';
+  if(!studentId) {
+    const matched = students.find(s=>s.roll===roll && s.cls===cls) || students.find(s=>s.name===name && s.cls===cls);
+    if(matched) studentId = matched.id;
+  }
   results.push({
     id: 'res_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-    name, roll, cls,
+    studentId, name, roll, cls,
     exam: document.getElementById('r-exam').value,
     group,
     subjects
   });
   document.getElementById('r-name').value='';
   document.getElementById('r-roll').value='';
+  document.getElementById('r-student-id').value='';
+  if(document.getElementById('r-student-select')) document.getElementById('r-student-select').value='';
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>inp.value='');
   closeModal('result-modal');
   renderResults();
-  showToast('ফলাফল সফলভাবে যোগ হয়েছে!');
+  showToast('ফলাফল সফলভাবে যোগ হয়েছে — ক্লাউডে সেভ হচ্ছে...');
+  // ✅ জরুরি বাগ-ফিক্স: আগে ফলাফল শুধু মেমোরিতে থাকত, আসল Firestore-সেভ হতো
+  // ২০ সেকেন্ডের অটো-সেভ টাইমার বা ট্যাব-বন্ধ (beforeunload)-এর অপেক্ষায়। মোবাইলে/PWA-তে
+  // এই ইভেন্টগুলো নির্ভরযোগ্য না হওয়ায় দ্রুত অ্যাপ বন্ধ করলে ফলাফল ক্লাউডে না গিয়েই
+  // হারিয়ে যেত এবং ছাত্র/অভিভাবক পোর্টালে কখনোই দেখা যেত না। এখন সেভের সাথে সাথেই
+  // ক্লাউডে পাঠানো হচ্ছে এবং সাফল্য/ব্যর্থতা দুটোই টোস্ট দিয়ে জানানো হচ্ছে।
+  if(typeof saveTenantData==='function') {
+    saveTenantData()
+      .then(()=> showToast('✅ ফলাফল ক্লাউডে সফলভাবে সেভ হয়েছে'))
+      .catch(()=> showToast('⚠️ ফলাফল লোকালি যোগ হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন, অটো-সেভ আবার চেষ্টা করবে', 'error'));
+  }
 }
 function deleteResult(idx) {
   const r = results[idx];
@@ -6622,6 +6673,7 @@ function deleteResult(idx) {
   results.splice(idx,1);
   renderResults();
   showToast('ফলাফল মুছে ফেলা হয়েছে','error');
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ============ FEES — ENHANCED ============
@@ -9680,8 +9732,8 @@ async function sarLoadReport() {
   const yearTotal = yearPresent+yearAbsent+yearLate;
   const yearPct = yearTotal>0?Math.round((yearPresent/yearTotal)*100):0;
 
-  // ===== ২) পরীক্ষার ফলাফল হিস্ট্রি (নাম বা রোল মিলিয়ে) =====
-  const myResults = results.filter(r=>r.name===s.name || r.roll===s.roll);
+  // ===== ২) পরীক্ষার ফলাফল হিস্ট্রি (আগে studentId, তারপর নাম/রোল ফলব্যাক) =====
+  const myResults = results.filter(r=> (r.studentId && r.studentId===s.id) || r.name===s.name || r.roll===s.roll);
   const resultTbody = document.getElementById('sar-result-tbody');
   resultTbody.innerHTML = myResults.map(r=>{
     const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
@@ -11576,7 +11628,7 @@ function renderProfilePage(){
     // ===== সন্তানের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===u.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-child-name').textContent = sName || '—';
     document.getElementById('profile-child-roll').textContent = sRoll || '—';
     document.getElementById('profile-child-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
@@ -11585,7 +11637,7 @@ function renderProfilePage(){
     // ===== নিজের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || u.name || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===u.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-my-roll').textContent = sRoll || '—';
     document.getElementById('profile-my-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
     document.getElementById('profile-my-school').textContent = schoolName;
@@ -12314,7 +12366,11 @@ async function addNewUser() {
     // ✅ বাগ-ফিক্স: s.cls-এই ইতিমধ্যে "শ্রেণি - সেকশন" (যেমন "নবম - ক") পূর্ণ ফরম্যাটে থাকে,
     // আগে এখানে s.section আবার জোড়া লাগানো হতো (studentCls হয়ে যেত "নবম - ক - ক"),
     // যার ফলে অভিভাবক পোর্টাল/উপস্থিতি ডেটার সাথে ক্লাসের নাম মিলত না।
-    studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls };
+    // ✅ বাগ-ফিক্স: আগে শুধু নাম/রোল/ক্লাস স্ট্রিং সেভ হতো, ছাত্রের প্রকৃত আইডি (s.id)
+    // থাকত না। ফলে ফলাফল/হাজিরা/ফি সবকিছু নাম-রোল-ক্লাস হুবহু মিলিয়ে খুঁজতে হতো —
+    // সামান্য বানান/স্পেস/ফরম্যাট ভিন্ন হলেই ছাত্র/অভিভাবক পোর্টালে ডেটা অদৃশ্য হয়ে যেত।
+    // এখন studentId-ও লিংক করা হচ্ছে যাতে নির্ভরযোগ্যভাবে মেলানো যায়।
+    studentLink = { studentId: s.id, studentName: s.name, studentRoll: s.roll, studentCls: s.cls };
   }
   const avatar = name.trim().charAt(0);
 
@@ -12471,7 +12527,7 @@ function renderParentPortal() {
   // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
   // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
   // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
@@ -12541,7 +12597,7 @@ function renderParentPortal() {
   }
 
   // GPA from results
-  const sr = results.filter(r=>r.name===sName);
+  const sr = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || r.name===sName);
   if(sr.length>0){
     const r = sr[sr.length-1];
     const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
@@ -12734,7 +12790,7 @@ function renderStudentPortal() {
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
@@ -12854,7 +12910,7 @@ function renderStudentPortal() {
   }
 
   // ===== মার্কশিট / রিপোর্ট কার্ড (নিজের ফলাফল — PDF ডাউনলোডের জন্য প্রিন্ট-ভিউ ব্যবহার করে) =====
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const msBody = document.getElementById('sp-marksheet-body');
   if(myResults.length===0) {
     msBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো ফলাফল প্রকাশ করা হয়নি</div>';
@@ -12954,7 +13010,7 @@ function checkAndNotifyHomework(sCls) {
 // নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
 function checkAndNotifyResults(sName, sRoll, sCls) {
   if(typeof results==='undefined') return;
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const allIds = myResults.map(r=>r.id).filter(Boolean);
   const seen = _getSeenIds('result');
   if(seen===null) { _setSeenIds('result', allIds); return; }
@@ -13064,7 +13120,7 @@ async function sendStudentMessage() {
   if(!currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
   parentMessages.unshift({
     student: sName, cls: sCls, msg,
@@ -13197,7 +13253,7 @@ function downloadMyAdmitCard(idx) {
   if(!examType || !currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   if(!matchedStudent) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
   const sCls = matchedStudent.cls;
   const subs = examSchedule.filter(e=>e.cls===sCls && e.type===examType);
@@ -13686,7 +13742,7 @@ function openStudentProfile(idx) {
     <span style="font-size:12px;background:#d6eaf8;color:#2e86c1;padding:3px 10px;border-radius:20px;font-weight:600">📊 হার: ${toBnNum(pct)}%</span>`;
 
   // Latest result
-  const studentResult = results.find(r=>r.name===s.name||r.roll===s.roll);
+  const studentResult = results.find(r=>r.studentId && r.studentId===s.id) || results.find(r=>r.name===s.name||r.roll===s.roll);
   const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   if(studentResult) {
     document.getElementById('profile-results-mini').innerHTML = Object.entries(studentResult.subjects).map(([key,mark])=>{

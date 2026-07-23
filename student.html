@@ -2759,7 +2759,7 @@
 
       <!-- মার্কশিট / রিপোর্ট কার্ড PDF ডাউনলোড -->
       <div class="card" style="margin-bottom:20px" id="sp-sec-marksheet">
-        <div class="card-header"><div class="card-title">📄 মার্কশিট / রিপোর্ট কার্ড</div></div>
+        <div class="card-header"><div class="card-title">📄 মার্কশিট / রিপোর্ট কার্ড</div><button class="btn btn-outline" style="font-size:11.5px;padding:5px 12px" onclick="refreshMyData(this)">🔄 নতুন ফলাফল আছে কিনা দেখুন</button></div>
         <div class="card-body" id="sp-marksheet-body">
           <div style="text-align:center;color:var(--text-muted);padding:20px">লোড হচ্ছে...</div>
         </div>
@@ -9915,7 +9915,7 @@ function renderProfilePage(){
     // ===== সন্তানের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-child-name').textContent = sName || '—';
     document.getElementById('profile-child-roll').textContent = sRoll || '—';
     document.getElementById('profile-child-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
@@ -9924,7 +9924,7 @@ function renderProfilePage(){
     // ===== নিজের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || u.name || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-my-roll').textContent = sRoll || '—';
     document.getElementById('profile-my-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
     document.getElementById('profile-my-school').textContent = schoolName;
@@ -10717,7 +10717,7 @@ function renderParentPortal() {
   // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
   // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
   // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
@@ -10787,7 +10787,10 @@ function renderParentPortal() {
   }
 
   // GPA from results
-  const sr = results.filter(r=>r.name===sName);
+  // ✅ বাগ-ফিক্স: আগে শুধু নাম মিলিয়ে ফলাফল খোঁজা হতো — বানান/স্পেস ভিন্ন হলে বা
+  // একই নামের দুই ছাত্র থাকলে ভুল/অসম্পূর্ণ ফলাফল দেখাত। এখন আগে studentId
+  // (নির্ভরযোগ্য) দিয়ে মেলানো হয়, পুরনো রেকর্ডের জন্য নাম-ফলব্যাক থাকছে।
+  const sr = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || r.name===sName);
   if(sr.length>0){
     const r = sr[sr.length-1];
     const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
@@ -10994,12 +10997,31 @@ function renderParentPortal() {
 // আপাতত এখানে দুইটা জিনিস দেখানো হচ্ছে: ক্লাস রুটিন ও সিলেবাস অগ্রগতি —
 // দুইটাই অ্যাডমিন প্যানেলে (রুটিন/সিলেবাস মডিউল) যা সেট করা আছে তা থেকে সরাসরি
 // ছাত্রর নিজের শ্রেণি অনুযায়ী ফিল্টার করে রিড-অনলি আকারে দেখায়।
+// ✅ নতুন: ছাত্র/অভিভাবক লগইন করা অবস্থায় থাকলে নতুন ফলাফল/হোমওয়ার্ক/নোটিশ
+// আগে অটো-আপডেট হতো না (শুধু লগইনের সময় একবার লোড হতো)। এই ফাংশনটা চাইলেই
+// ম্যানুয়ালি ক্লাউড থেকে সবশেষ ডেটা টেনে এনে পেজ রিফ্রেশ করে দেয়।
+async function refreshMyData(btnEl) {
+  if(!window.currentSchoolId) { showToast('অফলাইন/ডেমো মোডে রিফ্রেশ প্রযোজ্য না', 'error'); return; }
+  const originalText = btnEl ? btnEl.textContent : '';
+  if(btnEl) { btnEl.textContent = '⏳ লোড হচ্ছে...'; btnEl.disabled = true; }
+  try {
+    await loadTenantData(window.currentSchoolId);
+    if(currentUser && currentUser.role==='student' && typeof renderStudentPortal==='function') renderStudentPortal();
+    if(currentUser && currentUser.role==='parent' && typeof renderParentPortal==='function') renderParentPortal();
+    showToast('✅ সবশেষ তথ্য নিয়ে আসা হয়েছে');
+  } catch(e) {
+    console.error('রিফ্রেশ এরর:', e);
+    showToast('⚠️ রিফ্রেশ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন', 'error');
+  } finally {
+    if(btnEl) { btnEl.textContent = originalText; btnEl.disabled = false; }
+  }
+}
 function renderStudentPortal() {
   if(!currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   generateAutoFees(); // ছাত্র পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
@@ -11068,7 +11090,8 @@ function renderStudentPortal() {
   }
 
   // ===== GPA (কুইক স্ট্যাট) =====
-  const spResults = results.filter(r=>r.name===sName);
+  // ✅ বাগ-ফিক্স: studentId দিয়ে আগে মেলানো হয়, নাম-ম্যাচ শুধু ফলব্যাক হিসেবে
+  const spResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || r.name===sName);
   if(spResults.length>0){
     const r = spResults[spResults.length-1];
     const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
@@ -11356,7 +11379,7 @@ function renderStudentPortal() {
   }
 
   // ===== মার্কশিট / রিপোর্ট কার্ড (নিজের ফলাফল — PDF ডাউনলোডের জন্য প্রিন্ট-ভিউ ব্যবহার করে) =====
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const msBody = document.getElementById('sp-marksheet-body');
   if(myResults.length===0) {
     msBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো ফলাফল প্রকাশ করা হয়নি</div>';
@@ -11468,7 +11491,7 @@ function checkAndNotifyHomework(sCls) {
 // নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
 function checkAndNotifyResults(sName, sRoll, sCls) {
   if(typeof results==='undefined') return;
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const allIds = myResults.map(r=>r.id).filter(Boolean);
   const seen = _getSeenIds('result');
   if(seen===null) { _setSeenIds('result', allIds); return; }
@@ -11578,7 +11601,7 @@ async function sendStudentMessage() {
   if(!currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
   parentMessages.unshift({
     student: sName, cls: sCls, msg,
@@ -11711,7 +11734,7 @@ function downloadMyAdmitCard(idx) {
   if(!examType || !currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   if(!matchedStudent) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
   const sCls = matchedStudent.cls;
   const subs = examSchedule.filter(e=>e.cls===sCls && e.type===examType);
@@ -12200,7 +12223,7 @@ function openStudentProfile(idx) {
     <span style="font-size:12px;background:#d6eaf8;color:#2e86c1;padding:3px 10px;border-radius:20px;font-weight:600">📊 হার: ${toBnNum(pct)}%</span>`;
 
   // Latest result
-  const studentResult = results.find(r=>r.name===s.name||r.roll===s.roll);
+  const studentResult = results.find(r=>r.studentId && r.studentId===s.id) || results.find(r=>r.name===s.name||r.roll===s.roll);
   const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   if(studentResult) {
     document.getElementById('profile-results-mini').innerHTML = Object.entries(studentResult.subjects).map(([key,mark])=>{
