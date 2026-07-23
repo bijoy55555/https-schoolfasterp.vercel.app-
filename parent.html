@@ -796,6 +796,7 @@
     </div>
     <div class="topbar-right">
       <div id="subscription-badge" style="display:none;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px"></div>
+      <div id="cloud-sync-badge" title="ক্লাউড সিঙ্ক স্ট্যাটাস" style="display:none;align-items:center;gap:6px;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px;white-space:nowrap"></div>
       <div class="topbar-date" id="topbar-date"></div>
       <div class="user-chip" id="user-chip" style="cursor:pointer" title="প্রোফাইল দেখুন" onclick="showPage('profile', null)"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>
       <button class="btn btn-outline" style="font-size:12px;padding:6px 12px" onclick="doLogout()">🔓 লগআউট</button>
@@ -4747,8 +4748,15 @@ function renderDashboard() {
   if(advSection) advSection.style.display = isAdminDashView ? '' : 'none';
 
   document.getElementById('topbar-date').textContent = todayBn();
-  const active = students.filter(s=>s.status==='সক্রিয়').length;
-  document.getElementById('dash-students').textContent = toBnNum(students.length);
+  // ✅ ফিক্স: attendance/homework/result/marksheet সেকশনে শিক্ষকের জন্য canAccessClass()
+  // দিয়ে নিজের ক্লাসে সীমাবদ্ধ রাখা হয়, কিন্তু ড্যাশবোর্ডের ছাত্র-সংখ্যা ও "সাম্প্রতিক
+  // ছাত্র" তালিকায় আগে এই একই চেক ছিল না (সব ক্লাসের ডেটা দেখা যেত)। এখন সব জায়গায়
+  // একই canAccessClass() নিয়ম ব্যবহার করা হলো, যাতে filter-লজিক সামঞ্জস্যপূর্ণ থাকে।
+  const dashStudents = (currentUser && currentUser.role==='teacher')
+    ? students.filter(s=>canAccessClass(s.cls))
+    : students;
+  const active = dashStudents.filter(s=>s.status==='সক্রিয়').length;
+  document.getElementById('dash-students').textContent = toBnNum(dashStudents.length);
   document.getElementById('dash-students-sub').textContent = `↑ ${toBnNum(active)} জন সক্রিয়`;
   const working = teachers.filter(t=>t.status==='কর্মরত').length;
   document.getElementById('dash-teachers').textContent = toBnNum(teachers.length);
@@ -4759,9 +4767,9 @@ function renderDashboard() {
   document.getElementById('dash-att').textContent = '৯১%';
   document.getElementById('dash-att-sub').textContent = 'আজকের রেকর্ড';
 
-  // Recent students
+  // Recent students (একই canAccessClass ফিল্টার — শিক্ষক শুধু নিজের ক্লাসের সাম্প্রতিক ছাত্র দেখবে)
   const tbody = document.getElementById('dash-recent-students');
-  tbody.innerHTML = students.slice(-5).reverse().map(s=>`<tr>
+  tbody.innerHTML = dashStudents.slice(-5).reverse().map(s=>`<tr>
     <td>${s.name}</td><td>${s.cls}</td><td>${s.roll}</td>
     <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
   </tr>`).join('');
@@ -5347,12 +5355,20 @@ async function saveStudent() {
   if(!name){showErr('s-error','ছাত্রের নাম লিখুন');return;}
   if(!roll){showErr('s-error','রোল নম্বর লিখুন');return;}
   if(!cls){showErr('s-error','শ্রেণি নির্বাচন করুন');return;}
-  // ⚠️ নিরাপত্তা-চেক: হাজিরা, ফি, বায়োমেট্রিক ম্যাপিং — সবই ছাত্রের নাম দিয়ে মেলায়।
-  // একই শ্রেণিতে হুবহু একই নামের দুইজন ছাত্র থাকলে তাদের রেকর্ড একসাথে মিশে যাবে,
-  // তাই ভর্তির সময়ই সতর্ক করে দেওয়া হচ্ছে।
+  // ⛔ কঠোর ইউনিকনেস-চেক: একই শ্রেণিতে একই রোল নম্বর দুইজনের থাকলে হাজিরা, ফি ও
+  // বায়োমেট্রিক রেকর্ড আসলেই একসাথে মিশে যাবে (এগুলো roll+cls দিয়ে মেলানো হয়) —
+  // তাই এটা শুধু সতর্কতা না, সরাসরি সেভ আটকে দেওয়া হচ্ছে। ঠিক করতে ভিন্ন রোল দিতে হবে।
+  const dupRollInClass = students.some(s => s.roll===roll && s.cls===cls);
+  if (dupRollInClass) {
+    showErr('s-error', `⛔ "${cls}" শ্রেণিতে রোল "${roll}" ইতিমধ্যে ব্যবহৃত হয়েছে। প্রতিটি ছাত্র/ছাত্রীর রোল নম্বর তার নিজের শ্রেণিতে অনন্য (ইউনিক) হতে হবে — অন্যথায় হাজিরা, ফি ও বায়োমেট্রিক রেকর্ড দুইজনের একসাথে মিশে যাবে। অনুগ্রহ করে ভিন্ন একটি রোল নম্বর দিন।`);
+    return;
+  }
+  // ⚠️ নরম সতর্কতা: হুবহু একই নাম (কিন্তু ভিন্ন রোল) দুইজন ছাত্র থাকলে বিভ্রান্তির
+  // সম্ভাবনা থাকে (যেমন রিপোর্ট/সার্চে), তাই সতর্ক করা হচ্ছে — কিন্তু যেহেতু roll+cls
+  // ভিন্ন, রেকর্ড মিশে যাওয়ার প্রকৃত ঝুঁকি নেই, তাই এখানে এগিয়ে যাওয়ার সুযোগ রাখা হলো।
   const dupInSameClass = students.some(s => s.name===name && s.cls===cls);
   if (dupInSameClass) {
-    const proceed = confirm(`⚠️ "${cls}" শ্রেণিতে ইতিমধ্যে "${name}" নামে আরেকজন ছাত্র/ছাত্রী আছে। একই নাম থাকলে হাজিরা, ফি ও বায়োমেট্রিক রেকর্ড দুইজনের একসাথে মিশে যেতে পারে।\n\nতারপরও এগিয়ে যেতে OK চাপুন — তবে সুপারিশ থাকবে নামের সাথে কিছু যোগ করে আলাদা করার (যেমন "${name} (রোল ${roll})")।\n\nঠিক করতে Cancel চাপুন।`);
+    const proceed = confirm(`⚠️ "${cls}" শ্রেণিতে ইতিমধ্যে "${name}" নামে আরেকজন ছাত্র/ছাত্রী আছে (রোল ভিন্ন)। নাম হুবহু মিলে যাওয়ায় রিপোর্ট/সার্চে বিভ্রান্তি হতে পারে।\n\nতারপরও এগিয়ে যেতে OK চাপুন — তবে সুপারিশ থাকবে নামের সাথে কিছু যোগ করে আলাদা করার (যেমন "${name} (রোল ${roll})")।\n\nঠিক করতে Cancel চাপুন।`);
     if (!proceed) return;
   }
   hideErr('s-error');
@@ -5386,6 +5402,7 @@ async function saveStudent() {
   generateAutoFees();
   renderStudents(); renderDashboard();
   showToast('ছাত্র সফলভাবে ভর্তি হয়েছে!');
+  triggerImmediateSync();
 }
 function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
@@ -6187,6 +6204,7 @@ function saveResult() {
   closeModal('result-modal');
   renderResults();
   showToast('ফলাফল সফলভাবে যোগ হয়েছে!');
+  triggerImmediateSync(); // ✅ ২০ সেকেন্ড অপেক্ষা না করিয়ে সাথে সাথে ক্লাউডে সিঙ্ক করে, টপবারের ব্যাজে কনফার্মেশন দেখাবে
 }
 function deleteResult(idx) {
   const r = results[idx];
@@ -6196,6 +6214,7 @@ function deleteResult(idx) {
   results.splice(idx,1);
   renderResults();
   showToast('ফলাফল মুছে ফেলা হয়েছে','error');
+  triggerImmediateSync();
 }
 
 // ============ FEES — ENHANCED ============
@@ -10358,8 +10377,31 @@ async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix
 // সর্বশেষ-সিঙ্ক-করা অবস্থার স্ন্যাপশট (id -> JSON স্ট্রিং), ডিফ বের করতে ব্যবহার হয়
 window._lastSynced = { students: {}, fees: {}, results: {} };
 
+// ✅ ক্লাউড-সিঙ্ক স্ট্যাটাস ব্যাজ — টপবারে দেখায় ডেটা আসলেই ক্লাউডে সেভ হয়েছে নাকি
+// শুধু লোকাল মেমোরিতে/সিঙ্ক-অপেক্ষায় আছে, যাতে এডমিন নিশ্চিত হতে পারেন।
+// state: 'syncing' | 'saved' | 'error' | 'offline'
+function updateSyncStatusUI(state, detail) {
+  const el = document.getElementById('cloud-sync-badge');
+  if (!el) return;
+  if (!window.currentSchoolId) { el.style.display = 'none'; return; } // ডেমো মোডে ব্যাজ দেখানো হয় না
+  el.style.display = 'flex';
+  const cfg = {
+    syncing: { text: '🔄 সিঙ্ক হচ্ছে…', bg: '#fff7e0', color: '#8a6d00' },
+    saved:   { text: '☁️✅ ক্লাউডে সেভ হয়েছে', bg: '#e6f7ec', color: '#1e8449' },
+    error:   { text: '⚠️ সিঙ্ক ব্যর্থ — লোকালে আছে', bg: '#fdecea', color: '#c0392b' },
+    offline: { text: '📴 অফলাইন — ইন্টারনেট আসলে সিঙ্ক হবে', bg: '#eef1f5', color: '#5a6b7a' },
+  }[state] || cfg_default();
+  function cfg_default(){ return {text:'', bg:'#eef1f5', color:'#5a6b7a'}; }
+  el.style.background = cfg.bg;
+  el.style.color = cfg.color;
+  el.textContent = cfg.text;
+  el.title = state==='saved' && detail ? `সর্বশেষ সিঙ্ক: ${detail}` : (cfg.text||'');
+}
+
 async function saveTenantData() {
   if (!window.currentSchoolId) return; // ডেমো মোডে সিঙ্ক হবে না
+  if (navigator && navigator.onLine === false) { updateSyncStatusUI('offline'); return; }
+  updateSyncStatusUI('syncing');
   try {
     // ✅ students/fees/results এখন আলাদা কালেকশনে (schools/{id}/students|fees|results/{id})
     // ডিফ-ভিত্তিক সিঙ্ক হয় — নিচের বড় setDoc-এ এই তিনটা ইচ্ছাকৃতভাবে নেই।
@@ -10384,17 +10426,30 @@ async function saveTenantData() {
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
+    updateSyncStatusUI('saved', new Date().toLocaleTimeString('bn-BD'));
   } catch (e) {
     console.error('টেন্যান্ট ডেটা সেভ এরর:', e);
+    updateSyncStatusUI('error');
     throw e;
   }
 }
+
+// ✅ কোনো গুরুত্বপূর্ণ রেকর্ড (ফলাফল/ছাত্র/ফি ইত্যাদি) সেভ করার পর ২০ সেকেন্ড অপেক্ষা না করিয়ে
+// অবিলম্বে একবার সিঙ্ক করার চেষ্টা করে — যাতে ব্যবহারকারী তৎক্ষণাৎ কনফার্মেশন পান।
+// এটা কোনো নতুন সেভ-লজিক তৈরি করে না, শুধু বিদ্যমান saveTenantData() আগেভাগে কল করে।
+function triggerImmediateSync() {
+  if (!window.currentSchoolId) return;
+  saveTenantData().catch(()=>{}); // এরর ইতিমধ্যে saveTenantData()-এর ভেতরে হ্যান্ডল ও ব্যাজে দেখানো হয়
+}
+window.addEventListener('online', ()=>{ if(window.currentSchoolId) triggerImmediateSync(); });
+window.addEventListener('offline', ()=>updateSyncStatusUI('offline'));
 
 let _autoSaveTimer = null;
 function startAutoSave() {
   if (_autoSaveTimer) clearInterval(_autoSaveTimer);
   _autoSaveTimer = setInterval(saveTenantData, 20000); // প্রতি ২০ সেকেন্ডে অটো-সেভ
   window.addEventListener('beforeunload', saveTenantData);
+  updateSyncStatusUI('syncing');
 }
 
 async function doLogout() {
