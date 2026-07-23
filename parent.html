@@ -6023,7 +6023,7 @@ async function renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls) {
   // ✅ বাগ-ফিক্স: আগে এখানে ক্লাস-চেক ছাড়াই শুধু নাম/রোল মেলানো হতো, অথচ মার্কশিট
   // সেকশনে ক্লাসসহ মেলানো হতো — ফলে একই ফলাফল এক জায়গায় দেখাত, আরেক জায়গায় না।
   // এখন সব জায়গায় একই নিয়ম: আগে studentId, তারপর রোল/নাম+ক্লাস ফলব্যাক।
-  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || r.name===sName || r.roll===sRoll);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.name===sName || r.roll===sRoll) && r.cls===sCls));
   const resultRows = myResults.map(r=>{
     const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
     const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
