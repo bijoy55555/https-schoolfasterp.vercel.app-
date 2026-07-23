@@ -1558,9 +1558,35 @@
               <div class="form-group"><label class="form-label">সাধারণ নির্দেশনা (ঐচ্ছিক)</label><input class="form-input" id="qp-note" placeholder="যেমন: প্রতিটি প্রশ্নের মান আলাদাভাবে উল্লেখ করা আছে"></div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label class="form-label">সেট কোড (ঐচ্ছিক)</label><input class="form-input" id="qp-set-code" placeholder="যেমন: ক" maxlength="3"></div>
-              <div class="form-group"><label class="form-label">বিষয় কোড (ঐচ্ছিক, OMR-এর জন্য)</label><input class="form-input" id="qp-subject-code" placeholder="যেমন: ১০৯" maxlength="6"></div>
+              <div class="form-group"><label class="form-label">সেট কোড (ঐচ্ছিক)</label><input class="form-input" id="qp-set-code" placeholder="যেমন: ক" maxlength="3" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              <div class="form-group"><label class="form-label">বিষয় কোড (ঐচ্ছিক, OMR-এর জন্য)</label><input class="form-input" id="qp-subject-code" placeholder="যেমন: ১০৯" maxlength="6" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
               <div class="form-group"><label class="form-label" title="প্রশ্নপত্রে ছাপা হবে না, শুধু নকশা/লেআউটে ব্যবহৃত হয়">📌 লক্ষ্য করুন</label><div style="font-size:11px;color:var(--text-muted);padding-top:9px">স্কুলের নাম, ঠিকানা ও লোগো সেটিংস থেকে স্বয়ংক্রিয়ভাবে বসবে — বারবার লিখতে হবে না।</div></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:0 0 100%">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+                  <input type="checkbox" id="qp-board-style" onchange="toggleQPBoardStyleFields()" style="width:16px;height:16px">
+                  <span class="form-label" style="margin:0">🏛️ বোর্ড পরীক্ষার স্টাইলে হেডার ব্যবহার করুন (স্কুলের লোগো ছাড়া, হুবহু এসএসসি/এইচএসসি বোর্ড ফরম্যাটে — "বহুনির্বাচনি অভীক্ষা", পত্র, সিলেবাস নোট ইত্যাদিসহ)</span>
+                </label>
+              </div>
+            </div>
+            <div id="qp-board-fields" style="display:none">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">প্রশ্নপত্রের শিরোনাম</label>
+                  <select class="form-select" id="qp-board-title" onchange="qpSyncHeaderFromForm();renderQPPreview()">
+                    <option value="বহুনির্বাচনি অভীক্ষা">বহুনির্বাচনি অভীক্ষা (MCQ)</option>
+                    <option value="সৃজনশীল অভীক্ষা">সৃজনশীল অভীক্ষা</option>
+                    <option value="রচনামূলক অভীক্ষা">রচনামূলক অভীক্ষা</option>
+                    <option value="ব্যবহারিক (বহুনির্বাচনী) অংশ">ব্যবহারিক (বহুনির্বাচনী) অংশ</option>
+                  </select>
+                </div>
+                <div class="form-group"><label class="form-label">পত্র (ঐচ্ছিক)</label><input class="form-input" id="qp-board-paperno" placeholder="যেমন: প্রথম পত্র" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+                <div class="form-group"><label class="form-label">সিরিয়াল/গ্রুপ কোড (ঐচ্ছিক)</label><input class="form-input" id="qp-board-serial" placeholder="যেমন: যমুনা/১৭৪" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex:1"><label class="form-label">সিলেবাস নোট (ঐচ্ছিক)</label><input class="form-input" id="qp-board-syllabus" placeholder="যেমন: [২০২৬ সালের সিলেবাস অনুযায়ী]" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -9895,6 +9921,7 @@ function newQuestionPaper(){
   qpDraft = {
     id: qpUid('qp'), examName:'', cls:'', subject:'', fullMarks:100, passMarks:33, time:'৩ ঘণ্টা', date:'', note:'',
     setCode:'', subjectCode:'',
+    boardStyle:false, boardTitle:'বহুনির্বাচনি অভীক্ষা', boardPaperNo:'', boardSerial:'', boardSyllabus:'',
     createdAt: (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD'),
     sections: []
   };
@@ -10176,7 +10203,21 @@ function openQuestionPaperBuilder(){
   document.getElementById('qp-set-code').value = qpDraft.setCode||'';
   document.getElementById('qp-subject-code').value = qpDraft.subjectCode||'';
 
+  document.getElementById('qp-board-style').checked = !!qpDraft.boardStyle;
+  document.getElementById('qp-board-title').value = qpDraft.boardTitle||'বহুনির্বাচনি অভীক্ষা';
+  document.getElementById('qp-board-paperno').value = qpDraft.boardPaperNo||'';
+  document.getElementById('qp-board-serial').value = qpDraft.boardSerial||'';
+  document.getElementById('qp-board-syllabus').value = qpDraft.boardSyllabus||'';
+  document.getElementById('qp-board-fields').style.display = qpDraft.boardStyle ? '' : 'none';
+
   renderQPSections();
+}
+
+function toggleQPBoardStyleFields(){
+  const checked = document.getElementById('qp-board-style').checked;
+  document.getElementById('qp-board-fields').style.display = checked ? '' : 'none';
+  qpSyncHeaderFromForm();
+  renderQPPreview();
 }
 
 function closeQuestionPaperBuilder(){
@@ -10196,6 +10237,12 @@ function qpSyncHeaderFromForm(){
   qpDraft.note = document.getElementById('qp-note').value.trim();
   qpDraft.setCode = document.getElementById('qp-set-code').value.trim();
   qpDraft.subjectCode = document.getElementById('qp-subject-code').value.trim();
+
+  qpDraft.boardStyle = document.getElementById('qp-board-style').checked;
+  qpDraft.boardTitle = document.getElementById('qp-board-title').value;
+  qpDraft.boardPaperNo = document.getElementById('qp-board-paperno').value.trim();
+  qpDraft.boardSerial = document.getElementById('qp-board-serial').value.trim();
+  qpDraft.boardSyllabus = document.getElementById('qp-board-syllabus').value.trim();
 }
 
 const QP_SECTION_LABELS = ['ক','খ','গ','ঘ','ঙ','চ','ছ','জ'];
@@ -10521,13 +10568,36 @@ function printOMRSheet(id){
   logAudit(`OMR শীট প্রিন্ট করেছেন: ${p.examName} (${p.subject})`);
 }
 
+function qpBoardHeadHTML(p){
+  const setCode = p.setCode||'';
+  const subjectCode = p.subjectCode||'';
+  const boardSerial = p.boardSerial||'';
+  const boardTitle = p.boardTitle||'বহুনির্বাচনি অভীক্ষা';
+  const boardPaperNo = p.boardPaperNo||'';
+  const boardSyllabus = p.boardSyllabus||'';
+  return `<div class="qpp-board-head">
+      <div class="qpp-board-topbar">
+        <span>${boardSerial?escHtml(boardSerial):'&nbsp;'}</span>
+        <span class="qpp-board-codebox">${setCode?`সেট: <b>${escHtml(setCode)}</b>`:'&nbsp;'}</span>
+      </div>
+      <div class="qpp-board-title">${escHtml(boardTitle)}</div>
+      <div class="qpp-board-examline">${escHtml(p.examName||'(পরীক্ষার নাম দিন)')}</div>
+      <div class="qpp-board-subject">${escHtml(p.subject||'—')}</div>
+      ${boardPaperNo?`<div class="qpp-board-paperno">${escHtml(boardPaperNo)}</div>`:''}
+      ${boardSyllabus?`<div class="qpp-board-syllabus">${escHtml(boardSyllabus)}</div>`:''}
+      <div class="qpp-meta" style="margin-top:8px">
+        <span>সময়— ${p.time||'—'}</span>
+        <span>পূর্ণমান— ${p.fullMarks||0}</span>
+        ${subjectCode?`<span>বিষয় কোড: ${escHtml(subjectCode)}</span>`:''}
+      </div>
+    </div>`;
+}
+
 function qpPaperBodyHTML(p, school, address){
   const logo = (typeof schoolLogo!=='undefined' && schoolLogo) ? schoolLogo : '';
   const setCode = p.setCode||'';
   const subjectCode = p.subjectCode||'';
-  return `<div class="qpp-watermark">${logo?`<img src="${logo}">`:`<span>${escHtml(school)}</span>`}</div>
-    <div class="qpp-content">
-    <div class="qpp-head">
+  const head = p.boardStyle ? qpBoardHeadHTML(p) : `<div class="qpp-head">
       ${(setCode||subjectCode) ? `<div class="qpp-codebox">${setCode?`<div>সেট: <b>${escHtml(setCode)}</b></div>`:''}${subjectCode?`<div>বিষয় কোড: <b>${escHtml(subjectCode)}</b></div>`:''}</div>` : ''}
       ${logo?`<img class="qpp-logo" src="${logo}">`:''}
       <div class="qpp-school">${school}</div>
@@ -10539,10 +10609,13 @@ function qpPaperBodyHTML(p, school, address){
       <span>সময়: ${p.time||'—'}</span>
       <span>পূর্ণমান: ${p.fullMarks||0}</span>
       <span>${p.passMarks?('পাস মার্ক: '+p.passMarks):''}</span>
-    </div>
-    ${p.note?`<div class="qpp-note">[ ${p.note} ]</div>`:''}
+    </div>`;
+  return `<div class="qpp-watermark">${logo?`<img src="${logo}">`:`<span>${escHtml(school)}</span>`}</div>
+    <div class="qpp-content">
+    ${head}
+    ${(!p.boardStyle && p.note)?`<div class="qpp-note">[ ${p.note} ]</div>`:''}
     ${(p.sections||[]).map(sec=>qpSectionHTML(sec)).join('')}
-    <div class="qpp-foot">${escHtml(school)} — স্কুল ERP সফটওয়্যার দ্বারা তৈরি</div>
+    <div class="qpp-foot">${p.boardStyle ? '' : escHtml(school)+' — '}স্কুল ERP সফটওয়্যার দ্বারা তৈরি</div>
     </div>`;
 }
 
@@ -10574,6 +10647,14 @@ function renderQPPreview(){
       #qp-preview .qpp-watermark span{font-size:44px;font-weight:700;white-space:nowrap}
       #qp-preview .qpp-content{position:relative;z-index:1}
       #qp-preview .qpp-foot{margin-top:22px;border-top:1px dashed #ccc;padding-top:6px;font-size:10px;color:#999;text-align:center}
+      #qp-preview .qpp-board-head{position:relative;text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+      #qp-preview .qpp-board-topbar{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+      #qp-preview .qpp-board-codebox{border:1px solid #333;border-radius:4px;padding:2px 10px}
+      #qp-preview .qpp-board-title{font-size:16px;font-weight:700;text-decoration:underline}
+      #qp-preview .qpp-board-examline{font-size:13px;font-weight:600;margin-top:3px}
+      #qp-preview .qpp-board-subject{font-size:16px;font-weight:700;margin-top:2px}
+      #qp-preview .qpp-board-paperno{font-size:13px;font-weight:600}
+      #qp-preview .qpp-board-syllabus{font-size:11px;font-style:italic;color:#333;margin-top:2px}
     </style>
     <div style="background:#fff;padding:24px;border:1px solid #ddd;border-radius:8px;position:relative;overflow:hidden">${qpPaperBodyHTML(qpDraft, school, address)}</div>`;
 }
@@ -10631,6 +10712,14 @@ function printQuestionPaper(id){
       .qpp-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-left:20px;margin-top:3px}
       .qpp-part{margin-left:20px;margin-top:2px}
       .qpp-foot{margin-top:24px;border-top:1px dashed #ccc;padding-top:6px;font-size:10px;color:#999;text-align:center}
+      .qpp-board-head{position:relative;text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+      .qpp-board-topbar{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+      .qpp-board-codebox{border:1px solid #333;border-radius:4px;padding:2px 10px}
+      .qpp-board-title{font-size:16px;font-weight:700;text-decoration:underline}
+      .qpp-board-examline{font-size:13px;font-weight:600;margin-top:3px}
+      .qpp-board-subject{font-size:16px;font-weight:700;margin-top:2px}
+      .qpp-board-paperno{font-size:13px;font-weight:600}
+      .qpp-board-syllabus{font-size:11px;font-style:italic;color:#333;margin-top:2px}
       @media print{body{padding:15px}}
     </style>
   </head><body>
