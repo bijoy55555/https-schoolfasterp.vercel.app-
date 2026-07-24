@@ -744,6 +744,7 @@
       <div class="nav-item" data-page="ai-hub" onclick="showPage('ai-hub',this)"><span class="icon">🤖</span> প্রিমিয়াম AI ফিচার <span class="badge badge-orange" style="margin-left:auto;font-size:9px">PRO</span></div>
       <div class="nav-item" data-page="monthly-report" onclick="showPage('monthly-report',this)"><span class="icon">📅</span> মাসিক রিপোর্ট</div>
       <div class="nav-item" data-page="finance-report" onclick="showPage('finance-report',this)"><span class="icon">💹</span> আয়-ব্যয় রিপোর্ট</div>
+      <div class="nav-item" id="nav-cctv" data-page="cctv" onclick="showPage('cctv',this)"><span class="icon">📹</span> লাইভ CCTV</div>
       <div class="nav-item" data-page="principal-dash" onclick="showPage('principal-dash',this)"><span class="icon">🏫</span> প্রধান শিক্ষক ড্যাশ</div>
       <div class="nav-item" data-page="settings" onclick="showPage('settings',this)"><span class="icon">⚙️</span> সেটিংস</div>
       <div class="nav-item" data-page="help" onclick="showPage('help',this)"><span class="icon">📖</span> ব্যবহার নির্দেশিকা</div>
@@ -1335,6 +1336,32 @@
           <div class="modal-footer">
             <button class="btn btn-outline" style="flex:1" onclick="closeModal('expense-modal')">বাতিল</button>
             <button class="btn btn-primary" style="flex:2" onclick="saveExpense()">✓ সেভ করুন</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="cctv-modal">
+      <div class="modal-box" style="max-width:460px">
+        <div class="modal-header"><div class="modal-header-title" id="cctv-modal-title">➕ নতুন ক্যামেরা যোগ করুন</div><button class="modal-close" onclick="closeModal('cctv-modal')">×</button></div>
+        <div class="modal-body">
+          <input type="hidden" id="cctv-edit-id">
+          <div class="form-group"><label class="form-label">ক্যামেরার নাম/লোকেশন *</label><input class="form-input" id="cctv-name" placeholder="যেমন: মেইন গেট, ৩য় তলা করিডোর"></div>
+          <div class="form-group"><label class="form-label">ব্র্যান্ড</label>
+            <select class="form-select" id="cctv-brand">
+              <option>Hikvision / Hik-Connect</option>
+              <option>EZVIZ</option>
+              <option>Dahua</option>
+              <option>TP-Link Tapo</option>
+              <option>Xiaomi Mi Home</option>
+              <option>অন্যান্য</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">এম্বেড/শেয়ার লিংক (URL) *</label><input class="form-input" id="cctv-url" placeholder="https://..."></div>
+          <div class="form-error" id="cctv-error"></div>
+          <div class="modal-footer">
+            <button class="btn btn-outline" style="flex:1" onclick="closeModal('cctv-modal')">বাতিল</button>
+            <button class="btn btn-primary" style="flex:2" onclick="saveCctvCamera()">✓ সেভ করুন</button>
           </div>
         </div>
       </div>
@@ -3292,6 +3319,11 @@
       </div>
     </div>
 
+    <!-- ===== লাইভ CCTV (শুধু অ্যাডমিন) ===== -->
+    <div class="page" id="page-cctv">
+      <div id="cctv-content"></div>
+    </div>
+
     <!-- ===== CHARTS & REPORTS ===== -->
     <div class="page" id="page-charts">
       <div class="stats-grid" style="margin-bottom:22px">
@@ -4988,12 +5020,17 @@ let notices = [
 ];
 
 let attendance = {}; // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: 'P'|'A'|'L' } } }
+// ✅ লাইভ CCTV — প্রতিটা ক্যামেরার নাম/লোকেশন + ব্র্যান্ড + এম্বেড লিংক।
+// { id, name, brand, embedUrl } — এই এম্বেড লিংক ক্যামেরার নিজস্ব ক্লাউড/অ্যাপ
+// থেকে অ্যাডমিনকে বের করে এখানে বসাতে হবে (নিচে renderCctvPage-এ ব্র্যান্ড
+// অনুযায়ী নির্দেশিকা দেওয়া আছে)।
+let cctvCameras = [];
 // ✅ নতুন: বায়োমেট্রিক/RFID ডিভাইস থেকে আসা ইন-টাইম/আউট-টাইম — আগে লোড হতো না, কোথাও দেখানো হতো না।
 // { 'শ্রেণি': { 'YYYY-MM-DD': { studentName: {in:'HH:MM', out:'HH:MM'} } } }
 let attendanceTimes = {};
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','event-budget':'ইভেন্ট বাজেট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড'};
+const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','event-budget':'ইভেন্ট বাজেট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড','cctv':'লাইভ CCTV'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -5260,6 +5297,7 @@ function showPage(id, el) {
   if(id==='library') switchLibTab(currentLibTab);
   if(id==='transport') switchTransportTab(currentTransportTab);
   if(id==='ai-hub') switchAiTab(currentAiTab);
+  if(id==='cctv') renderCctvPage();
 }
 
 // ============ MODAL ============
@@ -11555,10 +11593,14 @@ function applyNavPermissions() {
   // কোনো রোলের কাছে এই মেনু আইটেমই দেখা যাবে না
   const excelNav = document.getElementById('nav-excel-list');
   if (excelNav) excelNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
+  // ✅ লাইভ CCTV — শুধু অ্যাডমিন দেখবে (ব্যবহারকারীর স্পষ্ট অনুরোধ অনুযায়ী),
+  // অন্য কোনো রোল (প্রধান শিক্ষকও না) মেনুতে এটা দেখতে পাবে না
+  const cctvNav = document.getElementById('nav-cctv');
+  if (cctvNav) cctvNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
 
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
-    if(page==='parent-portal' || page==='student-portal') return; // handled separately
+    if(page==='parent-portal' || page==='student-portal' || page==='cctv') return; // handled separately
     if(currentUser.role==='admin') { n.style.display=''; return; }
     if(currentUser.role==='parent' || currentUser.role==='student') { n.style.display='none'; return; }
     const allowed = userHasPerm(page,'view');
@@ -11642,6 +11684,127 @@ function openPackagePurchasePage(){
 }
 
 // ============ প্রোফাইল পেজ ============
+// ============ লাইভ CCTV (শুধু অ্যাডমিন) ============
+// ⚠️ এই প্রজেক্ট শুধু একটা স্ট্যাটিক ওয়েবসাইট (Vercel + Firebase, কোনো নিজস্ব
+// ভিডিও-সার্ভার নেই), তাই RTSP ক্যামেরা সরাসরি চালানো যায় না। এর বদলে
+// ক্যামেরা ব্র্যান্ডের নিজস্ব ক্লাউড/অ্যাপ থেকে বের করা "শেয়ার/এম্বেড লিংক"
+// একটা <iframe>-এ বসিয়ে দেখানো হয় — কোনো সার্ভার খরচ ছাড়াই।
+// নেভ মেনু হাইড থাকা ছাড়াও এখানে ফাংশন-লেভেলে দ্বিতীয়বার নিশ্চিত করা হলো,
+// যাতে কনসোল থেকে সরাসরি ফাংশন কল করেও শুধু অ্যাডমিন ছাড়া কেউ দেখতে না পারে।
+const cctvBrandGuide = {
+  'Hikvision / Hik-Connect': 'Hik-Connect অ্যাপ → ক্যামেরা সিলেক্ট করুন → শেয়ার/লাইভ ভিউ → "শেয়ার লিংক তৈরি করুন" (বা Hik-Connect ওয়েব পোর্টাল থেকে embed URL)।',
+  'EZVIZ': 'EZVIZ অ্যাপ → ডিভাইস সিলেক্ট করুন → Share Device বা EZVIZ ক্লাউড ওয়েব (open.ys7.com)-এর মাধ্যমে পাবলিক/এম্বেড লিংক তৈরি করুন।',
+  'Dahua': 'Dahua DMSS অ্যাপ বা Dahua-এর ক্লাউড (P2P) সার্ভিস থেকে শেয়ার লিংক জেনারেট করুন।',
+  'TP-Link Tapo': 'Tapo অ্যাপ → ক্যামেরা → শেয়ার/ক্লাউড লিংক অপশন থেকে লিংক নিন।',
+  'Xiaomi Mi Home': 'Mi Home অ্যাপ → ক্যামেরা → শেয়ার ডিভাইস/ক্লাউড লিংক থেকে নিন।',
+  'অন্যান্য': 'আপনার ক্যামেরার অ্যাপ/ম্যানুয়ালে "শেয়ার লিংক", "এম্বেড কোড" বা "পাবলিক লিংক" নামের অপশন খুঁজুন। না পেলে ভেন্ডর/সাপোর্টকে জিজ্ঞেস করুন।'
+};
+function renderCctvPage(){
+  const el = document.getElementById('cctv-content');
+  if(!el) return;
+  // ফাংশন-লেভেল গার্ড — শুধু অ্যাডমিন
+  if(!currentUser || currentUser.role!=='admin') {
+    el.innerHTML = '<div class="card"><div class="card-body" style="text-align:center;padding:50px;color:var(--text-muted)">⛔ এই পেজ দেখার অনুমতি শুধু অ্যাডমিনের আছে।</div></div>';
+    return;
+  }
+  const guideRows = Object.entries(cctvBrandGuide).map(([brand,tip])=>
+    `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><b>${brand}:</b> ${tip}</div>`
+  ).join('');
+  const camsHtml = cctvCameras.length===0
+    ? `<div style="text-align:center;color:var(--text-muted);padding:50px 20px"><div style="font-size:40px;margin-bottom:10px">📹</div>এখনো কোনো ক্যামেরা যোগ করা হয়নি। উপরের "➕ ক্যামেরা যোগ করুন" বাটনে ক্লিক করুন।</div>`
+    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px">` +
+      cctvCameras.map(c=>`
+        <div class="card" style="overflow:hidden">
+          <div style="position:relative;width:100%;padding-top:56.25%;background:#000">
+            <iframe src="${escapeHtmlAttr(c.embedUrl)}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe>
+          </div>
+          <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div>
+              <div style="font-weight:600">${escapeHtml(c.name)}</div>
+              <div style="font-size:12px;color:var(--text-muted)">${escapeHtml(c.brand||'')}</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-outline" style="padding:6px 10px" onclick="openCctvEditModal('${c.id}')">✏️</button>
+              <button class="btn btn-outline" style="padding:6px 10px;color:var(--danger,#e11d48)" onclick="deleteCctvCamera('${c.id}')">🗑️</button>
+            </div>
+          </div>
+        </div>
+      `).join('') + `</div>`;
+  el.innerHTML = `
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-body">
+        <div style="font-weight:600;margin-bottom:6px">ℹ️ কীভাবে কাজ করে</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">প্রতিটা ক্যামেরার ব্র্যান্ডের নিজস্ব অ্যাপ/ক্লাউড থেকে একটা "শেয়ার/এম্বেড লিংক" বের করে নিচে যোগ করুন। এই ফিচার শুধু অ্যাডমিন দেখতে পাবেন।</div>
+        <details><summary style="cursor:pointer;font-size:13px;color:var(--primary,#2563eb)">ব্র্যান্ড অনুযায়ী লিংক বের করার নির্দেশিকা দেখুন</summary>
+          <div style="margin-top:8px;font-size:13px">${guideRows}</div>
+        </details>
+      </div>
+    </div>
+    <div class="page-actions no-print" style="margin-bottom:14px">
+      <button class="btn btn-primary" onclick="openCctvAddModal()">➕ ক্যামেরা যোগ করুন</button>
+    </div>
+    ${camsHtml}
+  `;
+}
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function escapeHtmlAttr(s){ return escapeHtml(s); }
+function openCctvAddModal(){
+  document.getElementById('cctv-modal-title').textContent = '➕ নতুন ক্যামেরা যোগ করুন';
+  document.getElementById('cctv-edit-id').value = '';
+  document.getElementById('cctv-name').value = '';
+  document.getElementById('cctv-brand').value = 'Hikvision / Hik-Connect';
+  document.getElementById('cctv-url').value = '';
+  document.getElementById('cctv-error').style.display = 'none';
+  openModal('cctv-modal');
+}
+function openCctvEditModal(id){
+  const c = cctvCameras.find(x=>x.id===id);
+  if(!c) return;
+  document.getElementById('cctv-modal-title').textContent = '✏️ ক্যামেরা এডিট করুন';
+  document.getElementById('cctv-edit-id').value = c.id;
+  document.getElementById('cctv-name').value = c.name;
+  document.getElementById('cctv-brand').value = c.brand || 'Hikvision / Hik-Connect';
+  document.getElementById('cctv-url').value = c.embedUrl;
+  document.getElementById('cctv-error').style.display = 'none';
+  openModal('cctv-modal');
+}
+async function saveCctvCamera(){
+  if(!currentUser || currentUser.role!=='admin'){ showToast('⛔ এই কাজের অনুমতি আপনার নেই','error'); return; }
+  const id = document.getElementById('cctv-edit-id').value;
+  const name = document.getElementById('cctv-name').value.trim();
+  const brand = document.getElementById('cctv-brand').value;
+  const url = document.getElementById('cctv-url').value.trim();
+  const errEl = document.getElementById('cctv-error');
+  if(!name || !url){
+    errEl.textContent = 'নাম ও এম্বেড লিংক দুটোই দিতে হবে।';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(!/^https?:\/\//i.test(url)){
+    errEl.textContent = 'লিংকটা অবশ্যই http:// বা https:// দিয়ে শুরু হতে হবে।';
+    errEl.style.display = 'block';
+    return;
+  }
+  if(id){
+    const c = cctvCameras.find(x=>x.id===id);
+    if(c){ c.name = name; c.brand = brand; c.embedUrl = url; }
+  } else {
+    cctvCameras.push({ id: genRecordId('cctv'), name, brand, embedUrl: url });
+  }
+  closeModal('cctv-modal');
+  renderCctvPage();
+  showToast('✓ ক্যামেরা সেভ হয়েছে');
+  try{ await saveTenantData(); }catch(e){ console.error('CCTV ক্যামেরা সেভ এরর:', e); }
+}
+async function deleteCctvCamera(id){
+  if(!currentUser || currentUser.role!=='admin'){ showToast('⛔ এই কাজের অনুমতি আপনার নেই','error'); return; }
+  if(!confirm('এই ক্যামেরাটি মুছে ফেলতে চান?')) return;
+  cctvCameras = cctvCameras.filter(c=>c.id!==id);
+  renderCctvPage();
+  showToast('✓ ক্যামেরা মোছা হয়েছে');
+  try{ await saveTenantData(); }catch(e){ console.error('CCTV ক্যামেরা ডিলিট এরর:', e); }
+}
+
 function renderProfilePage(){
   const u = currentUser || {name:'ব্যবহারকারী', role:'admin', avatar:'ব'};
   const profileAvatarEl = document.getElementById('profile-avatar');
@@ -12185,6 +12348,7 @@ async function loadTenantData(schoolId) {
     if (d.expenses) expenses = d.expenses;
     if (d.eventBudgets) eventBudgets = d.eventBudgets;
     if (d.permissions) permissions = d.permissions;
+    if (d.cctvCameras) cctvCameras = d.cctvCameras;
     if (d.schoolConfig) { localStorage.setItem('schoolConfig', JSON.stringify(d.schoolConfig)); applySchoolConfig(d.schoolConfig); }
     migrateAttendance();
     migrateTeacherAtt();
@@ -12300,6 +12464,7 @@ async function saveTenantData() {
       // ফলে রুটিন/সিলেবাস/হোমওয়ার্ক/লেসন প্ল্যান/অ্যাসাইনমেন্ট/মাস্টার ডেটা লগআউটের পর হারিয়ে যেত
       vehicles, routines, syllabuses, homeworks, sessions, sectionsList, subjectsList, groupsList,
       lessonPlans, assignments, assignmentSubmissions, academicEvents, vouchers, expenses, eventBudgets, permissions,
+      cctvCameras,
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
