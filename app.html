@@ -593,8 +593,6 @@
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';"></script>
-<!-- 📷 ক্যামেরা মডিউল: শুধু .m3u8 (HLS) টাইপ লাইভ স্ট্রিম ব্রাউজারে সরাসরি চালাতে — কোনো ভিডিও এই সার্ভারে জমা/রেকর্ড হয় না, ব্রাউজার সরাসরি ক্যামেরা/ক্যামেরার ক্লাউড থেকে স্ট্রিম নেয় -->
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js" onerror="this.onerror=null;this.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js';"></script>
 
   <!-- ===== Firebase SDK (যোগ করা হয়েছে) ===== -->
   <script type="module">
@@ -2537,7 +2535,6 @@
         <div class="settings-tab-btn" id="stab-comm" onclick="switchSettingsTab('comm')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">📡 যোগাযোগ</div>
         <div class="settings-tab-btn" id="stab-admin" onclick="switchSettingsTab('admin')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">🛠️ অ্যাডমিন</div>
         <div class="settings-tab-btn" id="stab-payment" onclick="switchSettingsTab('payment')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">💳 পেমেন্ট সেটিংস</div>
-        <div class="settings-tab-btn" id="stab-camera" onclick="switchSettingsTab('camera')" style="padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px">📷 ক্যামেরা</div>
       </div>
 
       <!-- GENERAL TAB -->
@@ -2783,117 +2780,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-
-      <!-- CAMERA TAB -->
-      <div id="settings-tab-camera" style="display:none">
-        <div class="two-col">
-          <div>
-            <div class="settings-section" style="margin-bottom:20px">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">📷 ক্যামেরা যোগ করুন</div>
-              <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
-                <div class="settings-sub" style="margin-bottom:2px">
-                  এখানে আপনি নিজের স্কুলের CCTV/আইপি ক্যামেরার <b>লাইভ লিংক</b> বসিয়ে দিলে শুধু আপনি (এই স্কুলের অ্যাডমিন) সেটা এখান থেকে লাইভ দেখতে পারবেন। শিক্ষক/অভিভাবক/ছাত্র বা অন্য কোনো স্কুলের অ্যাডমিন এটা দেখতে পারবে না।
-                </div>
-                <div class="form-group"><label class="form-label">ক্যামেরার নাম *</label><input class="form-input" id="cam-name" placeholder="যেমন: মূল গেইট, অফিস রুম, ক্লাসরুম-১"></div>
-                <div class="form-group"><label class="form-label">স্ট্রিমের ধরন *</label>
-                  <select class="form-select" id="cam-type">
-                    <option value="hls">HLS লিংক (.m3u8)</option>
-                    <option value="mjpeg">MJPEG / স্ন্যাপশট লিংক (http://...)</option>
-                    <option value="embed">এম্বেড/শেয়ার লিংক (EZVIZ, Hik-Connect, Dahua, Imou, Tapo ইত্যাদি অ্যাপের "Share/Embed")</option>
-                  </select>
-                </div>
-                <div class="form-group"><label class="form-label">লাইভ লিংক / URL *</label><input class="form-input" id="cam-url" placeholder="যেমন: https://.../stream.m3u8"></div>
-                <div class="form-error" id="cam-error"></div>
-                <button class="btn btn-primary" onclick="addCameraEntry()">➕ ক্যামেরা যোগ করুন</button>
-                <div style="font-size:11.5px;color:var(--text-muted)">সর্বোচ্চ <b id="cam-max-label">৮</b>টি ক্যামেরা যোগ করা যাবে (নিচে "কয়টা ক্যামেরা ব্যবহার করা যাবে" অংশে বিস্তারিত)।</div>
-              </div>
-            </div>
-
-            <div class="settings-section">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center">
-                <span>📋 যোগ করা ক্যামেরাসমূহ</span>
-                <span id="cam-count-label" style="font-size:11.5px;color:var(--text-muted);font-weight:600">০টি</span>
-              </div>
-              <div style="padding:0" id="camera-list-body">
-                <div style="padding:16px;color:#888;font-size:12.5px">লোড হচ্ছে...</div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div class="settings-section" style="margin-bottom:20px">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🔒 এই মডিউল কী করে, কী করে না</div>
-              <div style="padding:20px;font-size:13px;line-height:1.8;color:var(--text)">
-                <ul style="padding-left:18px;margin:0">
-                  <li>✅ শুধু <b>লাইভ ভিডিও দেখা</b> যাবে — আপনার ব্রাউজার সরাসরি ক্যামেরা/ক্যামেরার কোম্পানির ক্লাউড থেকে স্ট্রিম নিয়ে আসে।</li>
-                  <li>🚫 কোনো ভিডিও এই সফটওয়্যারের সার্ভারে (বা Firestore-এ) <b>জমা/রেকর্ড হয় না</b> — এখানে শুধু আপনার দেওয়া লিংকটুকু (টেক্সট) সংরক্ষিত হয়, কোনো ভিডিও ফাইল নয়।</li>
-                  <li>🚫 পেছনের রেকর্ডিং/প্লেব্যাক (গতকালের ফুটেজ দেখা) এই মডিউলে সাপোর্ট করে না — সেটা দরকার হলে ক্যামেরার নিজস্ব SD কার্ড/NVR বা কোম্পানির অ্যাপ (যেমন Hik-Connect, EZVIZ) থেকে দেখতে হবে।</li>
-                  <li>🔐 লিংকটি শুধু আপনার স্কুলের ডাটাবেস এন্ট্রিতে এনক্রিপ্টেড রাখা হয় — শুধু আপনি (অ্যাডমিন) ও সফটওয়্যার প্রোভাইডার প্রয়োজনে সাপোর্টের জন্য এটা দেখতে পারবেন, অন্য কেউ না।</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="settings-section" style="margin-bottom:20px">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🎥 কোন কোন ক্যামেরা ব্যবহার করতে পারবেন</div>
-              <div style="padding:20px;font-size:13px;line-height:1.8;color:var(--text)">
-                সাধারণ ব্রাউজার সরাসরি RTSP চালাতে পারে না, তাই এমন ক্যামেরা/ব্র্যান্ড বেছে নিন যেগুলোর নিজস্ব <b>ক্লাউড শেয়ার/এম্বেড লিংক</b> বা <b>HLS/MJPEG</b> আউটপুট আছে —
-                <ul style="padding-left:18px;margin:10px 0 0">
-                  <li><b>EZVIZ</b> (C ও CS সিরিজ Wi-Fi ক্যামেরা) — অ্যাপ থেকে "Share/Embed Link" পাওয়া যায়</li>
-                  <li><b>Hikvision (Hik-Connect)</b> — P2P ক্লাউড লিংক / NVR-এর ওয়েব ভিউয়ার (HLS আউটপুট)</li>
-                  <li><b>Dahua / Imou</b> — অ্যাপ/ক্লাউড শেয়ার লিংক</li>
-                  <li><b>TP-Link Tapo (Tapo Care)</b> — ক্লাউড শেয়ার লিংক</li>
-                  <li>যেকোনো <b>ONVIF/IP ক্যামেরা বা NVR</b> যেখানে রাউটারে পোর্ট-ফরওয়ার্ড করে HLS (.m3u8) বা MJPEG স্ন্যাপশট URL বের করা যায়</li>
-                </ul>
-                <div style="margin-top:12px;padding:10px;background:#fef3e2;border-radius:8px;font-size:12px;color:#8a5a00">
-                  ⚠️ শুধু RTSP লিংক (rtsp://...) সরাসরি বসালে ব্রাউজারে চলবে না — উপরের মতো HLS/MJPEG/এম্বেড লিংকে রূপান্তর করা লিংকই এখানে দিতে হবে।
-                </div>
-              </div>
-            </div>
-
-            <div class="settings-section" style="margin-bottom:20px">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🛠️ কীভাবে সেটআপ করবেন (ধাপে ধাপে)</div>
-              <div style="padding:20px;font-size:13px;line-height:1.8;color:var(--text)">
-                <ol style="padding-left:18px;margin:0">
-                  <li>ক্যামেরা কোম্পানির মোবাইল অ্যাপ দিয়ে ক্যামেরাটি ওয়াইফাই/ইন্টারনেটে যুক্ত করুন (কোম্পানির ম্যানুয়াল অনুসরণ করুন)।</li>
-                  <li>অ্যাপের সেটিংসে "Share Device" / "Live View Link" / "Embed" অপশন খুঁজুন — সাধারণত ক্যামেরার নাম/সেটিংস আইকনের ভেতরে থাকে।</li>
-                  <li>জেনারেট হওয়া লিংক (বা .m3u8/MJPEG URL) কপি করুন।</li>
-                  <li>এই পেজে বাম পাশে "ক্যামেরার নাম" ও উপযুক্ত "স্ট্রিমের ধরন" বেছে সেই লিংক পেস্ট করে <b>"➕ ক্যামেরা যোগ করুন"</b>-এ ক্লিক করুন।</li>
-                  <li>নিচের তালিকায় "🔴 লাইভ দেখুন" বাটনে ক্লিক করলেই লাইভ ভিডিও চালু হবে।</li>
-                  <li>প্রয়োজন হলে ক্যামেরার লিংক পরিবর্তন হলে (যেমন নতুন Wi-Fi রাউটার) "✏️" দিয়ে লিংক আপডেট করুন।</li>
-                </ol>
-              </div>
-            </div>
-
-            <div class="settings-section">
-              <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🔢 কয়টা ক্যামেরা ব্যবহার করা যাবে?</div>
-              <div style="padding:20px;font-size:13px;line-height:1.8;color:var(--text)">
-                এই সফটওয়্যার সরাসরি কোনো ভিডিও প্রসেস/স্টোর করে না (শুধু লিংক জমা রাখে ও ব্রাউজার সরাসরি ক্যামেরার সাথে সংযোগ করে), তাই সফটওয়্যারের দিক থেকে কোনো কঠোর সংখ্যাগত সীমা নেই। ব্যবস্থাপনার সুবিধার্থে ডিফল্টভাবে প্রতি স্কুলে <b>সর্বোচ্চ ৮টি</b> ক্যামেরা যোগ করার অপশন রাখা হয়েছে — বাস্তবে কয়টা একসাথে ভালোভাবে চলবে তা নির্ভর করে:
-                <ul style="padding-left:18px;margin:10px 0 0">
-                  <li>স্কুলের ইন্টারনেট (আপলোড স্পিড) কতটুকু — প্রতিটা ক্যামেরা লাইভ চালু থাকলে কিছু আপলোড ব্যান্ডউইথ লাগে</li>
-                  <li>যিনি দেখছেন তার ডিভাইস/ইন্টারনেট (ডাউনলোড স্পিড)</li>
-                  <li>ক্যামেরা কোম্পানির নিজস্ব লিমিট (কিছু ফ্রি প্ল্যানে একসাথে ১টাই লাইভ ভিউ সাপোর্ট করে)</li>
-                </ul>
-                বেশি ক্যামেরা দরকার হলে যোগাযোগ করুন — এই লিমিট কোডে সহজেই বাড়ানো যায়।
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-overlay" id="camera-live-modal">
-      <div class="modal-box" style="max-width:720px">
-        <div class="modal-header"><div class="modal-header-title">🔴 <span id="cam-live-title">লাইভ ক্যামেরা</span></div><button class="modal-close" onclick="closeCameraLive()">×</button></div>
-        <div class="modal-body" style="padding:14px">
-          <div id="cam-live-wrap" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:10px;overflow:hidden;display:flex;align-items:center;justify-content:center">
-            <video id="cam-live-video" style="width:100%;height:100%;display:none" controls autoplay muted playsinline></video>
-            <img id="cam-live-img" style="width:100%;height:100%;object-fit:contain;display:none">
-            <iframe id="cam-live-iframe" style="width:100%;height:100%;border:0;display:none" allow="autoplay; fullscreen" allowfullscreen></iframe>
-            <div id="cam-live-msg" style="color:#aaa;font-size:13px;padding:20px;text-align:center">লোড হচ্ছে...</div>
-          </div>
-          <div style="font-size:11.5px;color:var(--text-muted);margin-top:8px">সরাসরি ক্যামেরা/ক্যামেরার ক্লাউড থেকে স্ট্রিম হচ্ছে — কোথাও রেকর্ড হচ্ছে না।</div>
         </div>
       </div>
     </div>
@@ -4128,7 +4014,14 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">ঠিকানা</label><input class="form-input" id="s-address-full" placeholder="সম্পূর্ণ ঠিকানা"></div>
-      <div class="form-group"><label class="form-label">ছবি</label><input class="form-input" id="s-photo" type="file" accept="image/*"></div>
+      <div class="form-group">
+        <label class="form-label">ছবি</label>
+        <input class="form-input" id="s-photo" type="file" accept="image/*">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          প্রস্তাবিত সাইজ: ৩০০×৩০০ পিক্সেল (বর্গাকার/passport-style), সর্বোচ্চ ২ MB — আপলোডের সময় ছবি
+          স্বয়ংক্রিয়ভাবে ৪০০×৪০০ পিক্সেল ও প্রায় ৫০ KB-এর মধ্যে কমপ্রেস হয়ে যাবে, তাই বড় ছবি দিলেও সমস্যা নেই।
+        </div>
+      </div>
 
 <div class="form-error" id="s-error"></div>
       <div class="modal-footer">
@@ -4178,6 +4071,14 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">ঠিকানা</label><input class="form-input" id="t-address" placeholder="স্থায়ী ঠিকানা"></div>
+      <div class="form-group">
+        <label class="form-label">ছবি</label>
+        <input class="form-input" id="t-photo" type="file" accept="image/*">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          প্রস্তাবিত সাইজ: ৩০০×৩০০ পিক্সেল (বর্গাকার/passport-style), সর্বোচ্চ ২ MB — আপলোডের সময় ছবি
+          স্বয়ংক্রিয়ভাবে ৪০০×৪০০ পিক্সেল ও প্রায় ৫০ KB-এর মধ্যে কমপ্রেস হয়ে যাবে।
+        </div>
+      </div>
       <div style="background:#f0f4f8;border-radius:10px;padding:12px;margin-top:4px">
         <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px">💰 বেতন তথ্য</div>
         <div class="form-row">
@@ -5980,6 +5881,27 @@ async function uploadStudentPhoto(schoolId, studentId, file) {
   }
 }
 
+// ===== শিক্ষকের ছবি: একই কম্প্রেস/আপলোড পাইপলাইন (400x400px, ~50KB) ব্যবহার করে,
+// শুধু Storage পাথ students/-এর বদলে teachers/ হয় =====
+async function uploadTeacherPhoto(schoolId, teacherId, file) {
+  if (!file) return '';
+  try {
+    const blob = await compressImageFile(file, 400, 50);
+    if (!blob) return '';
+    if (schoolId && window.fb && window.fb.storageRef && window.storage) {
+      const path = `schools/${schoolId}/teachers/${teacherId}.jpg`;
+      const ref = window.fb.storageRef(window.storage, path);
+      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+      return await window.fb.getDownloadURL(ref);
+    }
+    return await blobToBase64(blob);
+  } catch (e) {
+    console.error('শিক্ষকের ছবি আপলোড এরর:', e);
+    showToast('ছবি আপলোড ব্যর্থ হয়েছে — শিক্ষক ছবি ছাড়াই সেভ হয়েছে', 'error');
+    return '';
+  }
+}
+
 async function saveStudent() {
   if(!requirePerm('students','edit')) return;
   const name = document.getElementById('s-name').value.trim();
@@ -6129,7 +6051,7 @@ function renderTeachers(list) {
       <td>${toBnNum(i+1)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0">${t.name.charAt(0)}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden">${t.photo ? `<img src="${t.photo}" style="width:100%;height:100%;object-fit:cover">` : t.name.charAt(0)}</div>
           <div><b>${t.name}</b><div style="font-size:11px;color:var(--text-muted)">${t.designation||'শিক্ষক'}</div></div>
         </div>
       </td>
@@ -6152,7 +6074,7 @@ function filterTeachers() {
   const q = document.getElementById('teacher-search').value.toLowerCase();
   renderTeachers(teachers.filter(t=>t.name.toLowerCase().includes(q)||t.subject.toLowerCase().includes(q)));
 }
-function saveTeacher() {
+async function saveTeacher() {
   if(!requirePerm('teachers','edit')) return;
   const name = document.getElementById('t-name').value.trim();
   const subject = document.getElementById('t-subject').value;
@@ -6160,7 +6082,11 @@ function saveTeacher() {
   if(!subject){showErr('t-error','বিষয় নির্বাচন করুন');return;}
   hideErr('t-error');
   const selectedClasses = Array.from(document.getElementById('t-class').selectedOptions).map(o=>o.value);
+  const photoFile = document.getElementById('t-photo').files[0];
+  const teacherId = genRecordId('tch'); // ছবির Storage পাথ ও রেকর্ড আইডি একই রাখতে আগেই তৈরি
+  const photo = await uploadTeacherPhoto(window.currentSchoolId, teacherId, photoFile);
   teachers.push({
+    id: teacherId,
     name, subject,
     designation: document.getElementById('t-designation').value,
     cls: selectedClasses.join(', ')||'—',
@@ -6169,6 +6095,7 @@ function saveTeacher() {
     email: document.getElementById('t-email').value.trim()||'—',
     nid: document.getElementById('t-nid').value.trim()||'—',
     address: document.getElementById('t-address').value.trim()||'—',
+    photo: photo||'',
     salary: parseInt(document.getElementById('t-salary').value)||0,
     allowance: parseInt(document.getElementById('t-allowance').value)||0,
     deduction: parseInt(document.getElementById('t-deduction').value)||0,
@@ -6177,9 +6104,11 @@ function saveTeacher() {
   ['t-name','t-phone','t-email','t-nid','t-address','t-salary','t-allowance','t-deduction','t-joindate'].forEach(id=>document.getElementById(id).value='');
   Array.from(document.getElementById('t-class').options).forEach(o=>o.selected=false);
   document.getElementById('t-subject').value='';
+  document.getElementById('t-photo').value='';
   closeModal('teacher-modal');
   renderTeachers(); renderDashboard();
-  showToast('শিক্ষক সফলভাবে যোগ হয়েছে!');
+  showToast('শিক্ষক সফলভাবে যোগ হয়েছে! ক্লাউডে সেভ হচ্ছে...');
+  saveTenantData();
 }
 function deleteTeacher(idx) {
   if(!requirePerm('teachers','del')) return;
@@ -9939,7 +9868,7 @@ function generateAdmitCards() {
       </div>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <div style="width:60px;height:72px;border:1.5px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted)">ছবি</div>
+          <div style="width:60px;height:72px;border:1.5px solid var(--border);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);flex-shrink:0;background:#fafafa">${s.photo ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover">` : 'ছবি'}</div>
           <div style="flex:1;margin-left:14px;font-size:13px">
             <div style="margin-bottom:4px"><b>নাম:</b> ${s.name}</div>
             <div style="margin-bottom:4px"><b>রোল:</b> ${s.roll} &nbsp;|&nbsp; <b>শ্রেণি:</b> ${s.cls}</div>
@@ -10163,14 +10092,23 @@ function saveQuestionBankData(){
 function renderQuestionBankPage(){
   const clsSel = document.getElementById('qb-filter-class');
   const subSel = document.getElementById('qb-filter-subject');
+  // ✅ বাগ-ফিক্স: প্রশ্ন যোগ করার সময় "শ্রেণি"/"বিষয়" ফিল্ড ফ্রি-টেক্সট (datalist) হওয়ায়
+  // ব্যবহারকারী মাস্টার ডেটাতে যোগ না-করা কোনো শ্রেণি/বিষয় টাইপ করে ফেললে সেই প্রশ্নগুলো
+  // ফিল্টার ড্রপডাউনে সেকশন/অপশন হিসেবে দেখাতো না (কিন্তু ডেটাবেজে ঠিকই জমা থাকতো) —
+  // তাই এখন classesList/subjectsList-এর সাথে questionBank-এ প্রকৃতপক্ষে ব্যবহৃত সব
+  // শ্রেণি/বিষয়ও (যেগুলো মাস্টার ডেটাতে নেই) যোগ করে দেখানো হচ্ছে, যাতে কোনো সেকশন বাদ না পড়ে।
   if(clsSel){
     const cur = clsSel.value;
-    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('');
+    const knownCls = classesList.map(c=>c.name);
+    const extraCls = Array.from(new Set(questionBank.map(x=>x.cls).filter(c=>c && !knownCls.includes(c))));
+    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('') + extraCls.map(c=>`<option>${c}</option>`).join('');
     clsSel.value = cur;
   }
   if(subSel){
     const cur = subSel.value;
-    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('');
+    const knownSub = subjectsList.map(s=>s.name);
+    const extraSub = Array.from(new Set(questionBank.map(x=>x.subject).filter(s=>s && !knownSub.includes(s))));
+    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('') + extraSub.map(s=>`<option>${s}</option>`).join('');
     subSel.value = cur;
   }
   renderQuestionBankList();
@@ -11613,12 +11551,6 @@ function applyNavPermissions() {
   const excelNav = document.getElementById('nav-excel-list');
   if (excelNav) excelNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
 
-  // ✅ 📷 ক্যামেরা ট্যাব শুধু স্কুল-অ্যাডমিন দেখবে (Firestore rules-এও এটা
-  // isSchoolAdmin()/isSuperAdmin() দিয়ে ব্লক করা আছে — এটা শুধু UI-তে
-  // অতিরিক্ত সতর্কতা হিসেবে, আসল নিরাপত্তা ডাটাবেস লেভেলেই)
-  const camTab = document.getElementById('stab-camera');
-  if (camTab) camTab.style.display = (currentUser.role === 'admin') ? '' : 'none';
-
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
     if(page==='parent-portal' || page==='student-portal') return; // handled separately
@@ -12376,8 +12308,7 @@ function switchSettingsTab(tab) {
   document.getElementById('settings-tab-comm').style.display = tab==='comm'?'':'none';
   document.getElementById('settings-tab-admin').style.display = tab==='admin'?'':'none';
   document.getElementById('settings-tab-payment').style.display = tab==='payment'?'':'none';
-  document.getElementById('settings-tab-camera').style.display = tab==='camera'?'':'none';
-  ['general','users','comm','admin','payment','camera'].forEach(t=>{
+  ['general','users','comm','admin','payment'].forEach(t=>{
     document.getElementById('stab-'+t).style.cssText = tab===t
       ? 'padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--primary);border-bottom:3px solid var(--primary);margin-bottom:-2px'
       : 'padding:10px 18px;cursor:pointer;font-size:13px;font-weight:700;color:var(--text-muted);border-bottom:3px solid transparent;margin-bottom:-2px';
@@ -12386,182 +12317,6 @@ function switchSettingsTab(tab) {
   if(tab==='comm') { renderCommLog(); }
   if(tab==='admin') { renderAuditLog(); renderBackupHistory(); }
   if(tab==='payment') { loadPaymentSettings(); }
-  if(tab==='camera') { loadCameraSettings(); }
-}
-
-// ============ 📷 ক্যামেরা (প্রতিটা স্কুলের নিজস্ব লাইভ ক্যামেরা লিংক — শুধু ওই স্কুলের admin দেখে/সেভ করে) ============
-const CAMERA_MAX = 8; // ⚠️ এই সংখ্যা শুধু UI-এর ব্যবস্থাপনার সুবিধার্থে — সফটওয়্যারের দিক থেকে কোনো ভিডিও প্রসেস/স্টোর হয় না বলে হার্ড টেকনিক্যাল লিমিট নেই। বাড়াতে চাইলে এখানে সংখ্যা বদলান।
-let cameraList = []; // [{id,name,type,url}]
-let hlsInstance = null;
-
-async function loadCameraSettings() {
-  const listEl = document.getElementById('camera-list-body');
-  if(!window.currentSchoolId) {
-    listEl.innerHTML = '<div style="padding:16px;color:#888;font-size:12.5px">ℹ️ এটা ডেমো/অফলাইন মোড — ক্যামেরা লিংক সেভ করতে আসল স্কুল অ্যাকাউন্ট (ইমেইল) দিয়ে লগইন করতে হবে।</div>';
-    return;
-  }
-  try {
-    const snap = await window.fb.getDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'settings', 'camera'));
-    cameraList = (snap.exists() && Array.isArray(snap.data().cameras)) ? snap.data().cameras : [];
-  } catch(e) {
-    console.error('ক্যামেরা সেটিংস লোড এরর:', e);
-    listEl.innerHTML = '<div style="padding:16px;color:#c0392b;font-size:12.5px">লোড করা যায়নি — ইন্টারনেট সংযোগ চেক করুন (বা এই ইউজারের admin অনুমতি নেই)</div>';
-    return;
-  }
-  renderCameraList();
-}
-
-function renderCameraList() {
-  const listEl = document.getElementById('camera-list-body');
-  document.getElementById('cam-count-label').textContent = cameraList.length + 'টি / সর্বোচ্চ ' + CAMERA_MAX + 'টি';
-  if(!cameraList.length) {
-    listEl.innerHTML = '<div style="padding:16px;color:#888;font-size:12.5px">এখনো কোনো ক্যামেরা যোগ করা হয়নি — বাম পাশের ফর্ম থেকে যোগ করুন।</div>';
-    return;
-  }
-  const typeLabel = {hls:'HLS (.m3u8)', mjpeg:'MJPEG', embed:'এম্বেড লিংক'};
-  listEl.innerHTML = cameraList.map((c,i)=>`
-    <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)">
-      <div>
-        <div style="font-weight:700;font-size:13px">📷 ${escHtml(c.name)}</div>
-        <div style="font-size:11px;color:var(--text-muted)">${typeLabel[c.type]||c.type}</div>
-      </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-primary" style="padding:5px 10px;font-size:11.5px" onclick="openCameraLive(${i})">🔴 লাইভ দেখুন</button>
-        <button class="btn btn-outline" style="padding:5px 10px;font-size:11.5px" onclick="editCameraEntry(${i})">✏️</button>
-        <button class="btn btn-outline" style="padding:5px 10px;font-size:11.5px;color:#c0392b;border-color:#c0392b" onclick="deleteCameraEntry(${i})">🗑️</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function persistCameraList() {
-  await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'settings', 'camera'), {
-    cameras: cameraList,
-  }, { merge: true });
-}
-
-async function addCameraEntry() {
-  const errEl = document.getElementById('cam-error');
-  errEl.style.display = 'none';
-  const name = document.getElementById('cam-name').value.trim();
-  const type = document.getElementById('cam-type').value;
-  const url = document.getElementById('cam-url').value.trim();
-  if(!name || !url) {
-    errEl.textContent = 'ক্যামেরার নাম ও লাইভ লিংক দুটোই দিতে হবে';
-    errEl.style.display = 'block';
-    return;
-  }
-  if(!window.currentSchoolId) {
-    errEl.textContent = 'ডেমো মোডে এটা সেভ করা যাবে না — আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করুন';
-    errEl.style.display = 'block';
-    return;
-  }
-  if(cameraList.length >= CAMERA_MAX) {
-    errEl.textContent = `সর্বোচ্চ ${CAMERA_MAX}টি ক্যামেরা যোগ করা যাবে। বেশি দরকার হলে সফটওয়্যার প্রোভাইডারের সাথে যোগাযোগ করুন।`;
-    errEl.style.display = 'block';
-    return;
-  }
-  cameraList.push({ id: 'cam_'+Date.now(), name, type, url });
-  try {
-    await persistCameraList();
-    document.getElementById('cam-name').value = '';
-    document.getElementById('cam-url').value = '';
-    renderCameraList();
-    showToast('ক্যামেরা যোগ করা হয়েছে!');
-    logAudit(`নতুন ক্যামেরা যোগ করেছেন: ${name}`);
-  } catch(e) {
-    console.error('ক্যামেরা সেভ এরর:', e);
-    cameraList.pop();
-    errEl.textContent = 'সংরক্ষণ করা যায়নি: '+(e.message||'অজানা সমস্যা');
-    errEl.style.display = 'block';
-  }
-}
-
-async function editCameraEntry(i) {
-  const c = cameraList[i];
-  if(!c) return;
-  const newName = prompt('ক্যামেরার নাম:', c.name);
-  if(newName===null) return;
-  const newUrl = prompt('লাইভ লিংক / URL:', c.url);
-  if(newUrl===null) return;
-  const prevName = c.name, prevUrl = c.url;
-  c.name = newName.trim() || c.name;
-  c.url = newUrl.trim() || c.url;
-  try {
-    await persistCameraList();
-    renderCameraList();
-    showToast('ক্যামেরার তথ্য আপডেট হয়েছে!');
-    logAudit(`ক্যামেরার তথ্য পরিবর্তন করেছেন: ${c.name}`);
-  } catch(e) {
-    console.error('ক্যামেরা আপডেট এরর:', e);
-    c.name = prevName; c.url = prevUrl;
-    alert('আপডেট করা যায়নি: '+(e.message||'অজানা সমস্যা'));
-  }
-}
-
-async function deleteCameraEntry(i) {
-  const c = cameraList[i];
-  if(!c) return;
-  if(!confirm(`"${c.name}" ক্যামেরাটি তালিকা থেকে মুছে ফেলতে চান?`)) return;
-  const removed = cameraList.splice(i,1)[0];
-  try {
-    await persistCameraList();
-    renderCameraList();
-    showToast('ক্যামেরা মুছে ফেলা হয়েছে!');
-    logAudit(`ক্যামেরা মুছে ফেলেছেন: ${removed.name}`);
-  } catch(e) {
-    console.error('ক্যামেরা মুছতে এরর:', e);
-    cameraList.splice(i,0,removed);
-    alert('মুছে ফেলা যায়নি: '+(e.message||'অজানা সমস্যা'));
-  }
-}
-
-function openCameraLive(i) {
-  const c = cameraList[i];
-  if(!c) return;
-  document.getElementById('cam-live-title').textContent = c.name;
-  const video = document.getElementById('cam-live-video');
-  const img = document.getElementById('cam-live-img');
-  const iframe = document.getElementById('cam-live-iframe');
-  const msg = document.getElementById('cam-live-msg');
-  [video,img,iframe].forEach(el=>el.style.display='none');
-  msg.style.display='';
-  msg.textContent = 'লোড হচ্ছে...';
-  video.pause(); video.removeAttribute('src'); video.load();
-  if(hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-
-  openModal('camera-live-modal');
-
-  if(c.type==='hls') {
-    if(window.Hls && window.Hls.isSupported()) {
-      hlsInstance = new window.Hls();
-      hlsInstance.loadSource(c.url);
-      hlsInstance.attachMedia(video);
-      hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, ()=>{ msg.style.display='none'; video.style.display=''; video.play().catch(()=>{}); });
-      hlsInstance.on(window.Hls.Events.ERROR, (evt,data)=>{ if(data.fatal){ msg.style.display=''; msg.textContent='⚠️ স্ট্রিম চালু করা যায়নি — লিংকটি সঠিক ও লাইভ কিনা যাচাই করুন।'; } });
-    } else if(video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = c.url;
-      video.addEventListener('loadedmetadata', ()=>{ msg.style.display='none'; video.style.display=''; video.play().catch(()=>{}); }, {once:true});
-    } else {
-      msg.textContent = '⚠️ এই ব্রাউজারে HLS সাপোর্ট নেই।';
-    }
-  } else if(c.type==='mjpeg') {
-    img.onload = ()=>{ msg.style.display='none'; img.style.display=''; };
-    img.onerror = ()=>{ msg.textContent = '⚠️ ছবি/স্ট্রিম লোড করা যায়নি — লিংকটি যাচাই করুন।'; };
-    img.src = c.url + (c.url.includes('?')?'&':'?') + '_t=' + Date.now();
-  } else {
-    iframe.onload = ()=>{ msg.style.display='none'; iframe.style.display=''; };
-    iframe.src = c.url;
-  }
-}
-
-function closeCameraLive() {
-  const video = document.getElementById('cam-live-video');
-  video.pause(); video.removeAttribute('src'); video.load();
-  document.getElementById('cam-live-img').src = '';
-  document.getElementById('cam-live-iframe').src = '';
-  if(hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
-  closeModal('camera-live-modal');
 }
 
 // ============ পেমেন্ট সেটিংস (প্রতিটা স্কুলের নিজস্ব SSLCommerz তথ্য) ============
