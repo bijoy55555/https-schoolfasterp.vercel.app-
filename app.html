@@ -52,7 +52,7 @@
   .notice-bell-empty { padding:16px 14px; text-align:center; color:var(--text-muted); font-size:12.5px; }
   .topbar-date { font-size:12px; color:var(--text-muted); }
   .user-chip { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:50px; padding:6px 14px 6px 6px; font-size:13px; font-weight:600; color:var(--primary); }
-  .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
+  .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; overflow:hidden; }
   .content { padding:26px 28px; flex:1; }
   .page { display:none; }
   .page.active { display:block; }
@@ -787,11 +787,16 @@
 
       <div class="card">
         <div class="card-body" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-          <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;flex-shrink:0">প্র</div>
+          <div style="position:relative;flex-shrink:0">
+            <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;overflow:hidden">প্র</div>
+            <label for="my-photo-input" class="no-print" title="প্রোফাইল ছবি পরিবর্তন করুন" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer">📷</label>
+            <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="uploadMyProfilePhoto(this.files[0])">
+          </div>
           <div style="flex:1;min-width:200px">
             <div id="profile-name" style="font-size:19px;font-weight:700;color:var(--text)">—</div>
             <div id="profile-role" style="font-size:13px;color:var(--text-muted);margin-top:2px">—</div>
             <div id="profile-email" style="font-size:12.5px;color:var(--text-muted);margin-top:4px">—</div>
+            <div class="no-print" style="font-size:11px;color:var(--text-muted);margin-top:4px">📷 আইকনে ক্লিক করে ছবি বদলান — প্রস্তাবিত ৩০০×৩০০px, স্বয়ংক্রিয়ভাবে ৪০০×৪০০px/~৫০KB-এ কমপ্রেস হবে</div>
           </div>
           <button class="btn btn-danger no-print" onclick="doLogout()">🔓 লগআউট</button>
         </div>
@@ -11639,7 +11644,9 @@ function openPackagePurchasePage(){
 // ============ প্রোফাইল পেজ ============
 function renderProfilePage(){
   const u = currentUser || {name:'ব্যবহারকারী', role:'admin', avatar:'ব'};
-  document.getElementById('profile-avatar').textContent = u.avatar || (u.name||'ব').charAt(0);
+  const profileAvatarEl = document.getElementById('profile-avatar');
+  if(u.photo){ profileAvatarEl.innerHTML = `<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover">`; }
+  else { profileAvatarEl.textContent = u.avatar || (u.name||'ব').charAt(0); }
   document.getElementById('profile-name').textContent = u.name || 'ব্যবহারকারী';
   document.getElementById('profile-role').textContent = `${roleIcons[u.role]||'👤'} ${roleNamesBn[u.role]||u.role||''}`;
   const loginEmail = (window.auth && window.auth.currentUser && window.auth.currentUser.email) || '';
@@ -11719,6 +11726,53 @@ function renderProfilePage(){
   }
 }
 
+// ===== লগইন করা ইউজারের নিজের প্রোফাইল ছবি আপলোড (Admin/শিক্ষক/অভিভাবক/ছাত্র সবার জন্য) =====
+// একই কম্প্রেস পাইপলাইন (400x400px, ~50KB) ব্যবহার করে schools/{schoolId}/users/{uid}.jpg
+// পাথে Storage-এ রাখা হয়, এবং users/{uid} ডকুমেন্টে photo ফিল্ড merge করে সেভ হয় যাতে
+// পরের বার লগইন করলেও ছবিটা থেকে যায়।
+async function uploadMyProfilePhoto(file){
+  if(!file) return;
+  try{
+    const blob = await compressImageFile(file, 400, 50);
+    if(!blob) return;
+    let photoUrl = '';
+    const schoolId = window.currentSchoolId;
+    const uid = (window.auth && window.auth.currentUser && window.auth.currentUser.uid) || (currentUser && currentUser.uid);
+    if(schoolId && uid && window.fb && window.fb.storageRef && window.storage && window.db){
+      const path = `schools/${schoolId}/users/${uid}.jpg`;
+      const ref = window.fb.storageRef(window.storage, path);
+      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
+      photoUrl = await window.fb.getDownloadURL(ref);
+      await window.fb.setDoc(window.fb.doc(window.db, 'schools', schoolId, 'users', uid), { photo: photoUrl }, { merge: true });
+    } else {
+      // ডেমো/অফলাইন মোড বা লোকাল সাব-ইউজার — ক্লাউডে সেভ করা যাবে না, তাই শুধু চলতি
+      // সেশনে (মেমোরিতে) রাখা হচ্ছে, পেজ রিফ্রেশ করলে হারিয়ে যাবে
+      photoUrl = await blobToBase64(blob);
+    }
+    currentUser = currentUser || {};
+    currentUser.photo = photoUrl;
+    renderProfilePage();
+    updateHeaderAvatar();
+    showToast('প্রোফাইল ছবি আপডেট হয়েছে!');
+  } catch(e){
+    console.error('প্রোফাইল ছবি আপলোড এরর:', e);
+    showToast('ছবি আপলোড ব্যর্থ হয়েছে', 'error');
+  } finally {
+    const inp = document.getElementById('my-photo-input');
+    if(inp) inp.value = '';
+  }
+}
+
+// হেডারের ছোট গোল অ্যাভাটার (উপরে-ডানে) — প্রোফাইল ছবি থাকলে সেটা, না থাকলে ইনিশিয়াল দেখাবে
+function updateHeaderAvatar(){
+  const el = document.getElementById('user-avatar');
+  if(!el) return;
+  if(currentUser && currentUser.photo){
+    el.innerHTML = `<img src="${currentUser.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    el.textContent = (currentUser && currentUser.avatar) || (currentUser && (currentUser.name||'?').charAt(0)) || 'প্র';
+  }
+}
 // ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন — শুধু admin/principal রোলের জন্য =====
 // এই নোটিসগুলো সুপার-অ্যাডমিন প্যানেল (super-admin.html) থেকে পাঠানো হয়
 // (broadcastNotices কালেকশন, সব স্কুলের জন্য কমন)। প্রতিটা ইউজার কোন
@@ -11829,7 +11883,7 @@ function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('user-name-label').textContent = u.name;
-  document.getElementById('user-avatar').textContent = u.avatar;
+  updateHeaderAvatar();
   renderSubscriptionBadge(null); // ডেমো/অফলাইন লগইনে ট্রায়াল ব্যাজ দেখানো হবে না; আসল স্কুল লগইনে নিচে আলাদাভাবে আপডেট হয়
 
   // role-based nav visibility
