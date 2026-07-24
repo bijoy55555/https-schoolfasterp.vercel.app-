@@ -645,6 +645,8 @@
 
     console.log("✅ Firebase কানেক্ট হয়েছে (অফলাইন সাপোর্ট চালু)");
   </script>
+<script src="translations-data.js"></script>
+<script src="lang-toggle.js"></script>
 </head>
 <body>
 
@@ -772,6 +774,7 @@
       </div>
     </div>
     <div class="topbar-right">
+      <div data-lang-toggle-slot="light"></div>
       <div id="subscription-badge" style="display:none;font-size:11.5px;font-weight:700;padding:5px 12px;border-radius:50px"></div>
       <div class="topbar-date" id="topbar-date"></div>
       <div class="user-chip" id="user-chip" style="cursor:pointer" title="প্রোফাইল দেখুন" onclick="showPage('profile', null)"><div class="user-avatar" id="user-avatar">প্র</div> <span id="user-name-label">প্রধান শিক্ষক</span></div>

@@ -199,6 +199,8 @@
   [data-reveal].in{opacity:1; transform:translateY(0);}
   @media (prefers-reduced-motion: reduce){ [data-reveal]{opacity:1; transform:none; transition:none;} }
 </style>
+<script src="translations-data.js"></script>
+<script src="lang-toggle.js"></script>
 </head>
 <body>
 
@@ -213,6 +215,7 @@
       <a href="#trial">ট্রায়াল</a>
     </div>
     <div class="nav-cta">
+      <div data-lang-toggle-slot="light"></div>
       <a class="btn btn-ghost" href="app.html">লগইন</a>
       <a class="btn btn-primary nav-mobile-hide" href="#trial">ফ্রি ট্রায়াল</a>
     </div>
