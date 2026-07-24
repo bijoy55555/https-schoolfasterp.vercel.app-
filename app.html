@@ -683,6 +683,7 @@
     <div class="nav-section">
       <div class="nav-label">প্রধান মেনু</div>
       <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="icon">📊</span> ড্যাশবোর্ড</div>
+      <div class="nav-item" id="nav-data-cleanup" data-page="data-cleanup" onclick="showPage('data-cleanup',this)" style="background:#fdecea;border-left:3px solid #c0392b"><span class="icon">🧹</span> ডেটা ক্লিনআপ <span class="badge" style="margin-left:auto;font-size:9px;background:#c0392b;color:#fff;padding:2px 6px;border-radius:8px">নতুন</span></div>
       <div class="nav-item" data-page="students" onclick="showPage('students',this)"><span class="icon">👨‍🎓</span> ছাত্র তালিকা</div>
       <div class="nav-item" data-page="alumni" onclick="showPage('alumni',this)"><span class="icon">🎓</span> প্রাক্তন ছাত্র</div>
       <div class="nav-item" data-page="attendance" onclick="showPage('attendance',this)"><span class="icon">✅</span> উপস্থিতি</div>
@@ -2110,6 +2111,54 @@
       </div>
     </div>
 
+    <!-- ===== DATA CLEANUP (FACTORY RESET) MODULE ===== -->
+    <!-- ✅ নতুন স্কুল সাবস্ক্রিপশন কেনার পর প্রথমবার লগইন করলে যে ডেমো/নমুনা ডাটা
+         (ছাত্র, শিক্ষক, অ্যাসাইনমেন্ট ইত্যাদি) স্বয়ংক্রিয়ভাবে সেভ হয়ে যায়, সেটা
+         এক ক্লিকে (নিশ্চিতকরণসহ) মুছে ফেলার জন্য এই আলাদা মডিউল। শুধু অ্যাডমিন দেখবে। -->
+    <div class="page" id="page-data-cleanup">
+      <div style="max-width:760px;margin:0 auto">
+        <div style="background:linear-gradient(135deg,#c0392b,#e74c3c);color:#fff;border-radius:16px;padding:28px 32px;margin-bottom:24px;display:flex;align-items:center;gap:20px">
+          <div style="font-size:48px">🧹</div>
+          <div>
+            <div style="font-size:22px;font-weight:700">ডেটা ক্লিনআপ (ফ্যাক্টরি রিসেট)</div>
+            <div style="font-size:13px;opacity:0.9;margin-top:4px">সাবস্ক্রিপশন কেনার পর পুরনো/ডেমো ডাটা এক ক্লিকে মুছে ফেলুন</div>
+          </div>
+        </div>
+
+        <div id="cleanup-count-box" style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:14px 18px;font-size:13px;margin-bottom:16px;color:#8a6d00"></div>
+
+        <div class="card" style="margin-bottom:16px;border:1px solid #f5c6cb">
+          <div class="card-header" style="background:#fdecea"><div class="card-title" style="color:#c0392b">⚠️ সতর্কতা — এই কাজ ফিরিয়ে নেওয়া যাবে না</div></div>
+          <div class="card-body">
+            <p style="font-size:13px;line-height:1.9;margin:0 0 10px">নিচের বাটনে ক্লিক করলে আপনার স্কুলের নিচের সব ডাটা <strong>স্থায়ীভাবে</strong> মুছে যাবে — শুধু এই ডিভাইস থেকে নয়, ক্লাউড (Firestore) থেকেও। প্রয়োজনে আগে <strong>সেটিংস → ব্যাকআপ</strong> থেকে একটা ব্যাকআপ ফাইল ডাউনলোড করে রাখুন।</p>
+            <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
+              🗑️ ছাত্র তালিকা (সব ছাত্র)<br>
+              🗑️ শিক্ষক তালিকা<br>
+              🗑️ ফি/পেমেন্ট রেকর্ড<br>
+              🗑️ পরীক্ষার ফলাফল<br>
+              🗑️ উপস্থিতি (হাজিরা) ইতিহাস<br>
+              🗑️ ক্লাস রুটিন, সিলেবাস, হোমওয়ার্ক, লেসন প্ল্যান<br>
+              🗑️ অ্যাসাইনমেন্ট ও জমা, অনলাইন ক্লাস<br>
+              🗑️ পরীক্ষার সময়সূচি, প্রশ্নপত্র, প্রশ্ন ব্যাংক, একাডেমিক ক্যালেন্ডার<br>
+              🗑️ নোটিশ বোর্ড<br>
+              🗑️ হিসাব: ভাউচার, খরচ, ইভেন্ট বাজেট<br>
+              🗑️ লাইব্রেরি বই ও ইস্যু রেকর্ড, পরিবহন রুট<br>
+              🗑️ শিক্ষক উপস্থিতি, বেতন স্ট্যাটাস, SMS লগ, ছুটির হিসাব, CCTV ক্যামেরা তালিকা
+            </div>
+            <p style="font-size:12.5px;color:var(--text-muted);margin-top:10px;margin-bottom:0">✅ যা মুছবে <strong>না</strong>: স্কুলের সেটিংস/লোগো, ইউজার লগইন অ্যাকাউন্ট, ক্লাস/শাখা/বিষয়ের তালিকা, পারমিশন সেটআপ।</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <p style="font-size:13px;margin-bottom:10px">নিশ্চিত হলে নিচের বক্সে <strong>DELETE</strong> লিখে বাটনে ক্লিক করুন:</p>
+            <input class="form-input" id="cleanup-confirm-input" placeholder="এখানে DELETE লিখুন" style="margin-bottom:14px">
+            <button class="btn" style="background:#c0392b;color:#fff;width:100%" onclick="performDataCleanup(this)">🗑️ সব পুরনো ডাটা মুছে ফেলুন</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== SETTINGS ===== -->
     <!-- ===== HELP / USER MANUAL PAGE ===== -->
     <div class="page" id="page-help">
@@ -2132,6 +2181,18 @@
         </div>
 
         <div id="help-content-bn">
+
+          <!-- ⭐ সবার প্রথমে — ডেটা ক্লিনআপ মডিউলের হাইলাইটেড নোটিশ -->
+          <div class="card" style="margin-bottom:20px;border:2px solid #c0392b;box-shadow:0 0 0 3px #fdecea">
+            <div class="card-header" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">
+              <div class="card-title" style="color:#fff">🧹 সবচেয়ে গুরুত্বপূর্ণ — প্রথমেই এটা পড়ুন</div>
+            </div>
+            <div class="card-body" style="background:#fff8f7">
+              <p style="font-size:13.5px;line-height:1.9;margin:0 0 10px"><strong>নতুন সাবস্ক্রিপশন কেনার পর প্রথমবার লগইন করলে সিস্টেমে কিছু নমুনা/ডেমো ডাটা (উদাহরণস্বরূপ ছাত্র, শিক্ষক, অ্যাসাইনমেন্ট, রুটিন ইত্যাদি) দেখা যাবে — এগুলো শুধু বোঝানোর জন্য, আপনার স্কুলের আসল তথ্য নয়।</strong></p>
+              <p style="font-size:13.5px;line-height:1.9;margin:0 0 10px">এই পুরনো/ডেমো ডাটা এক ক্লিকে মুছে ফেলতে বাম মেনুর একদম উপরে থাকা <strong style="color:#c0392b">🧹 ডেটা ক্লিনআপ</strong> মডিউলে যান। সেখানে বক্সে <strong>DELETE</strong> লিখে নিশ্চিত করলেই সব পুরনো ডাটা (ছাত্র, শিক্ষক, ফি, ফলাফল, হাজিরা, রুটিন, অ্যাসাইনমেন্ট ইত্যাদি) একসাথে মুছে যাবে এবং আপনি একদম খালি অবস্থা থেকে নিজের স্কুলের আসল তথ্য দিয়ে শুরু করতে পারবেন।</p>
+              <p style="font-size:12.5px;color:#c0392b;font-weight:600;margin:0">⚠️ এই কাজ ফিরিয়ে নেওয়া যায় না, তাই শুধু (স্কুল-অ্যাডমিন) নিজে করুন — অন্যকে দিয়ে নয়।</p>
+            </div>
+          </div>
 
           <!-- How to use this guide -->
           <div class="card" style="margin-bottom:16px">
@@ -2227,6 +2288,7 @@
                 <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">🏠 প্রধান মেনু</summary>
                 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
                   <div><strong>📊 ড্যাশবোর্ড</strong><br><span style="font-size:12.5px;color:var(--text-muted)">মোট ছাত্র, উপস্থিতির হার, আজকের ফি আদায়, সাম্প্রতিক নোটিশ — সবকিছু এক নজরে দেখার সারসংক্ষেপ পেজ।</span></div>
+                  <div><strong>🧹 ডেটা ক্লিনআপ</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নতুন সাবস্ক্রিপশনের পর থাকা পুরনো/ডেমো ডাটা (ছাত্র, শিক্ষক, অ্যাসাইনমেন্ট ইত্যাদি) এক ক্লিকে মুছে ফেলার জন্য — শুধু অ্যাডমিন ব্যবহার করতে পারবে।</span></div>
                   <div><strong>👨‍🎓 ছাত্র তালিকা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নতুন ছাত্র ভর্তি, তথ্য/ছবি এডিট এবং সব ছাত্রের তালিকা খোঁজা ও দেখা যায়।</span></div>
                   <div><strong>🎓 প্রাক্তন ছাত্র</strong><br><span style="font-size:12.5px;color:var(--text-muted)">পাস করা বা স্কুল ছেড়ে যাওয়া ছাত্রদের তথ্য আলাদাভাবে সংরক্ষণ করা হয়।</span></div>
                   <div><strong>✅ উপস্থিতি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিদিনের ক্লাসভিত্তিক ছাত্র উপস্থিতি নেওয়া, রিপোর্ট দেখা ও প্রিন্ট করা যায়।</span></div>
@@ -5030,7 +5092,7 @@ let cctvCameras = [];
 let attendanceTimes = {};
 
 // ============ UTILS ============
-const titles = {dashboard:'ড্যাশবোর্ড',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','event-budget':'ইভেন্ট বাজেট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড','cctv':'লাইভ CCTV'};
+const titles = {dashboard:'ড্যাশবোর্ড','data-cleanup':'ডেটা ক্লিনআপ',students:'ছাত্র তালিকা',alumni:'প্রাক্তন ছাত্র',attendance:'উপস্থিতি',result:'পরীক্ষা ও ফলাফল',fees:'ফি ম্যানেজমেন্ট',teachers:'শিক্ষক ব্যবস্থাপনা',payroll:'বেতন ব্যবস্থাপনা',notice:'নোটিশ বোর্ড',settings:'সেটিংস',routine:'ক্লাস রুটিন',syllabus:'সিলেবাস ট্র্যাকিং',homework:'হোমওয়ার্ক',exam:'পরীক্ষার সময়সূচি','question-paper':'প্রশ্নপত্র তৈরি', 'question-bank':'প্রশ্ন ব্যাংক', profile:'প্রোফাইল',marksheet:'মার্কশিট / রিপোর্ট কার্ড',merit:'মেরিট লিস্ট','teacher-att':'শিক্ষক উপস্থিতি',leave:'ছুটি ব্যবস্থাপনা','parent-portal':'অভিভাবক পোর্টাল','student-portal':'ছাত্র পোর্টাল',charts:'চার্ট ও রিপোর্ট','sms-notify':'SMS নোটিফিকেশন','monthly-report':'মাসিক উপস্থিতি রিপোর্ট','event-calendar':'ইভেন্ট ক্যালেন্ডার','finance-report':'আয়-ব্যয় রিপোর্ট','principal-dash':'প্রধান শিক্ষক ড্যাশবোর্ড','library':'লাইব্রেরি ব্যবস্থাপনা','transport':'পরিবহন ব্যবস্থাপনা','ai-hub':'প্রিমিয়াম AI ফিচার','session':'সেশন ম্যানেজমেন্ট','master-data':'মাস্টার ডেটা','lesson-plan':'লেসন প্ল্যান','assignment':'অ্যাসাইনমেন্ট','online-class':'অনলাইন ক্লাস','academic-calendar':'একাডেমিক ক্যালেন্ডার','admit-card':'অ্যাডমিট কার্ড','seat-plan':'সিট প্ল্যান','tabulation':'ট্যাবুলেশন শিট','ledger-gen':'লেজার (খতিয়ান)','cash-book':'ক্যাশ বুক','bank-book':'ব্যাংক বুক','daily-report':'দৈনিক রিপোর্ট','profit-loss':'লাভ-ক্ষতি বিবরণী','voucher':'ভাউচার','due-report':'বকেয়া রিপোর্ট','event-budget':'ইভেন্ট বাজেট','student-annual-report':'ছাত্র বার্ষিক রেকর্ড','cctv':'লাইভ CCTV'};
 
 function showToast(msg, type='success') {
   const t = document.createElement('div');
@@ -5259,6 +5321,7 @@ function showPage(id, el) {
   document.getElementById('page-title').textContent = (typeof currentLang!=='undefined' && currentLang==='en') ? (navLabelsEn[id]||titles[id]||id) : (titles[id]||id);
   closeSidebar();
   if(id==='dashboard') renderDashboard();
+  if(id==='data-cleanup') renderDataCleanupPage();
   if(id==='students') renderStudents();
   if(id==='attendance') renderAttendanceTable();
   if(id==='result') renderResults();
@@ -9291,7 +9354,7 @@ function applyTheme(name){
 // ============ ADMIN: LANGUAGE ============
 let currentLang = 'bn';
 const navLabelsEn = {
-  dashboard:'Dashboard', students:'Students', alumni:'Alumni', attendance:'Attendance', result:'Exams & Results',
+  dashboard:'Dashboard', 'data-cleanup':'Data Cleanup', students:'Students', alumni:'Alumni', attendance:'Attendance', result:'Exams & Results',
   fees:'Fee Management', routine:'Class Routine', syllabus:'Syllabus', homework:'Homework', exam:'Exam Schedule', 'question-paper':'Question Paper Generator', 'question-bank':'Question Bank', profile:'Profile',
   session:'Session Management', 'master-data':'Master Data', 'lesson-plan':'Lesson Plan', assignment:'Assignment',
   'online-class':'Online Class', 'academic-calendar':'Academic Calendar', 'admit-card':'Admit Card', 'seat-plan':'Seat Plan',
@@ -11597,10 +11660,14 @@ function applyNavPermissions() {
   // অন্য কোনো রোল (প্রধান শিক্ষকও না) মেনুতে এটা দেখতে পাবে না
   const cctvNav = document.getElementById('nav-cctv');
   if (cctvNav) cctvNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
+  // ✅ ডেটা ক্লিনআপ (ফ্যাক্টরি রিসেট) — শুধু স্কুল-অ্যাডমিন দেখবে ও ব্যবহার করতে পারবে,
+  // ভুলবশত অন্য কোনো স্টাফ/শিক্ষক ক্লিক করে সব ডাটা মুছে ফেলতে পারবে না
+  const cleanupNav = document.getElementById('nav-data-cleanup');
+  if (cleanupNav) cleanupNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
 
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
-    if(page==='parent-portal' || page==='student-portal' || page==='cctv') return; // handled separately
+    if(page==='parent-portal' || page==='student-portal' || page==='cctv' || page==='data-cleanup') return; // handled separately
     if(currentUser.role==='admin') { n.style.display=''; return; }
     if(currentUser.role==='parent' || currentUser.role==='student') { n.style.display='none'; return; }
     const allowed = userHasPerm(page,'view');
@@ -12471,6 +12538,83 @@ async function saveTenantData() {
   } catch (e) {
     console.error('টেন্যান্ট ডেটা সেভ এরর:', e);
     throw e;
+  }
+}
+
+// ============ ডেটা ক্লিনআপ (ফ্যাক্টরি রিসেট) মডিউল ============
+// নতুন স্কুল সাবস্ক্রিপশন কেনার পর প্রথমবার লগইন করলে loadTenantData() স্বয়ংক্রিয়ভাবে
+// বর্তমান (ডেমো) ডাটা Firestore-এ সেভ করে ফেলে (দেখুন loadTenantData -> saveTenantData)।
+// অ্যাডমিন এখান থেকে এক ক্লিকে (নিশ্চিতকরণসহ) সেই পুরনো/ডেমো ডাটা মুছে ফেলতে পারবে।
+function renderDataCleanupPage() {
+  const box = document.getElementById('cleanup-count-box');
+  if (!box) return;
+  box.innerHTML = `বর্তমানে আছে: <strong>${toBnNum(students.length)}</strong> জন ছাত্র, `
+    + `<strong>${toBnNum(teachers.length)}</strong> জন শিক্ষক, `
+    + `<strong>${toBnNum(assignments.length)}</strong>টা অ্যাসাইনমেন্ট, `
+    + `<strong>${toBnNum(examSchedule.length)}</strong>টা পরীক্ষার সময়সূচি, `
+    + `<strong>${toBnNum(questionPapers.length)}</strong>টা প্রশ্নপত্র — নিচের বাটনে ক্লিক করলে এইসব (ও আরও অনেক কিছু) মুছে যাবে।`;
+  const input = document.getElementById('cleanup-confirm-input');
+  if (input) input.value = '';
+}
+
+async function performDataCleanup(btn) {
+  const input = document.getElementById('cleanup-confirm-input');
+  if (!input || input.value.trim().toUpperCase() !== 'DELETE') {
+    showToast('নিশ্চিত করতে বক্সে ঠিক করে DELETE লিখুন', 'error');
+    return;
+  }
+  if (!confirm('আপনি কি ১০০% নিশ্চিত? সব ছাত্র, শিক্ষক, ফি, ফলাফল, হাজিরা ও অন্যান্য সব ডাটা স্থায়ীভাবে মুছে যাবে — এই কাজ ফিরিয়ে নেওয়া যাবে না।')) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'মুছে ফেলা হচ্ছে...'; }
+  showToast('ডাটা মুছে ফেলা হচ্ছে... একটু অপেক্ষা করুন');
+
+  try {
+    // ১) মেমোরিতে থাকা সব অ্যারে/অবজেক্ট খালি করা
+    students = []; teachers = []; fees = []; results = [];
+    notices = []; routines = []; syllabuses = []; homeworks = [];
+    lessonPlans = []; assignments = []; assignmentSubmissions = [];
+    onlineClasses = []; academicEvents = []; examSchedule = [];
+    questionPapers = []; questionBank = []; vouchers = []; expenses = [];
+    eventBudgets = []; books = []; bookIssues = []; vehicles = [];
+    transportRoutes = []; teacherAtt = {}; payrollStatus = {};
+    smsLog = []; dueSMSLog = []; parentMessages = []; leaveBalances = {};
+    cctvCameras = []; attendance = {};
+
+    if (window.currentSchoolId) {
+      // ২) students/fees/results — আলাদা কালেকশন, তাই ডিফ-সিঙ্ক করলেই ক্লাউড থেকে
+      // পুরনো সব ডকুমেন্ট ডিলিট হয়ে যাবে (খালি অ্যারের সাথে তুলনা করে)
+      await Promise.all([
+        syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
+        syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
+        syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
+      ]);
+
+      // ৩) হাজিরা (attendance) আলাদা কালেকশনে থাকে (প্রতিটা ক্লাস+তারিখ একটা ডকুমেন্ট) —
+      // এগুলো সরাসরি কোয়েরি করে ব্যাচে ডিলিট করতে হবে
+      try {
+        const attSnap = await window.fb.getDocs(window.fb.collection(window.db, 'schools', window.currentSchoolId, 'attendance'));
+        let batch = window.fb.writeBatch(window.db);
+        let opCount = 0;
+        for (const docSnap of attSnap.docs) {
+          batch.delete(docSnap.ref);
+          opCount++;
+          if (opCount >= 450) { await batch.commit(); batch = window.fb.writeBatch(window.db); opCount = 0; }
+        }
+        if (opCount > 0) await batch.commit();
+      } catch (e) { console.error('হাজিরা ডিলিট এরর:', e); }
+
+      // ৪) বাকি সব ফিল্ড (teachers, routines, assignments, exam schedule, ইত্যাদি) —
+      // একটাই data/main ডকুমেন্টে খালি অ্যারে/অবজেক্ট হিসেবে সেভ হয়ে যাবে
+      await saveTenantData();
+    }
+
+    logAudit('⚠️ সম্পূর্ণ ডেটা ক্লিনআপ (ফ্যাক্টরি রিসেট) সম্পন্ন করেছেন');
+    showToast('✅ সব পুরনো ডাটা মুছে ফেলা হয়েছে। পেজ রিলোড হচ্ছে...');
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    console.error('ডেটা ক্লিনআপ এরর:', e);
+    showToast('❌ মুছতে সমস্যা হয়েছে: ' + e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '🗑️ সব পুরনো ডাটা মুছে ফেলুন'; }
   }
 }
 
