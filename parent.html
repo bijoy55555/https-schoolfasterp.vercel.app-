@@ -1148,7 +1148,7 @@
     <!-- ===== RESULT ===== -->
     <div class="page" id="page-result">
       <div class="page-actions no-print">
-        <button class="btn btn-primary" onclick="openModal('result-modal')">+ নতুন ফলাফল যোগ</button>
+        <button class="btn btn-primary" onclick="openModal('result-modal'); populateResultStudentSelect();">+ নতুন ফলাফল যোগ</button>
         <input class="search-box" type="text" id="result-search" placeholder="🔍 ছাত্রের নাম বা রোল..." oninput="filterResults()">
         <select class="form-select" id="result-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterResults()">
           <option value="">সব শ্রেণি</option>
@@ -3755,13 +3755,21 @@
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header"><div class="modal-header-title">নতুন ফলাফল যোগ করুন</div><button class="modal-close" onclick="closeModal('result-modal')">×</button></div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম"></div>
-        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১"></div>
+      <div class="form-group" id="r-student-select-wrap">
+        <label class="form-label">তালিকা থেকে ছাত্র নির্বাচন করুন (সুপারিশকৃত)</label>
+        <select class="form-select" id="r-student-select" onchange="fillResultStudentFromSelect()">
+          <option value="">— নিচে আগে শ্রেণি বাছাই করুন —</option>
+        </select>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">✅ তালিকা থেকে ছাত্র বাছাই করলে ফলাফল সরাসরি তার প্রোফাইলের সাথে যুক্ত হবে — নাম/রোল ভুল টাইপ করলেও ছাত্র/অভিভাবক পোর্টালে ফলাফল দেখাতে সমস্যা হবে না। তালিকায় না পেলে নিচে ম্যানুয়ালি লিখুন।</div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+      </div>
+      <input type="hidden" id="r-student-id" value="">
+      <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="r-class" onchange="renderResultSubjectFields()">
+          <select class="form-select" id="r-class" onchange="renderResultSubjectFields(); populateResultStudentSelect();">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">পরীক্ষার ধরন</label>
@@ -5410,6 +5418,9 @@ function deleteStudent(idx) {
   students.splice(idx,1);
   renderStudents(); renderDashboard();
   showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
+  // ✅ বাগ-ফিক্স: আগে শুধু ভর্তির সময় সাথে সাথে সিঙ্ক হতো, মোছার সময় হতো না —
+  // মোছা ছাত্র ২০ সেকেন্ডের অটো-সেভের আগে অ্যাপ বন্ধ হলে আবার ফিরে আসতে পারত।
+  triggerImmediateSync();
 }
 
 // ============ DUMMY STUDENT GENERATOR (টেস্টিং-এর জন্য) ============
@@ -6177,6 +6188,29 @@ function filterResults() {
     return matchQ&&matchC&&matchScope;
   }));
 }
+// ✅ নতুন: নির্বাচিত শ্রেণির ছাত্র তালিকা দিয়ে ড্রপডাউন সাজায়, যাতে অ্যাডমিন/শিক্ষক
+// নাম টাইপ না করে সরাসরি প্রকৃত ছাত্র রেকর্ড থেকে বেছে নিতে পারেন (studentId লিংক করতে)
+function populateResultStudentSelect() {
+  const sel = document.getElementById('r-student-select');
+  if(!sel) return;
+  const cls = document.getElementById('r-class').value;
+  const list = students.filter(s => s.cls===cls);
+  sel.innerHTML = '<option value="">— তালিকা থেকে ছাত্র বাছাই করুন —</option>' +
+    list.map(s => `<option value="${s.id}">${escHtml(s.name)} (রোল: ${escHtml(s.roll)})</option>`).join('');
+}
+// ✅ নতুন: ড্রপডাউন থেকে ছাত্র বাছাই করলে নাম/রোল অটো-ফিল হয় এবং আসল studentId
+// হিডেন ফিল্ডে বসে — এতে ফলাফল সরাসরি ছাত্রের প্রোফাইলের সাথে যুক্ত থাকে, স্ট্রিং
+// মিলিয়ে (নাম/রোল/ক্লাস হুবহু এক হতে হবে এমন ভঙ্গুর পদ্ধতি) খুঁজতে হয় না
+function fillResultStudentFromSelect() {
+  const sel = document.getElementById('r-student-select');
+  const sid = sel.value;
+  if(!sid){ document.getElementById('r-student-id').value=''; return; }
+  const s = students.find(x=>x.id===sid);
+  if(!s) return;
+  document.getElementById('r-name').value = s.name;
+  document.getElementById('r-roll').value = s.roll;
+  document.getElementById('r-student-id').value = s.id;
+}
 function saveResult() {
   if(!requirePerm('result','edit')) return;
   const name = document.getElementById('r-name').value.trim();
@@ -6191,15 +6225,24 @@ function saveResult() {
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>{
     subjects[inp.dataset.key] = parseInt(inp.value) || 0;
   });
+  // ✅ studentId: ড্রপডাউন থেকে বাছাই করলে সরাসরি সেট থাকে; ম্যানুয়ালি টাইপ করা
+  // হলে নাম+রোল+ক্লাস মিলিয়ে ছাত্র রেকর্ড খুঁজে studentId বসানোর চেষ্টা করা হয়
+  let studentId = document.getElementById('r-student-id').value || '';
+  if(!studentId) {
+    const matched = students.find(s=>s.roll===roll && s.cls===cls) || students.find(s=>s.name===name && s.cls===cls);
+    if(matched) studentId = matched.id;
+  }
   results.push({
     id: 'res_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-    name, roll, cls,
+    studentId, name, roll, cls,
     exam: document.getElementById('r-exam').value,
     group,
     subjects
   });
   document.getElementById('r-name').value='';
   document.getElementById('r-roll').value='';
+  document.getElementById('r-student-id').value='';
+  if(document.getElementById('r-student-select')) document.getElementById('r-student-select').value='';
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>inp.value='');
   closeModal('result-modal');
   renderResults();
@@ -6322,6 +6365,8 @@ function saveFee() {
   renderFees(); renderDashboard();
   if(status==='পরিশোধিত') { showToast('পেমেন্ট রেকর্ড হয়েছে! রসিদ প্রস্তুত।'); setTimeout(()=>openReceipt(0),600); }
   else showToast('পেমেন্ট রেকর্ড হয়েছে!');
+  // ✅ বাগ-ফিক্স: আর্থিক রেকর্ড, তাই সাথে সাথে ক্লাউডে সেভ করা হচ্ছে।
+  triggerImmediateSync();
 }
 
 function deleteFee(idx) {
@@ -6330,6 +6375,7 @@ function deleteFee(idx) {
   fees.splice(idx,1);
   renderFees(); renderDashboard();
   showToast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে','error');
+  triggerImmediateSync();
 }
 
 // ---- RECEIPT ----

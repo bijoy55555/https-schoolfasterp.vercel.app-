@@ -5921,7 +5921,14 @@ async function saveStudent() {
   closeModal('student-modal');
   generateAutoFees();
   renderStudents(); renderDashboard();
-  showToast('ছাত্র সফলভাবে ভর্তি হয়েছে!');
+  showToast('ছাত্র সফলভাবে ভর্তি হয়েছে! ক্লাউডে সেভ হচ্ছে...');
+  // ✅ বাগ-ফিক্স: আগে নতুন ভর্তি হওয়া ছাত্র শুধু মেমোরিতে থাকত, ২০ সেকেন্ডের অটো-সেভ
+  // টাইমারের অপেক্ষায় — দ্রুত অ্যাপ বন্ধ করলে ভর্তি রেকর্ড হারিয়ে যেত। এখন সাথে সাথে সেভ হয়।
+  if(typeof saveTenantData==='function') {
+    saveTenantData()
+      .then(()=> showToast('✅ ছাত্রের তথ্য ক্লাউডে সফলভাবে সেভ হয়েছে'))
+      .catch(()=> showToast('⚠️ ছাত্র লোকালি যোগ হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন', 'error'));
+  }
 }
 function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
@@ -5929,6 +5936,9 @@ function deleteStudent(idx) {
   students.splice(idx,1);
   renderStudents(); renderDashboard();
   showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
+  // ✅ বাগ-ফিক্স: মোছার পরও সাথে সাথে ক্লাউডে সেভ করা হচ্ছে, নইলে অ্যাপ দ্রুত বন্ধ করলে
+  // মোছা ছাত্র পরে আবার (পুরনো ক্লাউড ডেটা থেকে) ফিরে আসতে পারত।
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ============ DUMMY STUDENT GENERATOR (টেস্টিং-এর জন্য) ============
@@ -6825,6 +6835,9 @@ function saveFee() {
   renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   if(status==='পরিশোধিত') { showToast('পেমেন্ট রেকর্ড হয়েছে! রসিদ প্রস্তুত।'); setTimeout(()=>openReceipt(0),600); }
   else showToast('পেমেন্ট রেকর্ড হয়েছে!');
+  // ✅ বাগ-ফিক্স: আর্থিক রেকর্ড, তাই ২০ সেকেন্ডের অটো-সেভ টাইমারের অপেক্ষা না করে
+  // সাথে সাথে ক্লাউডে সেভ করা হচ্ছে।
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 function deleteFee(idx) {
@@ -6835,6 +6848,7 @@ function deleteFee(idx) {
   syncStudentFeeStatus(sName);
   renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   showToast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে','error');
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ---- RECEIPT ----
