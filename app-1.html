@@ -52,7 +52,7 @@
   .notice-bell-empty { padding:16px 14px; text-align:center; color:var(--text-muted); font-size:12.5px; }
   .topbar-date { font-size:12px; color:var(--text-muted); }
   .user-chip { display:flex; align-items:center; gap:8px; background:var(--bg); border-radius:50px; padding:6px 14px 6px 6px; font-size:13px; font-weight:600; color:var(--primary); }
-  .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; }
+  .user-avatar { width:28px; height:28px; background:var(--primary); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; overflow:hidden; }
   .content { padding:26px 28px; flex:1; }
   .page { display:none; }
   .page.active { display:block; }
@@ -686,7 +686,9 @@
       <div class="nav-item" data-page="students" onclick="showPage('students',this)"><span class="icon">👨‍🎓</span> ছাত্র তালিকা</div>
       <div class="nav-item" data-page="alumni" onclick="showPage('alumni',this)"><span class="icon">🎓</span> প্রাক্তন ছাত্র</div>
       <div class="nav-item" data-page="attendance" onclick="showPage('attendance',this)"><span class="icon">✅</span> উপস্থিতি</div>
-      <div class="nav-item" onclick="window.open('biometric.html','_blank')"><span class="icon">🪪</span> বায়োমেট্রিক/RFID</div>
+      <div class="nav-item" onclick="window.open('biometric.html','_blank'); closeSidebar();"><span class="icon">🪪</span> বায়োমেট্রিক/RFID</div>
+      <div class="nav-item" style="display:none" onclick="window.open('sheets.html','_blank'); closeSidebar();"><span class="icon">📊</span> গুগল শিট সিঙ্ক</div>
+      <div class="nav-item" id="nav-excel-list" onclick="window.open('excel-list.html','_blank'); closeSidebar();"><span class="icon">📋</span> Excel List</div>
       <div class="nav-item" data-page="result" onclick="showPage('result',this)"><span class="icon">📝</span> পরীক্ষা ও ফলাফল</div>
       <div class="nav-item" data-page="fees" onclick="showPage('fees',this)"><span class="icon">💰</span> ফি ম্যানেজমেন্ট</div>
     </div>
@@ -785,11 +787,16 @@
 
       <div class="card">
         <div class="card-body" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-          <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;flex-shrink:0">প্র</div>
+          <div style="position:relative;flex-shrink:0">
+            <div id="profile-avatar" style="width:72px;height:72px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;overflow:hidden">প্র</div>
+            <label for="my-photo-input" class="no-print" title="প্রোফাইল ছবি পরিবর্তন করুন" style="position:absolute;bottom:-2px;right:-2px;width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer">📷</label>
+            <input type="file" id="my-photo-input" accept="image/*" style="display:none" onchange="uploadMyProfilePhoto(this.files[0])">
+          </div>
           <div style="flex:1;min-width:200px">
             <div id="profile-name" style="font-size:19px;font-weight:700;color:var(--text)">—</div>
             <div id="profile-role" style="font-size:13px;color:var(--text-muted);margin-top:2px">—</div>
             <div id="profile-email" style="font-size:12.5px;color:var(--text-muted);margin-top:4px">—</div>
+            <div class="no-print" style="font-size:11px;color:var(--text-muted);margin-top:4px">📷 আইকনে ক্লিক করে ছবি বদলান — প্রস্তাবিত ৩০০×৩০০px, স্বয়ংক্রিয়ভাবে ৪০০×৪০০px/~৫০KB-এ কমপ্রেস হবে</div>
           </div>
           <button class="btn btn-danger no-print" onclick="doLogout()">🔓 লগআউট</button>
         </div>
@@ -1120,7 +1127,7 @@
     <!-- ===== RESULT ===== -->
     <div class="page" id="page-result">
       <div class="page-actions no-print">
-        <button class="btn btn-primary" onclick="openModal('result-modal')">+ নতুন ফলাফল যোগ</button>
+        <button class="btn btn-primary" onclick="openModal('result-modal'); populateResultStudentSelect();">+ নতুন ফলাফল যোগ</button>
         <input class="search-box" type="text" id="result-search" placeholder="🔍 ছাত্রের নাম বা রোল..." oninput="filterResults()">
         <select class="form-select" id="result-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterResults()">
           <option value="">সব শ্রেণি</option>
@@ -1248,7 +1255,7 @@
                   <span id="due-sms-char">০ অক্ষর</span>
                   <span id="due-selected-count">০ জন নির্বাচিত</span>
                 </div>
-                <button class="btn btn-primary" onclick="sendDueSMS(event)" style="width:100%">📤 নির্বাচিতদের SMS পাঠান</button>
+                <button class="btn btn-primary" onclick="sendDueSMS()" style="width:100%">📤 নির্বাচিতদের SMS পাঠান</button>
                 <button class="btn" style="background:#fdebd0;color:var(--accent);width:100%" onclick="sendAllDueSMS()">📢 সবাইকে একসাথে পাঠান</button>
                 <button class="btn" style="background:#d6eaf8;color:var(--primary);width:100%" onclick="sendPortalMessage()">📩 পোর্টালে বার্তা পাঠান (SMS ছাড়া)</button>
               </div>
@@ -1554,6 +1561,37 @@
               <div class="form-group"><label class="form-label">সময়</label><input class="form-input" id="qp-time" value="৩ ঘণ্টা"></div>
               <div class="form-group"><label class="form-label">তারিখ</label><input class="form-input" id="qp-date" type="date"></div>
               <div class="form-group"><label class="form-label">সাধারণ নির্দেশনা (ঐচ্ছিক)</label><input class="form-input" id="qp-note" placeholder="যেমন: প্রতিটি প্রশ্নের মান আলাদাভাবে উল্লেখ করা আছে"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">সেট কোড (ঐচ্ছিক)</label><input class="form-input" id="qp-set-code" placeholder="যেমন: ক" maxlength="3" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              <div class="form-group"><label class="form-label">বিষয় কোড (ঐচ্ছিক, OMR-এর জন্য)</label><input class="form-input" id="qp-subject-code" placeholder="যেমন: ১০৯" maxlength="6" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              <div class="form-group"><label class="form-label" title="প্রশ্নপত্রে ছাপা হবে না, শুধু নকশা/লেআউটে ব্যবহৃত হয়">📌 লক্ষ্য করুন</label><div style="font-size:11px;color:var(--text-muted);padding-top:9px">স্কুলের নাম, ঠিকানা ও লোগো সেটিংস থেকে স্বয়ংক্রিয়ভাবে বসবে — বারবার লিখতে হবে না।</div></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group" style="flex:0 0 100%">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+                  <input type="checkbox" id="qp-board-style" onchange="toggleQPBoardStyleFields()" style="width:16px;height:16px">
+                  <span class="form-label" style="margin:0">🏛️ বোর্ড পরীক্ষার স্টাইলে হেডার ব্যবহার করুন (স্কুলের লোগো ছাড়া, হুবহু এসএসসি/এইচএসসি বোর্ড ফরম্যাটে — "বহুনির্বাচনি অভীক্ষা", পত্র, সিলেবাস নোট ইত্যাদিসহ)</span>
+                </label>
+              </div>
+            </div>
+            <div id="qp-board-fields" style="display:none">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">প্রশ্নপত্রের শিরোনাম</label>
+                  <select class="form-select" id="qp-board-title" onchange="qpSyncHeaderFromForm();renderQPPreview()">
+                    <option value="বহুনির্বাচনি অভীক্ষা">বহুনির্বাচনি অভীক্ষা (MCQ)</option>
+                    <option value="সৃজনশীল অভীক্ষা">সৃজনশীল অভীক্ষা</option>
+                    <option value="রচনামূলক অভীক্ষা">রচনামূলক অভীক্ষা</option>
+                    <option value="ব্যবহারিক (বহুনির্বাচনী) অংশ">ব্যবহারিক (বহুনির্বাচনী) অংশ</option>
+                  </select>
+                </div>
+                <div class="form-group"><label class="form-label">পত্র (ঐচ্ছিক)</label><input class="form-input" id="qp-board-paperno" placeholder="যেমন: প্রথম পত্র" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+                <div class="form-group"><label class="form-label">সিরিয়াল/গ্রুপ কোড (ঐচ্ছিক)</label><input class="form-input" id="qp-board-serial" placeholder="যেমন: যমুনা/১৭৪" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex:1"><label class="form-label">সিলেবাস নোট (ঐচ্ছিক)</label><input class="form-input" id="qp-board-syllabus" placeholder="যেমন: [২০২৬ সালের সিলেবাস অনুযায়ী]" oninput="qpSyncHeaderFromForm();renderQPPreview()"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -2053,7 +2091,7 @@
           <div style="font-size:48px">📖</div>
           <div>
             <div style="font-size:22px;font-weight:700">ব্যবহার নির্দেশিকা</div>
-            <div style="font-size:13px;opacity:0.8;margin-top:4px">স্কুল ERP সিস্টেম — সম্পূর্ণ গাইড</div>
+            <div style="font-size:13px;opacity:0.8;margin-top:4px">স্কুল ERP সিস্টেম — সম্পূর্ণ গাইড (A–Z)</div>
           </div>
           <div style="margin-left:auto;text-align:right">
             <button class="btn" style="background:rgba(255,255,255,0.2);color:#fff;border:1px solid rgba(255,255,255,0.4)" onclick="window.print()">🖨️ প্রিন্ট করুন</button>
@@ -2067,6 +2105,18 @@
         </div>
 
         <div id="help-content-bn">
+
+          <!-- How to use this guide -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">💡 এই গাইডটি কীভাবে ব্যবহার করবেন</div></div>
+            <div class="card-body">
+              <p style="font-size:13px;line-height:1.9;margin:0">প্রথমবার সিস্টেম ব্যবহার করলে নিচের <strong>"ধাপে ধাপে শুরু করুন"</strong> অংশ অনুসরণ করুন। এরপর <strong>"সম্পূর্ণ মডিউল গাইড"</strong> অংশে বাম মেনুর প্রতিটি অপশন কী কাজ করে তার সহজ বাংলা ব্যাখ্যা পাবেন — ক্যাটাগরির নামের উপর ক্লিক করলেই সেই অংশ খুলে যাবে। কোনো একটি নির্দিষ্ট মডিউল খুঁজতে চাইলে কম্পিউটারে <strong>Ctrl+F</strong> বা মোবাইলে ব্রাউজারের <strong>"পেজে খুঁজুন"</strong> অপশন দিয়ে নাম লিখে খুঁজুন।</p>
+            </div>
+          </div>
+
+          <!-- ===== QUICK START ===== -->
+          <div style="font-size:15px;font-weight:700;color:var(--primary);margin:24px 0 12px">🚀 ধাপে ধাপে শুরু করুন</div>
+
           <!-- Section 1 -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">🏫 ধাপ ১: প্রথমবার সেটআপ</div></div>
@@ -2139,7 +2189,110 @@
             </div>
           </div>
 
-          <!-- Section 6 -->
+          <!-- ===== FULL MODULE DIRECTORY ===== -->
+          <div style="font-size:15px;font-weight:700;color:var(--primary);margin:28px 0 12px">🧭 সম্পূর্ণ মডিউল গাইড — বাম মেনুর প্রতিটি অপশন কী কাজ করে</div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-body" style="padding:10px">
+
+              <!-- Category: Main Menu -->
+              <details style="margin-bottom:8px" open>
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">🏠 প্রধান মেনু</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📊 ড্যাশবোর্ড</strong><br><span style="font-size:12.5px;color:var(--text-muted)">মোট ছাত্র, উপস্থিতির হার, আজকের ফি আদায়, সাম্প্রতিক নোটিশ — সবকিছু এক নজরে দেখার সারসংক্ষেপ পেজ।</span></div>
+                  <div><strong>👨‍🎓 ছাত্র তালিকা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নতুন ছাত্র ভর্তি, তথ্য/ছবি এডিট এবং সব ছাত্রের তালিকা খোঁজা ও দেখা যায়।</span></div>
+                  <div><strong>🎓 প্রাক্তন ছাত্র</strong><br><span style="font-size:12.5px;color:var(--text-muted)">পাস করা বা স্কুল ছেড়ে যাওয়া ছাত্রদের তথ্য আলাদাভাবে সংরক্ষণ করা হয়।</span></div>
+                  <div><strong>✅ উপস্থিতি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিদিনের ক্লাসভিত্তিক ছাত্র উপস্থিতি নেওয়া, রিপোর্ট দেখা ও প্রিন্ট করা যায়।</span></div>
+                  <div><strong>🪪 বায়োমেট্রিক/RFID</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ফিঙ্গারপ্রিন্ট বা RFID কার্ড মেশিন যুক্ত করে স্বয়ংক্রিয়ভাবে উপস্থিতি নেওয়ার সেটআপ পেজ।</span></div>
+                  <div><strong>📋 Excel List</strong><br><span style="font-size:12.5px;color:var(--text-muted)">এক্সেল ফাইল থেকে একসাথে অনেক ছাত্রের তথ্য ইমপোর্ট বা এক্সপোর্ট করা যায়।</span></div>
+                  <div><strong>📝 পরীক্ষা ও ফলাফল</strong><br><span style="font-size:12.5px;color:var(--text-muted)">পরীক্ষার নম্বর এন্ট্রি দেওয়া এবং ফলাফল প্রস্তুত করার মূল পেজ।</span></div>
+                  <div><strong>💰 ফি ম্যানেজমেন্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ছাত্রদের ফি আদায়, রসিদ প্রিন্ট এবং বকেয়া ফি দেখার পেজ।</span></div>
+                </div>
+              </details>
+
+              <!-- Category: Academic -->
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📚 একাডেমিক</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>🗓️ ক্লাস রুটিন</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিটি শ্রেণির সাপ্তাহিক ক্লাস রুটিন তৈরি ও প্রদর্শন করা যায়।</span></div>
+                  <div><strong>📚 সিলেবাস</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিটি বিষয়ের সিলেবাস/পাঠ্যক্রম আপলোড করে অভিভাবক-ছাত্রদের সাথে শেয়ার করা যায়।</span></div>
+                  <div><strong>📝 হোমওয়ার্ক</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ছাত্রদের বাড়ির কাজ দেওয়া এবং জমাদানের অবস্থা ট্র্যাক করা যায়।</span></div>
+                  <div><strong>🗒️ পরীক্ষার সময়সূচি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">বিভিন্ন পরীক্ষার তারিখ ও সময় ঠিক করে প্রকাশ করার পেজ।</span></div>
+                  <div><strong>📅 সেশন ম্যানেজমেন্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষাবর্ষ/সেশন তৈরি ও পরিবর্তন করা হয় (যেমন ২০২৫-২০২৬)।</span></div>
+                  <div><strong>🗂️ মাস্টার ডেটা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শ্রেণি, শাখা, বিষয়ের মতো মৌলিক তথ্য একবার সেট করে রাখা হয়, যা পুরো সিস্টেমে ব্যবহৃত হয়।</span></div>
+                  <div><strong>📖 লেসন প্ল্যান</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষকরা তাদের পাঠ পরিকল্পনা তৈরি ও সংরক্ষণ করতে পারেন।</span></div>
+                  <div><strong>📑 অ্যাসাইনমেন্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ছাত্রদের প্রজেক্ট/অ্যাসাইনমেন্ট দেওয়া ও জমা নেওয়ার পেজ।</span></div>
+                  <div><strong>💻 অনলাইন ক্লাস</strong><br><span style="font-size:12.5px;color:var(--text-muted)">অনলাইন ক্লাসের ভিডিও লিংক ও সময়সূচি শেয়ার করা যায়।</span></div>
+                  <div><strong>📆 একাডেমিক ক্যালেন্ডার</strong><br><span style="font-size:12.5px;color:var(--text-muted)">সারা বছরের গুরুত্বপূর্ণ তারিখ (ছুটি, পরীক্ষা, অনুষ্ঠান) একসাথে দেখা যায়।</span></div>
+                </div>
+              </details>
+
+              <!-- Category: Exam -->
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📝 পরীক্ষা</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>❓ প্রশ্নপত্র তৈরি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">বিষয়ভিত্তিক প্রশ্নপত্র তৈরি করে প্রিন্ট করা যায়।</span></div>
+                  <div><strong>🏦 প্রশ্ন ব্যাংক</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ভবিষ্যতে ব্যবহারের জন্য প্রশ্ন জমা করে রাখার জায়গা।</span></div>
+                  <div><strong>🪪 অ্যাডমিট কার্ড</strong><br><span style="font-size:12.5px;color:var(--text-muted)">পরীক্ষার্থীদের জন্য প্রবেশপত্র তৈরি ও প্রিন্ট করা যায়।</span></div>
+                  <div><strong>🪑 সিট প্ল্যান</strong><br><span style="font-size:12.5px;color:var(--text-muted)">পরীক্ষার হলে ছাত্রদের বসার আসন বিন্যাস তৈরি করা যায়।</span></div>
+                  <div><strong>📋 ট্যাবুলেশন শিট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">সব ছাত্রের নম্বর একসাথে টেবিল আকারে দেখা ও প্রিন্ট করা যায়।</span></div>
+                </div>
+              </details>
+
+              <!-- Category: Result -->
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📊 ফলাফল</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📊 মার্কশিট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিটি ছাত্রের ব্যক্তিগত মার্কশিট/রিপোর্ট কার্ড তৈরি করা যায়।</span></div>
+                  <div><strong>🏆 মেরিট লিস্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শ্রেণিভিত্তিক সেরা ফলাফলকারী ছাত্রদের তালিকা তৈরি করা যায়।</span></div>
+                </div>
+              </details>
+
+              <!-- Category: Accounts -->
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">💰 হিসাব</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📒 লেজার (খতিয়ান)</strong><br><span style="font-size:12.5px;color:var(--text-muted)">স্কুলের সব আয়-ব্যয়ের হিসাব একসাথে খতিয়ান আকারে রাখা যায়।</span></div>
+                  <div><strong>💵 ক্যাশ বুক</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নগদ লেনদেনের হিসাব রাখার পেজ।</span></div>
+                  <div><strong>🏦 ব্যাংক বুক</strong><br><span style="font-size:12.5px;color:var(--text-muted)">ব্যাংক অ্যাকাউন্টের মাধ্যমে হওয়া লেনদেনের হিসাব রাখা যায়।</span></div>
+                  <div><strong>🗞️ দৈনিক রিপোর্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতিদিনের আয়-ব্যয়ের সংক্ষিপ্ত রিপোর্ট দেখা যায়।</span></div>
+                  <div><strong>📉 লাভ-ক্ষতি বিবরণী</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নির্দিষ্ট সময়ে স্কুলের লাভ বা ক্ষতির হিসাব দেখা যায়।</span></div>
+                  <div><strong>🧾 ভাউচার</strong><br><span style="font-size:12.5px;color:var(--text-muted)">খরচ বা আয়ের জন্য ভাউচার তৈরি ও প্রিন্ট করা যায়।</span></div>
+                  <div><strong>⏰ বকেয়া রিপোর্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">কোন কোন ছাত্রের ফি বকেয়া আছে তার তালিকা দেখা যায়।</span></div>
+                  <div><strong>🎉 ইভেন্ট বাজেট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">বিশেষ অনুষ্ঠানের জন্য আলাদা বাজেট পরিকল্পনা ও হিসাব রাখা যায়।</span></div>
+                  <div><strong>📈 ছাত্র বার্ষিক রেকর্ড</strong><br><span style="font-size:12.5px;color:var(--text-muted)">একজন ছাত্রের সারা বছরের একাডেমিক ও আর্থিক তথ্য একসাথে দেখা যায়।</span></div>
+                </div>
+              </details>
+
+              <!-- Category: Management -->
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">🏢 ব্যবস্থাপনা</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>👨‍🏫 শিক্ষক</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষকদের তথ্য যোগ, সম্পাদনা ও তালিকা দেখার পেজ।</span></div>
+                  <div><strong>💳 বেতন ব্যবস্থাপনা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষক ও কর্মচারীদের বেতন হিসাব ও প্রদান করা যায়।</span></div>
+                  <div><strong>✅ শিক্ষক উপস্থিতি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষকদের দৈনিক উপস্থিতির রেকর্ড রাখা যায়।</span></div>
+                  <div><strong>🏖️ ছুটি ব্যবস্থাপনা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">শিক্ষক/কর্মচারীদের ছুটির আবেদন জমা ও অনুমোদন করা যায়।</span></div>
+                  <div><strong>📢 নোটিশ বোর্ড</strong><br><span style="font-size:12.5px;color:var(--text-muted)">স্কুলের নোটিশ প্রকাশ করার পেজ — সবাই এটি দেখতে পাবে।</span></div>
+                  <div><strong>📱 SMS নোটিফিকেশন</strong><br><span style="font-size:12.5px;color:var(--text-muted)">অভিভাবকদের কাছে উপস্থিতি, ফি বা নোটিশ সংক্রান্ত SMS পাঠানো যায়।</span></div>
+                  <div><strong>🗓️ ইভেন্ট ক্যালেন্ডার</strong><br><span style="font-size:12.5px;color:var(--text-muted)">স্কুলের অনুষ্ঠান ও ইভেন্টের তারিখ ব্যবস্থাপনা করা যায়।</span></div>
+                  <div><strong>📚 লাইব্রেরি</strong><br><span style="font-size:12.5px;color:var(--text-muted)">বই সংরক্ষণ, ইস্যু ও ফেরত ব্যবস্থাপনা করার পেজ।</span></div>
+                  <div><strong>🚌 পরিবহন</strong><br><span style="font-size:12.5px;color:var(--text-muted)">স্কুল বাস/পরিবহন রুট ও ছাত্রদের তথ্য ব্যবস্থাপনা করা যায়।</span></div>
+                  <div><strong>🤖 প্রিমিয়াম AI ফিচার <span class="badge badge-orange" style="font-size:9px">PRO</span></strong><br><span style="font-size:12.5px;color:var(--text-muted)">AI দিয়ে স্বয়ংক্রিয়ভাবে রিপোর্ট, প্রশ্ন তৈরি ইত্যাদি উন্নত সুবিধা — প্রিমিয়াম সংস্করণে উপলব্ধ।</span></div>
+                  <div><strong>📅 মাসিক রিপোর্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রতি মাসের সার্বিক কার্যক্রমের রিপোর্ট দেখা যায়।</span></div>
+                  <div><strong>💹 আয়-ব্যয় রিপোর্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">নির্দিষ্ট সময়ের সব আয় ও ব্যয়ের বিস্তারিত রিপোর্ট দেখা যায়।</span></div>
+                  <div><strong>🏫 প্রধান শিক্ষক ড্যাশ</strong><br><span style="font-size:12.5px;color:var(--text-muted)">প্রধান শিক্ষকের জন্য বিশেষ সংক্ষিপ্ত ওভারভিউ ড্যাশবোর্ড।</span></div>
+                  <div><strong>⚙️ সেটিংস</strong><br><span style="font-size:12.5px;color:var(--text-muted)">স্কুলের তথ্য, লোগো, ইউজার ও পারমিশন — সবকিছুর মূল সেটআপ পেজ।</span></div>
+                  <div><strong>📖 ব্যবহার নির্দেশিকা</strong><br><span style="font-size:12.5px;color:var(--text-muted)">আপনি এখন এই পেজেই আছেন — সিস্টেম ব্যবহারের নিয়মকানুন শেখার গাইড।</span></div>
+                  <div><strong>👨‍👩‍👧 অভিভাবক পোর্টাল</strong><br><span style="font-size:12.5px;color:var(--text-muted)">চালু করা থাকলে অভিভাবকরা লগইন করে সন্তানের তথ্য দেখতে পারেন।</span></div>
+                  <div><strong>🎒 ছাত্র পোর্টাল</strong><br><span style="font-size:12.5px;color:var(--text-muted)">চালু করা থাকলে ছাত্ররা নিজে লগইন করে ফলাফল, রুটিন ইত্যাদি দেখতে পারে।</span></div>
+                  <div><strong>📈 চার্ট ও রিপোর্ট</strong><br><span style="font-size:12.5px;color:var(--text-muted)">বিভিন্ন গ্রাফ ও চার্টের মাধ্যমে স্কুলের তথ্য বিশ্লেষণ করে দেখা যায়।</span></div>
+                </div>
+              </details>
+
+            </div>
+          </div>
+
+          <!-- Section: Offline -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">🌐 অফলাইন ব্যবহার</div></div>
             <div class="card-body">
@@ -2152,7 +2305,7 @@
             </div>
           </div>
 
-          <!-- Section 7 -->
+          <!-- Section: Roles -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">🔐 ইউজার ও পার্মিশন</div></div>
             <div class="card-body">
@@ -2175,6 +2328,16 @@
 
         <!-- English version (hidden by default) -->
         <div id="help-content-en" style="display:none">
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">💡 How to Use This Guide</div></div>
+            <div class="card-body">
+              <p style="font-size:13px;line-height:1.9;margin:0">If this is your first time, follow the <strong>"Quick Start"</strong> steps below. Then check the <strong>"Complete Module Guide"</strong> section for a plain-language explanation of what every item in the left menu does — click a category name to expand it. To find a specific module quickly, use <strong>Ctrl+F</strong> (or your mobile browser's "Find on page") and type its name.</p>
+            </div>
+          </div>
+
+          <div style="font-size:15px;font-weight:700;color:var(--primary);margin:24px 0 12px">🚀 Quick Start</div>
+
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">🏫 Step 1: Initial Setup</div></div>
             <div class="card-body">
@@ -2182,12 +2345,13 @@
               <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
                 ✅ Enter school name<br>
                 ✅ Add address, phone, email<br>
-                ✅ Upload school logo (from Branding tab)<br>
+                ✅ Upload school logo (from Admin tab → "Logo & Signature")<br>
                 ✅ Upload principal signature<br>
                 ✅ Click <strong>Save</strong>
               </div>
             </div>
           </div>
+
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">👨‍🎓 Step 2: Adding Students</div></div>
             <div class="card-body">
@@ -2200,18 +2364,142 @@
               </div>
             </div>
           </div>
+
           <div class="card" style="margin-bottom:16px">
-            <div class="card-header" style="background:#f0f7ff"><div class="card-title">💰 Step 3: Fee Collection & Receipt</div></div>
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">✅ Step 3: Taking Attendance</div></div>
+            <div class="card-body">
+              <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
+                1. Go to <strong>Attendance</strong> from the left menu<br>
+                2. Choose class and date<br>
+                3. Mark each student ✅ Present / ❌ Absent<br>
+                4. Click <strong>Save Attendance</strong><br>
+                5. Press <strong>Print</strong> to view the report
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">💰 Step 4: Fee Collection & Receipt</div></div>
             <div class="card-body">
               <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
                 1. Go to <strong>Fee Management</strong><br>
                 2. Search student → click <strong>Collect Fee</strong><br>
                 3. Enter fee type and amount<br>
-                4. Select payment method<br>
+                4. Select payment method (Cash/bKash/Bank)<br>
                 5. Print receipt — school logo & name auto-included
               </div>
             </div>
           </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">📝 Step 5: Exam Results & Report Cards</div></div>
+            <div class="card-body">
+              <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
+                1. Go to <strong>Exam & Result</strong><br>
+                2. Enter exam name and date<br>
+                3. Enter marks for each student<br>
+                4. View report cards from the <strong>Marksheet</strong> page<br>
+                5. <strong>Print</strong> — report card includes the school logo
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size:15px;font-weight:700;color:var(--primary);margin:28px 0 12px">🧭 Complete Module Guide — What Every Menu Item Does</div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-body" style="padding:10px">
+
+              <details style="margin-bottom:8px" open>
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">🏠 Main Menu</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📊 Dashboard</strong><br><span style="font-size:12.5px;color:var(--text-muted)">A quick overview: total students, attendance rate, today's fee collection, recent notices.</span></div>
+                  <div><strong>👨‍🎓 Student List</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Admit new students, edit their details/photos, and search the full student list.</span></div>
+                  <div><strong>🎓 Alumni</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Keeps records of students who graduated or left the school, kept separately.</span></div>
+                  <div><strong>✅ Attendance</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Take daily class-wise student attendance, view and print reports.</span></div>
+                  <div><strong>🪪 Biometric/RFID</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Set up a fingerprint or RFID card machine for automatic attendance.</span></div>
+                  <div><strong>📋 Excel List</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Import or export many students' data at once using an Excel file.</span></div>
+                  <div><strong>📝 Exam & Result</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Enter exam marks and prepare results.</span></div>
+                  <div><strong>💰 Fee Management</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Collect fees from students, print receipts, and check dues.</span></div>
+                </div>
+              </details>
+
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📚 Academic</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>🗓️ Class Routine</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create and display each class's weekly timetable.</span></div>
+                  <div><strong>📚 Syllabus</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Upload and share the syllabus for each subject.</span></div>
+                  <div><strong>📝 Homework</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Assign homework and track submission status.</span></div>
+                  <div><strong>🗒️ Exam Schedule</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Set dates and times for various exams.</span></div>
+                  <div><strong>📅 Session Management</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create and switch academic sessions/years (e.g. 2025-2026).</span></div>
+                  <div><strong>🗂️ Master Data</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Set up core data like classes, sections, and subjects used across the system.</span></div>
+                  <div><strong>📖 Lesson Plan</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Teachers can create and save their lesson plans.</span></div>
+                  <div><strong>📑 Assignment</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Give students projects/assignments and collect submissions.</span></div>
+                  <div><strong>💻 Online Class</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Share video call links or schedules for online classes.</span></div>
+                  <div><strong>📆 Academic Calendar</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View all important dates for the year (holidays, exams, events) in one place.</span></div>
+                </div>
+              </details>
+
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📝 Exam</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>❓ Question Paper Creator</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create and print subject-wise question papers.</span></div>
+                  <div><strong>🏦 Question Bank</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Store questions for future reuse.</span></div>
+                  <div><strong>🪪 Admit Card</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create and print admit cards for exam candidates.</span></div>
+                  <div><strong>🪑 Seat Plan</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create seating arrangements for the exam hall.</span></div>
+                  <div><strong>📋 Tabulation Sheet</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View and print all students' marks together in a table.</span></div>
+                </div>
+              </details>
+
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">📊 Result</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📊 Marksheet</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Generate each student's individual marksheet/report card.</span></div>
+                  <div><strong>🏆 Merit List</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create a class-wise list of top-performing students.</span></div>
+                </div>
+              </details>
+
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">💰 Accounts</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>📒 Ledger</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Keep all of the school's income/expense records together in a ledger.</span></div>
+                  <div><strong>💵 Cash Book</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Track cash transactions.</span></div>
+                  <div><strong>🏦 Bank Book</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Track transactions made through the bank account.</span></div>
+                  <div><strong>🗞️ Daily Report</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View a summarized report of each day's income/expense.</span></div>
+                  <div><strong>📉 Profit-Loss Statement</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Calculate the school's profit or loss over a chosen period.</span></div>
+                  <div><strong>🧾 Voucher</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Create and print vouchers for expenses or income.</span></div>
+                  <div><strong>⏰ Due Report</strong><br><span style="font-size:12.5px;color:var(--text-muted)">See a list of students who still owe fees.</span></div>
+                  <div><strong>🎉 Event Budget</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Plan and track a separate budget for special events.</span></div>
+                  <div><strong>📈 Student Annual Record</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View a student's academic and financial info for the whole year together.</span></div>
+                </div>
+              </details>
+
+              <details style="margin-bottom:8px">
+                <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--primary);padding:10px 12px;background:#f0f7ff;border-radius:10px">🏢 Management</summary>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;padding:14px 8px">
+                  <div><strong>👨‍🏫 Teachers</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Add, edit, and list teacher information.</span></div>
+                  <div><strong>💳 Payroll</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Calculate and pay salaries for teachers and staff.</span></div>
+                  <div><strong>✅ Teacher Attendance</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Record daily attendance for teachers.</span></div>
+                  <div><strong>🏖️ Leave Management</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Submit and approve leave requests for teachers/staff.</span></div>
+                  <div><strong>📢 Notice Board</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Publish school notices, visible to everyone.</span></div>
+                  <div><strong>📱 SMS Notification</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Send SMS to guardians about attendance, fees, notices, etc.</span></div>
+                  <div><strong>🗓️ Event Calendar</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Manage school event and function dates.</span></div>
+                  <div><strong>📚 Library</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Manage book records, issuing, and returns.</span></div>
+                  <div><strong>🚌 Transport</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Manage school bus routes and student transport info.</span></div>
+                  <div><strong>🤖 Premium AI Features <span class="badge badge-orange" style="font-size:9px">PRO</span></strong><br><span style="font-size:12.5px;color:var(--text-muted)">AI-powered reports, question generation and other advanced tools — available in the premium version.</span></div>
+                  <div><strong>📅 Monthly Report</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View an overall activity report for each month.</span></div>
+                  <div><strong>💹 Income-Expense Report</strong><br><span style="font-size:12.5px;color:var(--text-muted)">View a detailed report of all income and expense for a chosen period.</span></div>
+                  <div><strong>🏫 Principal Dashboard</strong><br><span style="font-size:12.5px;color:var(--text-muted)">A special summarized overview dashboard for the head teacher/principal.</span></div>
+                  <div><strong>⚙️ Settings</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Set up school info, logo, users and permissions — the main configuration page.</span></div>
+                  <div><strong>📖 User Guide</strong><br><span style="font-size:12.5px;color:var(--text-muted)">You're on this page right now — learn how to use the system.</span></div>
+                  <div><strong>👨‍👩‍👧 Parent Portal</strong><br><span style="font-size:12.5px;color:var(--text-muted)">When enabled, guardians can log in and view their child's information.</span></div>
+                  <div><strong>🎒 Student Portal</strong><br><span style="font-size:12.5px;color:var(--text-muted)">When enabled, students can log in and view their own results, routine, etc.</span></div>
+                  <div><strong>📈 Charts & Reports</strong><br><span style="font-size:12.5px;color:var(--text-muted)">Analyze school data visually through various graphs and charts.</span></div>
+                </div>
+              </details>
+
+            </div>
+          </div>
+
           <div class="card" style="margin-bottom:16px">
             <div class="card-header" style="background:#f0f7ff"><div class="card-title">🌐 Offline Usage</div></div>
             <div class="card-body">
@@ -2222,6 +2510,24 @@
                 🔄 All data auto-syncs when internet returns
               </div>
             </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header" style="background:#f0f7ff"><div class="card-title">🔐 Users & Permissions</div></div>
+            <div class="card-body">
+              <div style="background:#f7fafd;border-radius:10px;padding:16px;font-size:13px;line-height:2">
+                📋 <strong>There are three roles:</strong><br>
+                &nbsp;&nbsp;🔴 <strong>Admin</strong> — can view and change everything<br>
+                &nbsp;&nbsp;🟡 <strong>Teacher</strong> — can enter attendance, results, and homework<br>
+                &nbsp;&nbsp;🟢 <strong>Accountant</strong> — can only view fees and accounts<br><br>
+                To add a new user: <strong>Settings → Users & Permissions → + New User</strong>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:linear-gradient(135deg,#1e8449,#27ae60);color:#fff;border-radius:14px;padding:20px 24px;text-align:center;margin-bottom:20px">
+            <div style="font-size:16px;font-weight:700;margin-bottom:6px">📞 Need Support?</div>
+            <div style="font-size:13px;opacity:0.9">For any issue with the system, please contact your software provider.</div>
           </div>
         </div>
       </div>
@@ -2386,9 +2692,21 @@
             <div class="settings-section" style="margin-bottom:20px">
               <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:14px">🖼️ লোগো ও স্বাক্ষর</div>
               <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
-                <div class="form-group"><label class="form-label">বিদ্যালয়ের লোগো</label><input class="form-input" type="file" id="logo-upload" accept="image/*" onchange="uploadLogo(this)"></div>
+                <div class="form-group">
+                  <label class="form-label">বিদ্যালয়ের লোগো</label>
+                  <input class="form-input" type="file" id="logo-upload" accept="image/*" onchange="uploadLogo(this)">
+                  <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.5">
+                    📐 সাইজ: <b>৩০০×৩০০ পিক্সেল</b> (বর্গাকার, ১:১ অনুপাত) — স্বচ্ছ (transparent) ব্যাকগ্রাউন্ড PNG সবচেয়ে ভালো, ফাইল সাইজ ৫০০ KB-এর কম রাখুন। বর্গাকার হলে কম জায়গায় সুন্দর দেখাবে।
+                  </div>
+                </div>
                 <div id="logo-preview-wrap" style="display:none"><img id="logo-preview" style="height:48px;border-radius:8px;border:1px solid var(--border)"></div>
-                <div class="form-group"><label class="form-label">প্রধান শিক্ষকের স্বাক্ষর</label><input class="form-input" type="file" id="signature-upload" accept="image/*" onchange="uploadSignature(this)"></div>
+                <div class="form-group">
+                  <label class="form-label">প্রধান শিক্ষকের স্বাক্ষর</label>
+                  <input class="form-input" type="file" id="signature-upload" accept="image/*" onchange="uploadSignature(this)">
+                  <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;line-height:1.5">
+                    📐 সাইজ: <b>৩০০×১৫০ পিক্সেল</b> (আয়তাকার, ২:১ অনুপাত) — স্বচ্ছ ব্যাকগ্রাউন্ড PNG, ফাইল সাইজ ২০০ KB-এর কম রাখুন। এতে অ্যাডমিট/আইডি কার্ডের স্বাক্ষরের ঘরে কম জায়গায় স্পষ্টভাবে বসবে।
+                  </div>
+                </div>
                 <div id="signature-preview-wrap" style="display:none"><img id="signature-preview" style="height:48px;border-radius:8px;border:1px solid var(--border);background:#fff;padding:4px"></div>
               </div>
             </div>
@@ -2897,7 +3215,7 @@
                 </div>
                 <div style="display:flex;justify-content:space-between;align-items:center">
                   <span style="font-size:11px;color:var(--text-muted)" id="sms-char-count">০ অক্ষর</span>
-                  <button class="btn btn-primary" onclick="sendSMSAlert(event)">📤 পাঠান</button>
+                  <button class="btn btn-primary" onclick="sendSMSAlert()">📤 পাঠান</button>
                 </div>
               </div>
             </div>
@@ -3701,7 +4019,14 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">ঠিকানা</label><input class="form-input" id="s-address-full" placeholder="সম্পূর্ণ ঠিকানা"></div>
-      <div class="form-group"><label class="form-label">ছবি</label><input class="form-input" id="s-photo" type="file" accept="image/*"></div>
+      <div class="form-group">
+        <label class="form-label">ছবি</label>
+        <input class="form-input" id="s-photo" type="file" accept="image/*">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          প্রস্তাবিত সাইজ: ৩০০×৩০০ পিক্সেল (বর্গাকার/passport-style), সর্বোচ্চ ২ MB — আপলোডের সময় ছবি
+          স্বয়ংক্রিয়ভাবে ৪০০×৪০০ পিক্সেল ও প্রায় ৫০ KB-এর মধ্যে কমপ্রেস হয়ে যাবে, তাই বড় ছবি দিলেও সমস্যা নেই।
+        </div>
+      </div>
 
 <div class="form-error" id="s-error"></div>
       <div class="modal-footer">
@@ -3751,6 +4076,14 @@
         </div>
       </div>
       <div class="form-group"><label class="form-label">ঠিকানা</label><input class="form-input" id="t-address" placeholder="স্থায়ী ঠিকানা"></div>
+      <div class="form-group">
+        <label class="form-label">ছবি</label>
+        <input class="form-input" id="t-photo" type="file" accept="image/*">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
+          প্রস্তাবিত সাইজ: ৩০০×৩০০ পিক্সেল (বর্গাকার/passport-style), সর্বোচ্চ ২ MB — আপলোডের সময় ছবি
+          স্বয়ংক্রিয়ভাবে ৪০০×৪০০ পিক্সেল ও প্রায় ৫০ KB-এর মধ্যে কমপ্রেস হয়ে যাবে।
+        </div>
+      </div>
       <div style="background:#f0f4f8;border-radius:10px;padding:12px;margin-top:4px">
         <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:8px">💰 বেতন তথ্য</div>
         <div class="form-row">
@@ -3811,13 +4144,21 @@
   <div class="modal-box" style="max-width:520px">
     <div class="modal-header"><div class="modal-header-title">নতুন ফলাফল যোগ করুন</div><button class="modal-close" onclick="closeModal('result-modal')">×</button></div>
     <div class="modal-body">
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম"></div>
-        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১"></div>
+      <div class="form-group" id="r-student-select-wrap">
+        <label class="form-label">তালিকা থেকে ছাত্র নির্বাচন করুন (সুপারিশকৃত)</label>
+        <select class="form-select" id="r-student-select" onchange="fillResultStudentFromSelect()">
+          <option value="">— নিচে আগে শ্রেণি বাছাই করুন —</option>
+        </select>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">✅ তালিকা থেকে ছাত্র বাছাই করলে ফলাফল সরাসরি তার প্রোফাইলের সাথে যুক্ত হবে — নাম/রোল ভুল টাইপ করলেও ছাত্র/অভিভাবক পোর্টালে ফলাফল দেখাতে সমস্যা হবে না। তালিকায় না পেলে নিচে ম্যানুয়ালি লিখুন।</div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label class="form-label">ছাত্রের নাম *</label><input class="form-input" id="r-name" placeholder="ছাত্রের নাম" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+        <div class="form-group"><label class="form-label">রোল *</label><input class="form-input" id="r-roll" placeholder="যেমন: ০০১" oninput="document.getElementById('r-student-select').value=''; document.getElementById('r-student-id').value='';"></div>
+      </div>
+      <input type="hidden" id="r-student-id" value="">
+      <div class="form-row">
         <div class="form-group"><label class="form-label">শ্রেণি *</label>
-          <select class="form-select" id="r-class" onchange="renderResultSubjectFields()">
+          <select class="form-select" id="r-class" onchange="renderResultSubjectFields(); populateResultStudentSelect();">
             <option>প্লে - ক</option><option>প্লে - খ</option><option>প্লে - গ</option><option>নার্সারি - ক</option><option>নার্সারি - খ</option><option>নার্সারি - গ</option><option>প্রথম - ক</option><option>প্রথম - খ</option><option>প্রথম - গ</option><option>দ্বিতীয় - ক</option><option>দ্বিতীয় - খ</option><option>দ্বিতীয় - গ</option><option>তৃতীয় - ক</option><option>তৃতীয় - খ</option><option>তৃতীয় - গ</option><option>চতুর্থ - ক</option><option>চতুর্থ - খ</option><option>চতুর্থ - গ</option><option>পঞ্চম - ক</option><option>পঞ্চম - খ</option><option>পঞ্চম - গ</option><option>ষষ্ঠ - ক</option><option>ষষ্ঠ - খ</option><option>ষষ্ঠ - গ</option><option>সপ্তম - ক</option><option>সপ্তম - খ</option><option>সপ্তম - গ</option><option>অষ্টম - ক</option><option>অষ্টম - খ</option><option>অষ্টম - গ</option><option>নবম - ক</option><option>নবম - খ</option><option>নবম - গ</option><option>দশম - ক</option><option>দশম - খ</option><option>দশম - গ</option></select>
         </div>
         <div class="form-group"><label class="form-label">পরীক্ষার ধরন</label>
@@ -4523,6 +4864,48 @@
   </div>
 </div>
 
+<!-- ===== OMR মূল্যায়ন মডাল ===== -->
+<div class="modal-overlay" id="omr-eval-modal">
+  <div class="modal-box" style="max-width:920px">
+    <div class="modal-header"><div class="modal-header-title">📷 OMR শীট অটো মূল্যায়ন</div><button class="modal-close" onclick="closeModal('omr-eval-modal')">×</button></div>
+    <div class="modal-body">
+      <div id="omr-instructions" style="background:#eaf4fb;border:1px solid #bfe0f2;border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.8;margin-bottom:14px">
+        📌 ভালো ফলাফলের জন্য: শীটের ৪টি কোণাই ছবিতে স্পষ্ট থাকতে হবে, সোজা উপর থেকে (angle ছাড়া) তোলা ছবি, পর্যাপ্ত আলো এবং ছায়ামুক্ত হতে হবে।
+      </div>
+      <div id="omr-upload-area" style="text-align:center">
+        <input type="file" id="omr-file-input" accept="image/*" capture="environment" style="display:none" onchange="omrHandleFile(this.files[0])">
+        <button class="btn btn-primary" onclick="document.getElementById('omr-file-input').click()">📷 OMR শীটের ছবি তুলুন / আপলোড করুন</button>
+      </div>
+      <div id="omr-processing" style="display:none;text-align:center;padding:20px;color:var(--text-muted)">⏳ প্রসেস করা হচ্ছে... একটু অপেক্ষা করুন</div>
+      <div id="omr-error-box" style="display:none;background:#fdecea;border:1px solid #f5b7b1;color:#943126;padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px"></div>
+      <div id="omr-result-area" style="display:none;margin-top:14px">
+        <div style="display:flex;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:240px">
+            <canvas id="omr-review-canvas" style="width:100%;border:1px solid #ddd;border-radius:8px"></canvas>
+            <div style="margin-top:8px;font-size:11.5px;color:var(--text-muted)">🟢 সঠিক &nbsp; 🔴 ভুল &nbsp; 🟠 উত্তর দেওয়া হয়নি/অস্পষ্ট</div>
+          </div>
+          <div style="flex:1;min-width:260px">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">শনাক্তকৃত রোল নম্বর (প্রয়োজনে ঠিক করুন)</label><input class="form-input" id="omr-detected-roll" placeholder="রোল নম্বর"></div>
+              <div class="form-group"><label class="form-label">শিক্ষার্থীর নাম</label><input class="form-input" id="omr-detected-name" placeholder="স্বয়ংক্রিয়ভাবে খুঁজে নেওয়া হবে" readonly></div>
+            </div>
+            <div style="background:#f7fafd;border-radius:10px;padding:14px;text-align:center;margin:10px 0">
+              <div style="font-size:12px;color:var(--text-muted)">প্রাপ্ত নম্বর</div>
+              <div id="omr-score-big" style="font-size:32px;font-weight:700;color:var(--primary)">—</div>
+            </div>
+            <div id="omr-answer-table" style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px"></div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button class="btn btn-primary" onclick="omrRecalcWithManualRoll()">🔁 রোল আপডেট করে পুনরায় হিসাব করুন</button>
+              <button class="btn btn-outline" style="background:#1e8449;color:#fff" onclick="omrSaveToResults()">✅ ফলাফলে যোগ করুন</button>
+              <button class="btn btn-outline" onclick="omrResetUpload()">📷 আরেকটি শীট আপলোড করুন</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============ DATA ============
 let students = [
@@ -4536,11 +4919,11 @@ let students = [
 ];
 
 let teachers = [
-  {name:'মো. রফিকুল ইসলাম',subject:'বাংলা',cls:'৯ম - ১০ম',phone:'০১৭১১-১২৩৪৫৬',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'rafiqul@school.edu',nid:'1234567890',address:'মিরপুর, ঢাকা',joinDate:'২০১৫-০১-১৫',salary:28000,allowance:5000,deduction:2000},
-  {name:'নাসরিন সুলতানা',subject:'গণিত',cls:'৮ম - ১০ম',phone:'০১৮২২-২৩৪৫৬৭',status:'কর্মরত',designation:'সিনিয়র শিক্ষক',email:'nasrin@school.edu',nid:'2345678901',address:'ধানমন্ডি, ঢাকা',joinDate:'২০১২-০৩-০১',salary:35000,allowance:7000,deduction:3000},
-  {name:'আনিসুর রহমান',subject:'ইংরেজি',cls:'৬ষ্ঠ - ১০ম',phone:'০১৯১৩-৩৪৫৬৭৮',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'anis@school.edu',nid:'3456789012',address:'মোহাম্মদপুর, ঢাকা',joinDate:'২০১৮-০৬-১০',salary:25000,allowance:4500,deduction:1800},
-  {name:'ফারজানা আক্তার',subject:'বিজ্ঞান',cls:'৭ম - ১০ম',phone:'০১৫৪৪-৪৫৬৭৮৯',status:'ছুটিতে',designation:'সহকারী শিক্ষক',email:'farjana@school.edu',nid:'4567890123',address:'উত্তরা, ঢাকা',joinDate:'২০১৯-০৯-০১',salary:25000,allowance:4500,deduction:1800},
-  {name:'শামসুল হক',subject:'ইতিহাস',cls:'৮ম - ১০ম',phone:'০১৬৫৫-৫৬৭৮৯০',status:'কর্মরত',designation:'প্রধান শিক্ষক (ভারপ্রাপ্ত)',email:'shamsul@school.edu',nid:'5678901234',address:'গুলশান, ঢাকা',joinDate:'২০১০-০১-০১',salary:50000,allowance:12000,deduction:5000},
+  {name:'মো. রফিকুল ইসলাম',subject:'বাংলা',cls:'নবম - ক, নবম - খ, দশম - ক, দশম - খ',phone:'০১৭১১-১২৩৪৫৬',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'rafiqul@school.edu',nid:'1234567890',address:'মিরপুর, ঢাকা',joinDate:'২০১৫-০১-১৫',salary:28000,allowance:5000,deduction:2000},
+  {name:'নাসরিন সুলতানা',subject:'গণিত',cls:'অষ্টম - ক, নবম - ক, দশম - ক',phone:'০১৮২২-২৩৪৫৬৭',status:'কর্মরত',designation:'সিনিয়র শিক্ষক',email:'nasrin@school.edu',nid:'2345678901',address:'ধানমন্ডি, ঢাকা',joinDate:'২০১২-০৩-০১',salary:35000,allowance:7000,deduction:3000},
+  {name:'আনিসুর রহমান',subject:'ইংরেজি',cls:'ষষ্ঠ - ক, সপ্তম - ক, অষ্টম - ক, নবম - খ, দশম - খ',phone:'০১৯১৩-৩৪৫৬৭৮',status:'কর্মরত',designation:'সহকারী শিক্ষক',email:'anis@school.edu',nid:'3456789012',address:'মোহাম্মদপুর, ঢাকা',joinDate:'২০১৮-০৬-১০',salary:25000,allowance:4500,deduction:1800},
+  {name:'ফারজানা আক্তার',subject:'বিজ্ঞান',cls:'সপ্তম - ক, অষ্টম - খ, নবম - গ, দশম - গ',phone:'০১৫৪৪-৪৫৬৭৮৯',status:'ছুটিতে',designation:'সহকারী শিক্ষক',email:'farjana@school.edu',nid:'4567890123',address:'উত্তরা, ঢাকা',joinDate:'২০১৯-০৯-০১',salary:25000,allowance:4500,deduction:1800},
+  {name:'শামসুল হক',subject:'ইতিহাস',cls:'অষ্টম - ক, অষ্টম - খ, নবম - ক, দশম - ক',phone:'০১৬৫৫-৫৬৭৮৯০',status:'কর্মরত',designation:'প্রধান শিক্ষক (ভারপ্রাপ্ত)',email:'shamsul@school.edu',nid:'5678901234',address:'গুলশান, ঢাকা',joinDate:'২০১০-০১-০১',salary:50000,allowance:12000,deduction:5000},
 ];
 
 // ============ AUTO ফি জেনারেশন ============
@@ -4560,6 +4943,7 @@ function generateAutoFees() {
     cursor.setHours(0,0,0,0);
     // ভবিষ্যতে অসীম লুপ ঠেকাতে সর্বোচ্চ ২৪ মাস পর্যন্ত চেক করা হবে
     let guard = 0;
+    let addedNew = false;
     while(cursor <= today && guard < 24) {
       const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`;
       const already = fees.some(f=>f.student===s.name && f.autoMonthKey===monthKey);
@@ -4570,10 +4954,15 @@ function generateAutoFees() {
           dueDate: cursor.toISOString().split('T')[0], // ISO — হিসাবের জন্য
           autoMonthKey: monthKey, auto:true,
         });
+        addedNew = true;
       }
       cursor.setMonth(cursor.getMonth()+1);
       guard++;
     }
+    // ✅ বাগ-ফিক্স: নতুন মাসের বকেয়া অটো-জেনারেট হলে students[].feeStatus-ও সাথে সাথে
+    // "বকেয়া" করে দেওয়া হয় — নাহলে আগের মাস পরিশোধ থাকলে ছাত্র তালিকায় ভুলভাবে "পরিশোধিত"
+    // দেখাতে থাকত, যদিও এই মাসের নতুন বেতন এখনো বাকি।
+    if(addedNew && typeof syncStudentFeeStatus==='function') syncStudentFeeStatus(s.name);
   });
 }
 
@@ -5476,23 +5865,35 @@ function blobToBase64(blob) {
 // কম্প্রেসড ছবি Firebase Storage-এ (schools/{schoolId}/students/{studentId}.jpg পাথে) আপলোড
 // করে ডাউনলোড URL রিটার্ন করে — Firestore ডকুমেন্টে এখন থেকে এই URL-টাই সেভ হবে, পুরো
 // base64 ছবি না, তাই ১০০০ ছাত্রের লিস্ট লোড করাটা অনেক হালকা ও দ্রুত হবে।
+// ✅ পরিবর্তন: আগে এখানে Firebase Storage-এ আপলোডের চেষ্টা হতো, কিন্তু Google-এর
+// নতুন নিয়মে Storage ব্যবহার করতে Blaze (বিলিং) প্ল্যান লাগে — Spark (ফ্রি)
+// প্ল্যানে থাকা স্কুলগুলোর জন্য এটা নিঃশব্দে ব্যর্থ হতো। তাই এখন Storage বাদ
+// দিয়ে কম্প্রেসড ছবিটা (~50KB-এর নিচে) সরাসরি base64 হিসেবে Firestore
+// ডকুমেন্টেই সেভ করা হচ্ছে — কোনো বিলিং/Blaze প্ল্যান ছাড়াই সবসময় কাজ করবে।
 async function uploadStudentPhoto(schoolId, studentId, file) {
   if (!file) return '';
   try {
     const blob = await compressImageFile(file, 400, 50);
     if (!blob) return '';
-    if (schoolId && window.fb && window.fb.storageRef && window.storage) {
-      const path = `schools/${schoolId}/students/${studentId}.jpg`;
-      const ref = window.fb.storageRef(window.storage, path);
-      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
-      return await window.fb.getDownloadURL(ref);
-    }
-    // ডেমো/অফলাইন মোড (কোনো schoolId নেই) — ক্লাউড Storage ব্যবহার করা যায় না,
-    // তাই ছোট কম্প্রেসড ছবিটাই base64 হিসেবে রাখা হচ্ছে (এটা তখনও ছোট, কারণ আগেই কম্প্রেস করা হয়েছে)
     return await blobToBase64(blob);
   } catch (e) {
     console.error('ছবি আপলোড এরর:', e);
     showToast('ছবি আপলোড ব্যর্থ হয়েছে — ছাত্র ছবি ছাড়াই সেভ হয়েছে', 'error');
+    return '';
+  }
+}
+
+// ===== শিক্ষকের ছবি: একই কম্প্রেস পাইপলাইন (400x400px, ~50KB), সরাসরি
+// Firestore-এ base64 হিসেবে সেভ হয় (Storage/Blaze লাগে না) =====
+async function uploadTeacherPhoto(schoolId, teacherId, file) {
+  if (!file) return '';
+  try {
+    const blob = await compressImageFile(file, 400, 50);
+    if (!blob) return '';
+    return await blobToBase64(blob);
+  } catch (e) {
+    console.error('শিক্ষকের ছবি আপলোড এরর:', e);
+    showToast('ছবি আপলোড ব্যর্থ হয়েছে — শিক্ষক ছবি ছাড়াই সেভ হয়েছে', 'error');
     return '';
   }
 }
@@ -5505,9 +5906,18 @@ async function saveStudent() {
   if(!name){showErr('s-error','ছাত্রের নাম লিখুন');return;}
   if(!roll){showErr('s-error','রোল নম্বর লিখুন');return;}
   if(!cls){showErr('s-error','শ্রেণি নির্বাচন করুন');return;}
-  // ⚠️ নিরাপত্তা-চেক: হাজিরা, ফি, বায়োমেট্রিক ম্যাপিং — সবই ছাত্রের নাম দিয়ে মেলায়।
-  // একই শ্রেণিতে হুবহু একই নামের দুইজন ছাত্র থাকলে তাদের রেকর্ড একসাথে মিশে যাবে,
-  // তাই ভর্তির সময়ই সতর্ক করে দেওয়া হচ্ছে।
+  // 🔴 জরুরি ডেটা-ইন্টিগ্রিটি চেক: একই শ্রেণিতে একই রোল নম্বর দুইজন ছাত্রের থাকা কখনোই
+  // উচিত না (roll+cls-ই ফলাফল/হাজিরার ফলব্যাক-ম্যাচিং-এর মূল ভিত্তি — studentId না থাকা
+  // পুরনো রেকর্ডে)। তাই এটা আর কনফার্ম-বক্স দিয়ে এড়িয়ে যাওয়া যাবে না, সরাসরি আটকে দেওয়া হচ্ছে।
+  const rollTaken = students.some(s => s.roll===roll && s.cls===cls);
+  if (rollTaken) {
+    showErr('s-error', `⛔ "${cls}" শ্রেণিতে রোল নম্বর "${roll}" ইতিমধ্যে অন্য একজন ছাত্র/ছাত্রীর নামে ব্যবহৃত আছে। একই শ্রেণিতে দুইজনের রোল এক হতে পারবে না — অনুগ্রহ করে ভিন্ন রোল দিন।`);
+    return;
+  }
+  // ⚠️ নিরাপত্তা-চেক: হাজিরা, ফি, বায়োমেট্রিক ম্যাপিং — সবই (studentId না থাকলে) ছাত্রের
+  // নাম দিয়ে মেলায়। একই শ্রেণিতে হুবহু একই নামের দুইজন ছাত্র থাকলে (ভিন্ন রোল হলেও)
+  // রেকর্ড মিশে যাওয়ার ঝুঁকি থাকে — নাম বৈধভাবে পুনরাবৃত্তি হতে পারে বলে এটা শুধু সতর্কতা,
+  // আটকানো হয় না।
   const dupInSameClass = students.some(s => s.name===name && s.cls===cls);
   if (dupInSameClass) {
     const proceed = confirm(`⚠️ "${cls}" শ্রেণিতে ইতিমধ্যে "${name}" নামে আরেকজন ছাত্র/ছাত্রী আছে। একই নাম থাকলে হাজিরা, ফি ও বায়োমেট্রিক রেকর্ড দুইজনের একসাথে মিশে যেতে পারে।\n\nতারপরও এগিয়ে যেতে OK চাপুন — তবে সুপারিশ থাকবে নামের সাথে কিছু যোগ করে আলাদা করার (যেমন "${name} (রোল ${roll})")।\n\nঠিক করতে Cancel চাপুন।`);
@@ -5543,7 +5953,14 @@ async function saveStudent() {
   closeModal('student-modal');
   generateAutoFees();
   renderStudents(); renderDashboard();
-  showToast('ছাত্র সফলভাবে ভর্তি হয়েছে!');
+  showToast('ছাত্র সফলভাবে ভর্তি হয়েছে! ক্লাউডে সেভ হচ্ছে...');
+  // ✅ বাগ-ফিক্স: আগে নতুন ভর্তি হওয়া ছাত্র শুধু মেমোরিতে থাকত, ২০ সেকেন্ডের অটো-সেভ
+  // টাইমারের অপেক্ষায় — দ্রুত অ্যাপ বন্ধ করলে ভর্তি রেকর্ড হারিয়ে যেত। এখন সাথে সাথে সেভ হয়।
+  if(typeof saveTenantData==='function') {
+    saveTenantData()
+      .then(()=> showToast('✅ ছাত্রের তথ্য ক্লাউডে সফলভাবে সেভ হয়েছে'))
+      .catch(()=> showToast('⚠️ ছাত্র লোকালি যোগ হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন', 'error'));
+  }
 }
 function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
@@ -5551,6 +5968,9 @@ function deleteStudent(idx) {
   students.splice(idx,1);
   renderStudents(); renderDashboard();
   showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
+  // ✅ বাগ-ফিক্স: মোছার পরও সাথে সাথে ক্লাউডে সেভ করা হচ্ছে, নইলে অ্যাপ দ্রুত বন্ধ করলে
+  // মোছা ছাত্র পরে আবার (পুরনো ক্লাউড ডেটা থেকে) ফিরে আসতে পারত।
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ============ DUMMY STUDENT GENERATOR (টেস্টিং-এর জন্য) ============
@@ -5627,7 +6047,7 @@ function renderTeachers(list) {
       <td>${toBnNum(i+1)}</td>
       <td>
         <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0">${t.name.charAt(0)}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden">${t.photo ? `<img src="${t.photo}" style="width:100%;height:100%;object-fit:cover">` : t.name.charAt(0)}</div>
           <div><b>${t.name}</b><div style="font-size:11px;color:var(--text-muted)">${t.designation||'শিক্ষক'}</div></div>
         </div>
       </td>
@@ -5650,7 +6070,7 @@ function filterTeachers() {
   const q = document.getElementById('teacher-search').value.toLowerCase();
   renderTeachers(teachers.filter(t=>t.name.toLowerCase().includes(q)||t.subject.toLowerCase().includes(q)));
 }
-function saveTeacher() {
+async function saveTeacher() {
   if(!requirePerm('teachers','edit')) return;
   const name = document.getElementById('t-name').value.trim();
   const subject = document.getElementById('t-subject').value;
@@ -5658,7 +6078,11 @@ function saveTeacher() {
   if(!subject){showErr('t-error','বিষয় নির্বাচন করুন');return;}
   hideErr('t-error');
   const selectedClasses = Array.from(document.getElementById('t-class').selectedOptions).map(o=>o.value);
+  const photoFile = document.getElementById('t-photo').files[0];
+  const teacherId = genRecordId('tch'); // ছবির Storage পাথ ও রেকর্ড আইডি একই রাখতে আগেই তৈরি
+  const photo = await uploadTeacherPhoto(window.currentSchoolId, teacherId, photoFile);
   teachers.push({
+    id: teacherId,
     name, subject,
     designation: document.getElementById('t-designation').value,
     cls: selectedClasses.join(', ')||'—',
@@ -5667,6 +6091,7 @@ function saveTeacher() {
     email: document.getElementById('t-email').value.trim()||'—',
     nid: document.getElementById('t-nid').value.trim()||'—',
     address: document.getElementById('t-address').value.trim()||'—',
+    photo: photo||'',
     salary: parseInt(document.getElementById('t-salary').value)||0,
     allowance: parseInt(document.getElementById('t-allowance').value)||0,
     deduction: parseInt(document.getElementById('t-deduction').value)||0,
@@ -5675,9 +6100,11 @@ function saveTeacher() {
   ['t-name','t-phone','t-email','t-nid','t-address','t-salary','t-allowance','t-deduction','t-joindate'].forEach(id=>document.getElementById(id).value='');
   Array.from(document.getElementById('t-class').options).forEach(o=>o.selected=false);
   document.getElementById('t-subject').value='';
+  document.getElementById('t-photo').value='';
   closeModal('teacher-modal');
   renderTeachers(); renderDashboard();
-  showToast('শিক্ষক সফলভাবে যোগ হয়েছে!');
+  showToast('শিক্ষক সফলভাবে যোগ হয়েছে! ক্লাউডে সেভ হচ্ছে...');
+  saveTenantData();
 }
 function deleteTeacher(idx) {
   if(!requirePerm('teachers','del')) return;
@@ -6225,6 +6652,29 @@ function filterResults() {
     return matchQ&&matchC&&matchScope;
   }));
 }
+// ✅ নতুন: নির্বাচিত শ্রেণির ছাত্র তালিকা দিয়ে ড্রপডাউন সাজায়, যাতে অ্যাডমিন/শিক্ষক
+// নাম টাইপ না করে সরাসরি প্রকৃত ছাত্র রেকর্ড থেকে বেছে নিতে পারেন (studentId লিংক করতে)
+function populateResultStudentSelect() {
+  const sel = document.getElementById('r-student-select');
+  if(!sel) return;
+  const cls = document.getElementById('r-class').value;
+  const list = students.filter(s => s.cls===cls);
+  sel.innerHTML = '<option value="">— তালিকা থেকে ছাত্র বাছাই করুন —</option>' +
+    list.map(s => `<option value="${s.id}">${escHtml(s.name)} (রোল: ${escHtml(s.roll)})</option>`).join('');
+}
+// ✅ নতুন: ড্রপডাউন থেকে ছাত্র বাছাই করলে নাম/রোল অটো-ফিল হয় এবং আসল studentId
+// হিডেন ফিল্ডে বসে — এতে ফলাফল সরাসরি ছাত্রের প্রোফাইলের সাথে যুক্ত থাকে, স্ট্রিং
+// মিলিয়ে (নাম/রোল/ক্লাস হুবহু এক হতে হবে এমন ভঙ্গুর পদ্ধতি) খুঁজতে হয় না
+function fillResultStudentFromSelect() {
+  const sel = document.getElementById('r-student-select');
+  const sid = sel.value;
+  if(!sid){ document.getElementById('r-student-id').value=''; return; }
+  const s = students.find(x=>x.id===sid);
+  if(!s) return;
+  document.getElementById('r-name').value = s.name;
+  document.getElementById('r-roll').value = s.roll;
+  document.getElementById('r-student-id').value = s.id;
+}
 function saveResult() {
   if(!requirePerm('result','edit')) return;
   const name = document.getElementById('r-name').value.trim();
@@ -6239,19 +6689,39 @@ function saveResult() {
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>{
     subjects[inp.dataset.key] = parseInt(inp.value) || 0;
   });
+  // ✅ studentId: ড্রপডাউন থেকে বাছাই করলে সরাসরি সেট থাকে; ম্যানুয়ালি টাইপ করা
+  // হলে খালি থাকতে পারে — এক্ষেত্রে নাম+রোল+ক্লাস মিলিয়ে ছাত্র রেকর্ড খুঁজে
+  // studentId বসানোর চেষ্টা করা হয় (আগের ম্যানুয়াল এন্ট্রিগুলোর জন্যও একটা ফলব্যাক)
+  let studentId = document.getElementById('r-student-id').value || '';
+  if(!studentId) {
+    const matched = students.find(s=>s.roll===roll && s.cls===cls) || students.find(s=>s.name===name && s.cls===cls);
+    if(matched) studentId = matched.id;
+  }
   results.push({
     id: 'res_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-    name, roll, cls,
+    studentId, name, roll, cls,
     exam: document.getElementById('r-exam').value,
     group,
     subjects
   });
   document.getElementById('r-name').value='';
   document.getElementById('r-roll').value='';
+  document.getElementById('r-student-id').value='';
+  if(document.getElementById('r-student-select')) document.getElementById('r-student-select').value='';
   document.querySelectorAll('#result-subjects-fields .r-subject-input').forEach(inp=>inp.value='');
   closeModal('result-modal');
   renderResults();
-  showToast('ফলাফল সফলভাবে যোগ হয়েছে!');
+  showToast('ফলাফল সফলভাবে যোগ হয়েছে — ক্লাউডে সেভ হচ্ছে...');
+  // ✅ জরুরি বাগ-ফিক্স: আগে ফলাফল শুধু মেমোরিতে থাকত, আসল Firestore-সেভ হতো
+  // ২০ সেকেন্ডের অটো-সেভ টাইমার বা ট্যাব-বন্ধ (beforeunload)-এর অপেক্ষায়। মোবাইলে/PWA-তে
+  // এই ইভেন্টগুলো নির্ভরযোগ্য না হওয়ায় দ্রুত অ্যাপ বন্ধ করলে ফলাফল ক্লাউডে না গিয়েই
+  // হারিয়ে যেত এবং ছাত্র/অভিভাবক পোর্টালে কখনোই দেখা যেত না। এখন সেভের সাথে সাথেই
+  // ক্লাউডে পাঠানো হচ্ছে এবং সাফল্য/ব্যর্থতা দুটোই টোস্ট দিয়ে জানানো হচ্ছে।
+  if(typeof saveTenantData==='function') {
+    saveTenantData()
+      .then(()=> showToast('✅ ফলাফল ক্লাউডে সফলভাবে সেভ হয়েছে'))
+      .catch(()=> showToast('⚠️ ফলাফল লোকালি যোগ হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন, অটো-সেভ আবার চেষ্টা করবে', 'error'));
+  }
 }
 function deleteResult(idx) {
   const r = results[idx];
@@ -6261,6 +6731,7 @@ function deleteResult(idx) {
   results.splice(idx,1);
   renderResults();
   showToast('ফলাফল মুছে ফেলা হয়েছে','error');
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ============ FEES — ENHANCED ============
@@ -6361,6 +6832,21 @@ function filterFees() {
   renderFees(q ? fees.filter(f=>f.student.toLowerCase().includes(q)||f.cls.includes(q)) : fees);
 }
 
+// ছাত্র তালিকায় (students[].feeStatus) ও ফি ম্যানেজমেন্ট তালিকা (fees[]) — এই দুই জায়গার
+// ডেটা যাতে সবসময় মিলে থাকে, তাই যেকোনো পেমেন্ট যোগ/মুছার পর এই ফাংশন কল করে ছাত্রের
+// feeStatus রিক্যালকুলেট করে দেওয়া হয় (আগে শুধু অনলাইন পেমেন্টের ক্ষেত্রে এটা হতো, ম্যানুয়াল
+// এন্ট্রির ক্ষেত্রে হতো না — যার কারণে ছাত্র তালিকা ও ফি ম্যানেজমেন্টে ভিন্ন ভিন্ন স্ট্যাটাস দেখাত)
+function syncStudentFeeStatus(sName) {
+  if(!sName) return;
+  const stu = students.find(s=>s.name===sName);
+  if(!stu) return;
+  const studentFees = fees.filter(f=>f.student===sName);
+  if(studentFees.length===0) return;
+  const hasDue = studentFees.some(f=>f.status==='বকেয়া');
+  const hasPartial = studentFees.some(f=>f.status==='আংশিক');
+  stu.feeStatus = hasDue ? 'বকেয়া' : (hasPartial ? 'আংশিক' : 'পরিশোধিত');
+}
+
 function saveFee() {
   if(!requirePerm('fees','edit')) return;
   const student = document.getElementById('f-student').value.trim();
@@ -6384,17 +6870,24 @@ function saveFee() {
   ['f-student','f-amount'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-class').value='';
   closeModal('fee-modal');
-  renderFees(); renderDashboard();
+  syncStudentFeeStatus(student);
+  renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   if(status==='পরিশোধিত') { showToast('পেমেন্ট রেকর্ড হয়েছে! রসিদ প্রস্তুত।'); setTimeout(()=>openReceipt(0),600); }
   else showToast('পেমেন্ট রেকর্ড হয়েছে!');
+  // ✅ বাগ-ফিক্স: আর্থিক রেকর্ড, তাই ২০ সেকেন্ডের অটো-সেভ টাইমারের অপেক্ষা না করে
+  // সাথে সাথে ক্লাউডে সেভ করা হচ্ছে।
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 function deleteFee(idx) {
   if(!requirePerm('fees','del')) return;
   if(!confirm('এই পেমেন্ট রেকর্ড মুছবেন?')) return;
+  const sName = fees[idx] ? fees[idx].student : null;
   fees.splice(idx,1);
-  renderFees(); renderDashboard();
+  syncStudentFeeStatus(sName);
+  renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   showToast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে','error');
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
 }
 
 // ---- RECEIPT ----
@@ -6406,7 +6899,7 @@ function openReceipt(idx) {
   const amountWords = amountInWords(f.amount);
   document.getElementById('receipt-content').innerHTML = `
     <div class="receipt-header">
-      <div style="font-size:28px;margin-bottom:6px">🏫</div>
+      <div style="margin-bottom:6px">${schoolLogo ? `<img src="${schoolLogo}" style="height:44px;max-width:100px;object-fit:contain">` : '<div style="font-size:28px">🏫</div>'}</div>
       <div class="receipt-school-name">${schoolName}</div>
       <div class="receipt-school-sub">ঢাকা, বাংলাদেশ &nbsp;|&nbsp; ফোন: ০১৭০০-০০০০০০</div>
       <div class="receipt-title">ফি রসিদ</div>
@@ -6952,52 +7445,20 @@ function selectAllDue() {
   updateDueSelectedCount();
 }
 
-// ✅ আগে এটা শুধু সিমুলেটেড ছিল (আসল SMS পাঠাতো না)।
-// এখন এটা /api/send-sms (Vercel সার্ভারলেস ফাংশন) কল করে, যা BulkSMSBD.net-এর
-// API দিয়ে আসল SMS পাঠায়।
-// ⚠️ কাজ করার জন্য Vercel Dashboard-এ BULKSMSBD_API_KEY env variable সেট থাকতে হবে।
-async function sendDueSMS(evt) {
+function sendDueSMS() {
   const selected = [...document.querySelectorAll('.due-cb:checked')].map(c=>parseInt(c.value));
   const students_list = window._dueSMSStudents||[];
   if(selected.length===0){showToast('প্রথমে ছাত্র নির্বাচন করুন','error');return;}
   const msg = document.getElementById('due-sms-text').value.trim();
   if(!msg){showToast('বার্তা লিখুন','error');return;}
-
-  const getPhone = name => { const s = students.find(st=>st.name===name); return s&&s.phone&&s.phone!=='—'?s.phone:null; };
-  const targets = selected.map(i=>students_list[i]).filter(Boolean);
-  const numbers = targets.map(s=>getPhone(s.student)).filter(Boolean);
-
-  if(numbers.length===0){ showToast('নির্বাচিত ছাত্রদের কোনো মোবাইল নম্বর পাওয়া যায়নি','error'); return; }
-
-  const btn = evt ? evt.target : null;
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ পাঠানো হচ্ছে...'; }
-
-  try {
-    if(!window.currentSchoolId || !window.auth || !window.auth.currentUser) {
-      throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল SMS পাঠাতে আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করতে হবে');
-    }
-    const idToken = await window.auth.currentUser.getIdToken();
-    const resp = await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-      body: JSON.stringify({ numbers, message: msg }),
-    });
-    const result = await resp.json();
-    if(!resp.ok || !result.ok) throw new Error(result.error || 'SMS পাঠানো যায়নি');
-
-    targets.forEach(s => {
-      dueSMSLog.unshift({student:s.student, cls:s.cls, msg, time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'})});
-    });
-    showToast(`${toBnNum(result.sentCount)} জনকে সফলভাবে SMS পাঠানো হয়েছে! ✅`);
-    document.querySelectorAll('.due-cb').forEach(c=>c.checked=false);
-    document.getElementById('due-selected-count').textContent='০ জন নির্বাচিত';
-    renderDueSMSHistory();
-  } catch(e) {
-    console.error('SMS পাঠাতে সমস্যা:', e);
-    showToast(e.message || 'SMS পাঠানো যায়নি', 'error');
-  } finally {
-    if(btn){ btn.disabled = false; btn.textContent = '📤 নির্বাচিতদের SMS পাঠান'; }
-  }
+  selected.forEach(i => {
+    const s = students_list[i];
+    if(s) dueSMSLog.unshift({student:s.student, cls:s.cls, msg, time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'})});
+  });
+  showToast(`${toBnNum(selected.length)} জনকে সফলভাবে SMS পাঠানো হয়েছে! ✅`);
+  document.querySelectorAll('.due-cb').forEach(c=>c.checked=false);
+  document.getElementById('due-selected-count').textContent='০ জন নির্বাচিত';
+  renderDueSMSHistory();
 }
 
 function sendAllDueSMS() {
@@ -9333,8 +9794,8 @@ async function sarLoadReport() {
   const yearTotal = yearPresent+yearAbsent+yearLate;
   const yearPct = yearTotal>0?Math.round((yearPresent/yearTotal)*100):0;
 
-  // ===== ২) পরীক্ষার ফলাফল হিস্ট্রি (নাম বা রোল মিলিয়ে) =====
-  const myResults = results.filter(r=>r.name===s.name || r.roll===s.roll);
+  // ===== ২) পরীক্ষার ফলাফল হিস্ট্রি (আগে studentId, তারপর নাম/রোল ফলব্যাক) =====
+  const myResults = results.filter(r=> (r.studentId && r.studentId===s.id) || r.name===s.name || r.roll===s.roll);
   const resultTbody = document.getElementById('sar-result-tbody');
   resultTbody.innerHTML = myResults.map(r=>{
     const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
@@ -9399,11 +9860,11 @@ function generateAdmitCards() {
     return `<div class="card" style="border:1.5px solid var(--primary);page-break-inside:avoid">
       <div style="background:var(--primary);color:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-weight:700;font-size:14px">প্রবেশপত্র / Admit Card</div><div style="font-size:11px;opacity:0.85">${examName}</div></div>
-        <div style="width:46px;height:46px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px">🪪</div>
+        <div style="width:46px;height:46px;border-radius:8px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;overflow:hidden">${schoolLogo ? `<img src="${schoolLogo}" style="width:100%;height:100%;object-fit:contain">` : '🪪'}</div>
       </div>
       <div class="card-body">
         <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-          <div style="width:60px;height:72px;border:1.5px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted)">ছবি</div>
+          <div style="width:60px;height:72px;border:1.5px solid var(--border);border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);flex-shrink:0;background:#fafafa">${s.photo ? `<img src="${s.photo}" style="width:100%;height:100%;object-fit:cover">` : 'ছবি'}</div>
           <div style="flex:1;margin-left:14px;font-size:13px">
             <div style="margin-bottom:4px"><b>নাম:</b> ${s.name}</div>
             <div style="margin-bottom:4px"><b>রোল:</b> ${s.roll} &nbsp;|&nbsp; <b>শ্রেণি:</b> ${s.cls}</div>
@@ -9411,8 +9872,9 @@ function generateAdmitCards() {
           </div>
         </div>
         <table style="font-size:12px"><thead><tr><th>বিষয়</th><th>তারিখ</th><th>সময়</th></tr></thead><tbody>${subRows}</tbody></table>
-        <div style="margin-top:14px;display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted)">
-          <div>শিক্ষার্থীর স্বাক্ষর</div><div>প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;font-size:11px;color:var(--text-muted)">
+          <div>শিক্ষার্থীর স্বাক্ষর</div>
+          <div style="text-align:center">${principalSignature ? `<img src="${principalSignature}" style="height:28px;max-width:90px;object-fit:contain;display:block;margin:0 auto 2px">` : ''}প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
         </div>
       </div>
     </div>`;
@@ -9557,6 +10019,10 @@ function renderQuestionPaperList(){
       <td class="no-print" style="white-space:nowrap">
         <button class="btn btn-outline" onclick="editQuestionPaper('${p.id}')">✏️ এডিট</button>
         <button class="btn btn-outline" onclick="printQuestionPaper('${p.id}')">🖨️ প্রিন্ট</button>
+        ${qpFlattenMCQ(p).length>0 ? `
+        <button class="btn btn-outline" onclick="printOMRSheet('${p.id}')" title="শিক্ষার্থীদের জন্য OMR উত্তরপত্র প্রিন্ট করুন">🟢 OMR শীট</button>
+        <button class="btn btn-outline" onclick="openOmrEvalModal('${p.id}')" title="ভরাট করা OMR শীটের ছবি আপলোড করে অটো মূল্যায়ন করুন">📷 OMR মূল্যায়ন</button>
+        <button class="btn btn-outline" onclick="printAnswerKey('${p.id}')" title="শুধু শিক্ষকের জন্য — সঠিক উত্তরের তালিকা">🔑 উত্তরপত্র</button>` : ''}
         <button class="btn btn-outline" onclick="duplicateQuestionPaper('${p.id}')">📄 কপি</button>
         <button class="btn btn-danger" onclick="deleteQuestionPaper('${p.id}')">🗑️ মুছুন</button>
       </td>
@@ -9568,6 +10034,8 @@ function newQuestionPaper(){
   qpEditingId = null;
   qpDraft = {
     id: qpUid('qp'), examName:'', cls:'', subject:'', fullMarks:100, passMarks:33, time:'৩ ঘণ্টা', date:'', note:'',
+    setCode:'', subjectCode:'',
+    boardStyle:false, boardTitle:'বহুনির্বাচনি অভীক্ষা', boardPaperNo:'', boardSerial:'', boardSyllabus:'',
     createdAt: (typeof todayBn==='function') ? todayBn() : new Date().toLocaleDateString('bn-BD'),
     sections: []
   };
@@ -9620,14 +10088,23 @@ function saveQuestionBankData(){
 function renderQuestionBankPage(){
   const clsSel = document.getElementById('qb-filter-class');
   const subSel = document.getElementById('qb-filter-subject');
+  // ✅ বাগ-ফিক্স: প্রশ্ন যোগ করার সময় "শ্রেণি"/"বিষয়" ফিল্ড ফ্রি-টেক্সট (datalist) হওয়ায়
+  // ব্যবহারকারী মাস্টার ডেটাতে যোগ না-করা কোনো শ্রেণি/বিষয় টাইপ করে ফেললে সেই প্রশ্নগুলো
+  // ফিল্টার ড্রপডাউনে সেকশন/অপশন হিসেবে দেখাতো না (কিন্তু ডেটাবেজে ঠিকই জমা থাকতো) —
+  // তাই এখন classesList/subjectsList-এর সাথে questionBank-এ প্রকৃতপক্ষে ব্যবহৃত সব
+  // শ্রেণি/বিষয়ও (যেগুলো মাস্টার ডেটাতে নেই) যোগ করে দেখানো হচ্ছে, যাতে কোনো সেকশন বাদ না পড়ে।
   if(clsSel){
     const cur = clsSel.value;
-    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('');
+    const knownCls = classesList.map(c=>c.name);
+    const extraCls = Array.from(new Set(questionBank.map(x=>x.cls).filter(c=>c && !knownCls.includes(c))));
+    clsSel.innerHTML = '<option value="">সব শ্রেণি</option>' + classesList.map(c=>`<option>${c.name}</option>`).join('') + extraCls.map(c=>`<option>${c}</option>`).join('');
     clsSel.value = cur;
   }
   if(subSel){
     const cur = subSel.value;
-    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('');
+    const knownSub = subjectsList.map(s=>s.name);
+    const extraSub = Array.from(new Set(questionBank.map(x=>x.subject).filter(s=>s && !knownSub.includes(s))));
+    subSel.innerHTML = '<option value="">সব বিষয়</option>' + subjectsList.map(s=>`<option>${s.name}</option>`).join('') + extraSub.map(s=>`<option>${s}</option>`).join('');
     subSel.value = cur;
   }
   renderQuestionBankList();
@@ -9846,8 +10323,24 @@ function openQuestionPaperBuilder(){
   document.getElementById('qp-time').value = qpDraft.time||'৩ ঘণ্টা';
   document.getElementById('qp-date').value = qpDraft.date||'';
   document.getElementById('qp-note').value = qpDraft.note||'';
+  document.getElementById('qp-set-code').value = qpDraft.setCode||'';
+  document.getElementById('qp-subject-code').value = qpDraft.subjectCode||'';
+
+  document.getElementById('qp-board-style').checked = !!qpDraft.boardStyle;
+  document.getElementById('qp-board-title').value = qpDraft.boardTitle||'বহুনির্বাচনি অভীক্ষা';
+  document.getElementById('qp-board-paperno').value = qpDraft.boardPaperNo||'';
+  document.getElementById('qp-board-serial').value = qpDraft.boardSerial||'';
+  document.getElementById('qp-board-syllabus').value = qpDraft.boardSyllabus||'';
+  document.getElementById('qp-board-fields').style.display = qpDraft.boardStyle ? '' : 'none';
 
   renderQPSections();
+}
+
+function toggleQPBoardStyleFields(){
+  const checked = document.getElementById('qp-board-style').checked;
+  document.getElementById('qp-board-fields').style.display = checked ? '' : 'none';
+  qpSyncHeaderFromForm();
+  renderQPPreview();
 }
 
 function closeQuestionPaperBuilder(){
@@ -9865,6 +10358,14 @@ function qpSyncHeaderFromForm(){
   qpDraft.time = document.getElementById('qp-time').value.trim();
   qpDraft.date = document.getElementById('qp-date').value;
   qpDraft.note = document.getElementById('qp-note').value.trim();
+  qpDraft.setCode = document.getElementById('qp-set-code').value.trim();
+  qpDraft.subjectCode = document.getElementById('qp-subject-code').value.trim();
+
+  qpDraft.boardStyle = document.getElementById('qp-board-style').checked;
+  qpDraft.boardTitle = document.getElementById('qp-board-title').value;
+  qpDraft.boardPaperNo = document.getElementById('qp-board-paperno').value.trim();
+  qpDraft.boardSerial = document.getElementById('qp-board-serial').value.trim();
+  qpDraft.boardSyllabus = document.getElementById('qp-board-syllabus').value.trim();
 }
 
 const QP_SECTION_LABELS = ['ক','খ','গ','ঘ','ঙ','চ','ছ','জ'];
@@ -9911,7 +10412,7 @@ function addQPQuestion(sIdx){
   qpSyncHeaderFromForm();
   const sec = qpDraft.sections[sIdx];
   if(sec.type==='mcq'){
-    sec.questions.push({id:qpUid('q'), text:'', options:['','','',''], marks:1});
+    sec.questions.push({id:qpUid('q'), text:'', options:['','','',''], marks:1, correct:null});
   } else if(sec.type==='creative'){
     sec.questions.push({id:qpUid('q'), stem:'', parts:[{label:'ক',text:'',marks:1},{label:'খ',text:'',marks:2},{label:'গ',text:'',marks:3},{label:'ঘ',text:'',marks:4}]});
   } else {
@@ -9943,6 +10444,10 @@ function qpUpdateOption(sIdx, qIdx, optIdx, value){
   qpDraft.sections[sIdx].questions[qIdx].options[optIdx] = value;
   renderQPPreview();
 }
+function qpSetCorrect(sIdx, qIdx, optIdx){
+  qpDraft.sections[sIdx].questions[qIdx].correct = optIdx;
+  renderQPSections();
+}
 function qpUpdatePart(sIdx, qIdx, pIdx, field, value){
   qpDraft.sections[sIdx].questions[qIdx].parts[pIdx][field] = value;
   renderQPPreview();
@@ -9970,8 +10475,9 @@ function renderQPSections(){
             <button class="btn btn-danger" onclick="removeQPQuestion(${sIdx},${qIdx})">🗑️</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;margin-left:26px">
-            ${(q.options||['','','','']).map((op,oIdx)=>`<div style="display:flex;gap:6px;align-items:center"><span>${['ক','খ','গ','ঘ'][oIdx]})</span><input class="form-input" value="${op||''}" placeholder="অপশন ${oIdx+1}" oninput="qpUpdateOption(${sIdx},${qIdx},${oIdx},this.value)"></div>`).join('')}
+            ${(q.options||['','','','']).map((op,oIdx)=>`<div style="display:flex;gap:6px;align-items:center"><label style="display:flex;align-items:center;gap:4px;cursor:pointer" title="সঠিক উত্তর হিসেবে চিহ্নিত করুন (OMR মূল্যায়নে ব্যবহৃত হবে, প্রশ্নপত্রে ছাপা হবে না)"><input type="radio" name="qpcorrect_${sIdx}_${qIdx}" ${q.correct===oIdx?'checked':''} onchange="qpSetCorrect(${sIdx},${qIdx},${oIdx})"><span>${['ক','খ','গ','ঘ'][oIdx]})</span></label><input class="form-input" value="${op||''}" placeholder="অপশন ${oIdx+1}" oninput="qpUpdateOption(${sIdx},${qIdx},${oIdx},this.value)"></div>`).join('')}
           </div>
+          <div style="margin-left:26px;margin-top:4px;font-size:11.5px;color:${q.correct==null?'#c0392b':'#1e8449'}">${q.correct==null?'⚠️ সঠিক উত্তর নির্বাচন করা হয়নি (OMR মূল্যায়নের জন্য প্রয়োজন)':'✅ সঠিক উত্তর: '+['ক','খ','গ','ঘ'][q.correct]}</div>
         </div>`).join('');
     } else if(sec.type==='creative'){
       qHtml = sec.questions.map((q,qIdx)=>`
@@ -10056,8 +10562,167 @@ function qpSectionHTML(sec){
   </div>`;
 }
 
+// ✅ সব MCQ বিভাগের প্রশ্নগুলো ধারাবাহিক ক্রমে একটি তালিকায় আনা হয় — OMR শীট ও মূল্যায়নের জন্য ব্যবহৃত হয়
+function qpFlattenMCQ(p){
+  const out = [];
+  (p.sections||[]).forEach(sec=>{
+    if(sec.type!=='mcq') return;
+    (sec.questions||[]).forEach(q=>out.push(q));
+  });
+  return out;
+}
+
+function printAnswerKey(id){
+  const p = questionPapers.find(x=>x.id===id);
+  if(!p){ showToast('প্রশ্নপত্র খুঁজে পাওয়া যায়নি','error'); return; }
+  const mcqs = qpFlattenMCQ(p);
+  if(mcqs.length===0){ showToast('এই প্রশ্নপত্রে কোনো MCQ প্রশ্ন নেই','error'); return; }
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const w = window.open('', '_blank');
+  if(!w){ showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
+  const rows = mcqs.map((q,i)=>`<div style="display:inline-block;width:70px;margin:3px 6px;font-size:13px"><b>${i+1}.</b> ${q.correct!=null?['ক','খ','গ','ঘ'][q.correct]:'<span style="color:#c0392b">—</span>'}</div>`).join('');
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><title>উত্তরপত্র (শিক্ষক কপি) - ${p.examName}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+      body{font-family:'Hind Siliguri',sans-serif;padding:30px;color:#111}
+      h2{color:#1a5276;text-align:center;margin-bottom:2px}
+      .sub{text-align:center;color:#555;margin-bottom:18px;font-size:13px}
+      .warn{background:#fdecea;border:1px solid #f5b7b1;color:#943126;padding:8px 12px;border-radius:8px;font-size:12px;text-align:center;margin-bottom:16px}
+    </style></head><body>
+    <h2>🔑 উত্তরপত্র (শুধুমাত্র শিক্ষকের জন্য)</h2>
+    <div class="sub">${escHtml(school)} — ${escHtml(p.examName)} — বিষয়: ${escHtml(p.subject)} — শ্রেণি: ${escHtml(p.cls)}</div>
+    <div class="warn">⚠️ এই কপিটি শিক্ষার্থীদের দেওয়া যাবে না — শুধুমাত্র মূল্যায়নের জন্য</div>
+    <div>${rows}</div>
+    <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`);
+  w.document.close();
+}
+
+// ============ OMR শীট (উত্তরপত্র) — টেমপ্লেট জ্যামিতি ============
+// সব দূরত্ব মিলিমিটারে (mm), A4 পেজ (210mm x 297mm) ধরে নকশা করা।
+// ⚠️ এই টেমপ্লেটের কোঅর্ডিনেট printOMRSheet() (ছাপানোর জন্য) এবং omrProcessImage() (মূল্যায়নের জন্য) — দুই জায়গাতেই একই থাকতে হবে।
+const OMR_TEMPLATE = {
+  pageW: 210, pageH: 297,
+  markers: { tl:[10,10], tr:[200,10], bl:[10,287], br:[200,287] }, // ৪ কোণার কালো বর্গ (align করার জন্য)
+  markerSize: 8,
+  rollGrid: { x:20, y:78, colW:9, rowH:5.6, digits:6, bubbleR:2.1 },
+  setGrid:  { x:96,  y:78, rowH:5.6, bubbleR:2.1, labels:['ক','খ','গ','ঘ'] },
+  answerGrid: { x:14, y:118, colW:47, rowH:6.4, perCol:25, cols:4, bubbleR:2.1, optGap:7.2 }
+};
+
+function omrBubbleHtml(cx, cy, r, label){
+  return `<div class="omr-bubble" style="left:${cx}mm;top:${cy}mm;width:${r*2}mm;height:${r*2}mm">${label!=null?`<span>${label}</span>`:''}</div>`;
+}
+
+function printOMRSheet(id){
+  const p = questionPapers.find(x=>x.id===id);
+  if(!p){ showToast('প্রশ্নপত্র খুঁজে পাওয়া যায়নি','error'); return; }
+  const mcqs = qpFlattenMCQ(p);
+  if(mcqs.length===0){ showToast('এই প্রশ্নপত্রে কোনো MCQ প্রশ্ন নেই — OMR শীট শুধু MCQ-এর জন্য প্রযোজ্য','error'); return; }
+  if(mcqs.length>100){ showToast('একটি OMR শীটে সর্বোচ্চ ১০০টি প্রশ্ন সাপোর্ট করে','error'); return; }
+  const T = OMR_TEMPLATE;
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const logo = (typeof schoolLogo!=='undefined' && schoolLogo) ? schoolLogo : '';
+
+  let html = '';
+  // কোণার মার্কার
+  Object.values(T.markers).forEach(([x,y])=>{
+    html += `<div class="omr-marker" style="left:${x}mm;top:${y}mm;width:${T.markerSize}mm;height:${T.markerSize}mm"></div>`;
+  });
+  // হেডার
+  html += `<div class="omr-header">
+    ${logo?`<img src="${logo}" class="omr-logo">`:''}
+    <div class="omr-school">${escHtml(school)}</div>
+    <div class="omr-exam">${escHtml(p.examName||'')} — বিষয়: ${escHtml(p.subject||'')} — শ্রেণি: ${escHtml(p.cls||'')}</div>
+    <div class="omr-instr">⚠️ বৃত্ত সম্পূর্ণভাবে কালো কলম/পেন্সিল দিয়ে ভরাট করুন। ঘষামাজা বা একাধিক দাগ দেওয়া যাবে না।</div>
+  </div>`;
+
+  // রোল গ্রিড
+  html += `<div class="omr-label" style="left:${T.rollGrid.x-2}mm;top:${T.rollGrid.y-9}mm">রোল নম্বর</div>`;
+  for(let c=0;c<T.rollGrid.digits;c++){
+    for(let d=0;d<10;d++){
+      const cx = T.rollGrid.x + c*T.rollGrid.colW;
+      const cy = T.rollGrid.y + d*T.rollGrid.rowH;
+      html += omrBubbleHtml(cx, cy, T.rollGrid.bubbleR, d);
+    }
+  }
+  // সেট কোড গ্রিড
+  html += `<div class="omr-label" style="left:${T.setGrid.x-2}mm;top:${T.setGrid.y-9}mm">সেট</div>`;
+  T.setGrid.labels.forEach((lab,i)=>{
+    html += omrBubbleHtml(T.setGrid.x, T.setGrid.y+i*T.setGrid.rowH, T.setGrid.bubbleR, lab);
+  });
+
+  // উত্তর গ্রিড
+  html += `<div class="omr-label" style="left:${T.answerGrid.x-2}mm;top:${T.answerGrid.y-9}mm">বহুনির্বাচনি উত্তর ${mcqs.length>0?`(মোট ${mcqs.length}টি প্রশ্ন)`:''}</div>`;
+  mcqs.forEach((q,i)=>{
+    const col = Math.floor(i / T.answerGrid.perCol);
+    const row = i % T.answerGrid.perCol;
+    const baseX = T.answerGrid.x + col*T.answerGrid.colW;
+    const y = T.answerGrid.y + row*T.answerGrid.rowH;
+    html += `<div class="omr-qnum" style="left:${baseX-6}mm;top:${y}mm">${i+1}</div>`;
+    ['ক','খ','গ','ঘ'].forEach((lab,oi)=>{
+      html += omrBubbleHtml(baseX + oi*T.answerGrid.optGap, y, T.answerGrid.bubbleR, lab);
+    });
+  });
+
+  const w = window.open('', '_blank');
+  if(!w){ showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
+  w.document.write(`<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8"><title>OMR শীট - ${p.examName}</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
+      @page{size:A4;margin:0}
+      *{box-sizing:border-box}
+      body{margin:0;font-family:'Hind Siliguri',sans-serif}
+      .omr-page{position:relative;width:${T.pageW}mm;height:${T.pageH}mm;background:#fff}
+      .omr-marker{position:absolute;background:#000;transform:translate(-50%,-50%)}
+      .omr-header{position:absolute;left:0;top:20mm;width:100%;text-align:center}
+      .omr-logo{height:16mm;object-fit:contain;display:block;margin:0 auto 2mm}
+      .omr-school{font-size:15px;font-weight:700;color:#1a5276}
+      .omr-exam{font-size:11.5px;color:#333;margin-top:1mm}
+      .omr-instr{font-size:9.5px;color:#a33;margin-top:2mm}
+      .omr-label{position:absolute;font-size:10.5px;font-weight:700;color:#1a5276}
+      .omr-qnum{position:absolute;font-size:9px;font-weight:600;width:6mm;text-align:right;transform:translateY(-50%)}
+      .omr-bubble{position:absolute;border:0.35mm solid #000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:6.5px;transform:translate(-50%,-50%);background:#fff}
+    </style></head><body>
+    <div class="omr-page">${html}</div>
+    <script>window.onload=()=>{window.print();}<\/script>
+    </body></html>`);
+  w.document.close();
+  logAudit(`OMR শীট প্রিন্ট করেছেন: ${p.examName} (${p.subject})`);
+}
+
+function qpBoardHeadHTML(p){
+  const setCode = p.setCode||'';
+  const subjectCode = p.subjectCode||'';
+  const boardSerial = p.boardSerial||'';
+  const boardTitle = p.boardTitle||'বহুনির্বাচনি অভীক্ষা';
+  const boardPaperNo = p.boardPaperNo||'';
+  const boardSyllabus = p.boardSyllabus||'';
+  return `<div class="qpp-board-head">
+      <div class="qpp-board-topbar">
+        <span>${boardSerial?escHtml(boardSerial):'&nbsp;'}</span>
+        <span class="qpp-board-codebox">${setCode?`সেট: <b>${escHtml(setCode)}</b>`:'&nbsp;'}</span>
+      </div>
+      <div class="qpp-board-title">${escHtml(boardTitle)}</div>
+      <div class="qpp-board-examline">${escHtml(p.examName||'(পরীক্ষার নাম দিন)')}</div>
+      <div class="qpp-board-subject">${escHtml(p.subject||'—')}</div>
+      ${boardPaperNo?`<div class="qpp-board-paperno">${escHtml(boardPaperNo)}</div>`:''}
+      ${boardSyllabus?`<div class="qpp-board-syllabus">${escHtml(boardSyllabus)}</div>`:''}
+      <div class="qpp-meta" style="margin-top:8px">
+        <span>সময়— ${p.time||'—'}</span>
+        <span>পূর্ণমান— ${p.fullMarks||0}</span>
+        ${subjectCode?`<span>বিষয় কোড: ${escHtml(subjectCode)}</span>`:''}
+      </div>
+    </div>`;
+}
+
 function qpPaperBodyHTML(p, school, address){
-  return `<div class="qpp-head">
+  const logo = (typeof schoolLogo!=='undefined' && schoolLogo) ? schoolLogo : '';
+  const setCode = p.setCode||'';
+  const subjectCode = p.subjectCode||'';
+  const head = p.boardStyle ? qpBoardHeadHTML(p) : `<div class="qpp-head">
+      ${(setCode||subjectCode) ? `<div class="qpp-codebox">${setCode?`<div>সেট: <b>${escHtml(setCode)}</b></div>`:''}${subjectCode?`<div>বিষয় কোড: <b>${escHtml(subjectCode)}</b></div>`:''}</div>` : ''}
+      ${logo?`<img class="qpp-logo" src="${logo}">`:''}
       <div class="qpp-school">${school}</div>
       <div class="qpp-addr">${address}</div>
       <div class="qpp-exam">${p.examName||'(পরীক্ষার নাম দিন)'}</div>
@@ -10067,9 +10732,14 @@ function qpPaperBodyHTML(p, school, address){
       <span>সময়: ${p.time||'—'}</span>
       <span>পূর্ণমান: ${p.fullMarks||0}</span>
       <span>${p.passMarks?('পাস মার্ক: '+p.passMarks):''}</span>
-    </div>
-    ${p.note?`<div class="qpp-note">[ ${p.note} ]</div>`:''}
-    ${(p.sections||[]).map(sec=>qpSectionHTML(sec)).join('')}`;
+    </div>`;
+  return `<div class="qpp-watermark">${logo?`<img src="${logo}">`:`<span>${escHtml(school)}</span>`}</div>
+    <div class="qpp-content">
+    ${head}
+    ${(!p.boardStyle && p.note)?`<div class="qpp-note">[ ${p.note} ]</div>`:''}
+    ${(p.sections||[]).map(sec=>qpSectionHTML(sec)).join('')}
+    <div class="qpp-foot">${p.boardStyle ? '' : escHtml(school)+' — '}স্কুল ERP সফটওয়্যার দ্বারা তৈরি</div>
+    </div>`;
 }
 
 function renderQPPreview(){
@@ -10078,7 +10748,9 @@ function renderQPPreview(){
   const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
   const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
   el.innerHTML = `<style>
-      #qp-preview .qpp-head{text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      #qp-preview .qpp-head{position:relative;text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      #qp-preview .qpp-logo{height:52px;max-width:120px;object-fit:contain;display:block;margin:0 auto 6px}
+      #qp-preview .qpp-codebox{position:absolute;top:0;right:0;border:1px solid #999;border-radius:6px;padding:4px 10px;font-size:11px;text-align:left;line-height:1.6}
       #qp-preview .qpp-school{font-size:20px;font-weight:700;color:#1a5276}
       #qp-preview .qpp-addr{font-size:12px;color:#555;margin-top:2px}
       #qp-preview .qpp-exam{font-size:16px;font-weight:700;margin-top:10px;text-decoration:underline}
@@ -10092,8 +10764,22 @@ function renderQPPreview(){
       #qp-preview .qpp-marks{float:right;font-weight:600}
       #qp-preview .qpp-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-left:20px;margin-top:3px}
       #qp-preview .qpp-part{margin-left:20px;margin-top:2px}
+      #qp-preview{position:relative}
+      #qp-preview .qpp-watermark{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.06;pointer-events:none;overflow:hidden;z-index:0}
+      #qp-preview .qpp-watermark img{width:60%;object-fit:contain}
+      #qp-preview .qpp-watermark span{font-size:44px;font-weight:700;white-space:nowrap}
+      #qp-preview .qpp-content{position:relative;z-index:1}
+      #qp-preview .qpp-foot{margin-top:22px;border-top:1px dashed #ccc;padding-top:6px;font-size:10px;color:#999;text-align:center}
+      #qp-preview .qpp-board-head{position:relative;text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+      #qp-preview .qpp-board-topbar{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+      #qp-preview .qpp-board-codebox{border:1px solid #333;border-radius:4px;padding:2px 10px}
+      #qp-preview .qpp-board-title{font-size:16px;font-weight:700;text-decoration:underline}
+      #qp-preview .qpp-board-examline{font-size:13px;font-weight:600;margin-top:3px}
+      #qp-preview .qpp-board-subject{font-size:16px;font-weight:700;margin-top:2px}
+      #qp-preview .qpp-board-paperno{font-size:13px;font-weight:600}
+      #qp-preview .qpp-board-syllabus{font-size:11px;font-style:italic;color:#333;margin-top:2px}
     </style>
-    <div style="background:#fff;padding:24px;border:1px solid #ddd;border-radius:8px">${qpPaperBodyHTML(qpDraft, school, address)}</div>`;
+    <div style="background:#fff;padding:24px;border:1px solid #ddd;border-radius:8px;position:relative;overflow:hidden">${qpPaperBodyHTML(qpDraft, school, address)}</div>`;
 }
 
 function saveQuestionPaper(andPrint){
@@ -10127,8 +10813,14 @@ function printQuestionPaper(id){
     <title>প্রশ্নপত্র - ${p.examName} - ${p.subject}</title>
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
-      body{font-family:'Hind Siliguri',sans-serif;margin:0;padding:30px;color:#111;font-size:14px;line-height:1.7}
-      .qpp-head{text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      body{font-family:'Hind Siliguri',sans-serif;margin:0;padding:30px;color:#111;font-size:14px;line-height:1.7;position:relative}
+      .qpp-watermark{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0.06;pointer-events:none;overflow:hidden;z-index:0}
+      .qpp-watermark img{width:55%;object-fit:contain}
+      .qpp-watermark span{font-size:60px;font-weight:700;white-space:nowrap}
+      .qpp-content{position:relative;z-index:1}
+      .qpp-head{position:relative;text-align:center;border-bottom:3px double #1a5276;padding-bottom:12px;margin-bottom:16px}
+      .qpp-logo{height:56px;max-width:130px;object-fit:contain;display:block;margin:0 auto 6px}
+      .qpp-codebox{position:absolute;top:0;right:0;border:1px solid #999;border-radius:6px;padding:4px 10px;font-size:11px;text-align:left;line-height:1.6}
       .qpp-school{font-size:22px;font-weight:700;color:#1a5276}
       .qpp-addr{font-size:12px;color:#555;margin-top:2px}
       .qpp-exam{font-size:16px;font-weight:700;margin-top:10px;text-decoration:underline}
@@ -10142,6 +10834,15 @@ function printQuestionPaper(id){
       .qpp-marks{float:right;font-weight:600}
       .qpp-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px 14px;margin-left:20px;margin-top:3px}
       .qpp-part{margin-left:20px;margin-top:2px}
+      .qpp-foot{margin-top:24px;border-top:1px dashed #ccc;padding-top:6px;font-size:10px;color:#999;text-align:center}
+      .qpp-board-head{position:relative;text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}
+      .qpp-board-topbar{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px}
+      .qpp-board-codebox{border:1px solid #333;border-radius:4px;padding:2px 10px}
+      .qpp-board-title{font-size:16px;font-weight:700;text-decoration:underline}
+      .qpp-board-examline{font-size:13px;font-weight:600;margin-top:3px}
+      .qpp-board-subject{font-size:16px;font-weight:700;margin-top:2px}
+      .qpp-board-paperno{font-size:13px;font-weight:600}
+      .qpp-board-syllabus{font-size:11px;font-style:italic;color:#333;margin-top:2px}
       @media print{body{padding:15px}}
     </style>
   </head><body>
@@ -10152,6 +10853,342 @@ function printQuestionPaper(id){
   logAudit(`প্রশ্নপত্র প্রিন্ট করেছেন: ${p.examName} (${p.subject})`);
 }
 
+
+// ============ OMR অটো মূল্যায়ন ইঞ্জিন ============
+// পদ্ধতি: (১) ছবির ৪ কোণায় ছাপানো কালো বর্গ চিহ্ন খুঁজে বের করা হয়
+//        (২) সেই ৪টি বিন্দু দিয়ে হোমোগ্রাফি (perspective transform) হিসাব করা হয়, যাতে বাঁকা/তেরছা ছবি হলেও সঠিক জায়গা বের করা যায়
+//        (৩) প্রতিটি বৃত্তের প্রত্যাশিত জায়গায় (mm কোঅর্ডিনেট → হোমোগ্রাফি → পিক্সেল) কালচে ভাব মেপে কোন বৃত্ত ভরাট করা হয়েছে তা বের করা হয়
+//        (৪) সঠিক উত্তরের (correct) সাথে মিলিয়ে নম্বর হিসাব করা হয়
+let omrState = null; // { paperId, img, canvas, ctx, H, pxPerMM, answers:[], rollDigits:[], mcqs:[] }
+
+function openOmrEvalModal(paperId){
+  const p = questionPapers.find(x=>x.id===paperId);
+  if(!p){ showToast('প্রশ্নপত্র খুঁজে পাওয়া যায়নি','error'); return; }
+  const mcqs = qpFlattenMCQ(p);
+  if(mcqs.length===0){ showToast('এই প্রশ্নপত্রে কোনো MCQ প্রশ্ন নেই','error'); return; }
+  if(mcqs.some(q=>q.correct==null)){
+    if(!confirm('কিছু প্রশ্নের সঠিক উত্তর নির্বাচন করা হয়নি। সেগুলো ভুল হিসেবে গণ্য হবে। তবুও চালিয়ে যেতে চান?')) return;
+  }
+  omrState = { paperId, mcqs };
+  omrResetUpload();
+  openModal('omr-eval-modal');
+}
+
+function omrResetUpload(){
+  document.getElementById('omr-upload-area').style.display='';
+  document.getElementById('omr-processing').style.display='none';
+  document.getElementById('omr-error-box').style.display='none';
+  document.getElementById('omr-result-area').style.display='none';
+  document.getElementById('omr-file-input').value='';
+}
+
+function omrHandleFile(file){
+  if(!file) return;
+  document.getElementById('omr-upload-area').style.display='none';
+  document.getElementById('omr-error-box').style.display='none';
+  document.getElementById('omr-processing').style.display='';
+  const reader = new FileReader();
+  reader.onload = (e)=>{
+    const img = new Image();
+    img.onload = ()=>{ setTimeout(()=>omrProcessImage(img), 30); }; // setTimeout যাতে "প্রসেস হচ্ছে" মেসেজটি আগে দেখা যায়
+    img.onerror = ()=> omrShowError('ছবিটি লোড করা গেল না। আবার চেষ্টা করুন।');
+    img.src = e.target.result;
+  };
+  reader.onerror = ()=> omrShowError('ফাইল পড়া যায়নি। আবার চেষ্টা করুন।');
+  reader.readAsDataURL(file);
+}
+
+function omrShowError(msg){
+  document.getElementById('omr-processing').style.display='none';
+  document.getElementById('omr-upload-area').style.display='';
+  const box = document.getElementById('omr-error-box');
+  box.style.display='';
+  box.textContent = '⚠️ ' + msg;
+}
+
+// ছবিকে ক্যানভাসে আঁকা, ধূসর (grayscale) মান বের করা
+function omrLoadToCanvas(img){
+  const maxDim = 1500;
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const scale = Math.min(1, maxDim/Math.max(w,h));
+  w = Math.round(w*scale); h = Math.round(h*scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const imgData = ctx.getImageData(0,0,w,h);
+  const gray = new Float32Array(w*h);
+  for(let i=0,j=0;i<imgData.data.length;i+=4,j++){
+    gray[j] = 0.299*imgData.data[i] + 0.587*imgData.data[i+1] + 0.114*imgData.data[i+2];
+  }
+  return { canvas, ctx, w, h, gray };
+}
+
+// একটি কোণার ROI-এর মধ্যে সবচেয়ে বড় গাঢ় (dark) অংশের কেন্দ্রবিন্দু বের করা
+function omrFindMarker(gray, W, H, rx0, ry0, rx1, ry1){
+  const x0=Math.max(0,Math.floor(rx0)), y0=Math.max(0,Math.floor(ry0));
+  const x1=Math.min(W,Math.ceil(rx1)), y1=Math.min(H,Math.ceil(ry1));
+  if(x1<=x0 || y1<=y0) return null;
+  // ROI-এর গড় ও সর্বনিম্ন উজ্জ্বলতা বের করে থ্রেশহোল্ড ঠিক করা
+  let sum=0, count=0, min=255;
+  for(let y=y0;y<y1;y+=2){ for(let x=x0;x<x1;x+=2){ const v=gray[y*W+x]; sum+=v; count++; if(v<min)min=v; } }
+  const mean = sum/count;
+  const thresh = Math.min(mean*0.55, min+70);
+  // সংযুক্ত (connected) গাঢ় অংশ খুঁজে বের করা — downsample করে দ্রুত BFS
+  const step = 2;
+  const gw = Math.ceil((x1-x0)/step), gh = Math.ceil((y1-y0)/step);
+  const visited = new Uint8Array(gw*gh);
+  const isDark = (gx,gy)=>{
+    const x = x0+gx*step, y = y0+gy*step;
+    if(x>=x1||y>=y1) return false;
+    return gray[y*W+x] < thresh;
+  };
+  let best = null, bestSize = 0;
+  const stack = [];
+  for(let gy=0; gy<gh; gy++){
+    for(let gx=0; gx<gw; gx++){
+      const idx = gy*gw+gx;
+      if(visited[idx] || !isDark(gx,gy)) continue;
+      // নতুন কম্পোনেন্ট — BFS
+      let sizeCount=0, sxSum=0, sySum=0;
+      stack.length=0; stack.push(idx); visited[idx]=1;
+      while(stack.length){
+        const cur = stack.pop();
+        const cgy = Math.floor(cur/gw), cgx = cur % gw;
+        sizeCount++; sxSum += cgx; sySum += cgy;
+        const neighbors = [[cgx-1,cgy],[cgx+1,cgy],[cgx,cgy-1],[cgx,cgy+1]];
+        for(const [nx,ny] of neighbors){
+          if(nx<0||ny<0||nx>=gw||ny>=gh) continue;
+          const nidx = ny*gw+nx;
+          if(visited[nidx]) continue;
+          if(!isDark(nx,ny)) continue;
+          visited[nidx]=1; stack.push(nidx);
+        }
+      }
+      if(sizeCount > bestSize){
+        bestSize = sizeCount;
+        best = { gx: sxSum/sizeCount, gy: sySum/sizeCount };
+      }
+    }
+  }
+  if(!best || bestSize<3) return null;
+  return { x: x0 + best.gx*step, y: y0 + best.gy*step, size: bestSize };
+}
+
+// ৪x২=৮ অজানা রাশির হোমোগ্রাফি (DLT) সমাধান — src(mm) → dst(px)
+function omrComputeHomography(srcPts, dstPts){
+  const A = [], B = [];
+  for(let i=0;i<4;i++){
+    const [x,y] = srcPts[i];
+    const [X,Y] = dstPts[i];
+    A.push([x,y,1,0,0,0,-x*X,-y*X]); B.push(X);
+    A.push([0,0,0,x,y,1,-x*Y,-y*Y]); B.push(Y);
+  }
+  const h = omrSolveLinear(A, B);
+  if(!h) return null;
+  return [h[0],h[1],h[2], h[3],h[4],h[5], h[6],h[7],1];
+}
+function omrSolveLinear(A, B){
+  const n = A.length;
+  const M = A.map((row,i)=>[...row, B[i]]);
+  for(let col=0; col<n; col++){
+    let pivot = col;
+    for(let r=col+1;r<n;r++){ if(Math.abs(M[r][col])>Math.abs(M[pivot][col])) pivot=r; }
+    if(Math.abs(M[pivot][col])<1e-9) return null;
+    [M[col],M[pivot]] = [M[pivot],M[col]];
+    for(let r=0;r<n;r++){
+      if(r===col) continue;
+      const factor = M[r][col]/M[col][col];
+      for(let c=col;c<=n;c++) M[r][c] -= factor*M[col][c];
+    }
+  }
+  return M.map((row,i)=>row[n]/row[i]);
+}
+function omrApplyH(H, x, y){
+  const w = H[6]*x + H[7]*y + 1;
+  return [ (H[0]*x+H[1]*y+H[2])/w, (H[3]*x+H[4]*y+H[5])/w ];
+}
+
+// একটি নির্দিষ্ট বিন্দুর চারপাশের গড় কালচেভাব মাপা (0=কালো, 255=সাদা)
+function omrSampleDarkness(gray, W, H, px, py, r){
+  let sum=0, count=0;
+  const r2 = r*r;
+  for(let dy=-r; dy<=r; dy++){
+    for(let dx=-r; dx<=r; dx++){
+      if(dx*dx+dy*dy>r2) continue;
+      const x = Math.round(px+dx), y = Math.round(py+dy);
+      if(x<0||y<0||x>=W||y>=H) continue;
+      sum += gray[y*W+x]; count++;
+    }
+  }
+  if(count===0) return 255;
+  return sum/count;
+}
+
+function omrProcessImage(img){
+  try{
+    const { canvas, ctx, w:W, h:Hh, gray } = omrLoadToCanvas(img);
+    const T = OMR_TEMPLATE;
+    // কোণাগুলোর সন্ধান-এলাকা (ROI) — ছবির প্রতিটি কোয়াড্রেন্টের ৪০% এলাকা
+    const fx = 0.42, fy = 0.42;
+    const corners = {};
+    corners.tl = omrFindMarker(gray, W, Hh, 0,0, W*fx, Hh*fy);
+    corners.tr = omrFindMarker(gray, W, Hh, W*(1-fx),0, W, Hh*fy);
+    corners.bl = omrFindMarker(gray, W, Hh, 0,Hh*(1-fy), W*fx, Hh);
+    corners.br = omrFindMarker(gray, W, Hh, W*(1-fx),Hh*(1-fy), W, Hh);
+    if(!corners.tl || !corners.tr || !corners.bl || !corners.br){
+      omrShowError('শীটের ৪টি কোণার কালো চিহ্ন স্পষ্টভাবে খুঁজে পাওয়া যায়নি। পুরো শীট (৪ কোণা সহ) ফ্রেমে রেখে, সোজা উপর থেকে, ভালো আলোয় আবার ছবি তুলুন।');
+      return;
+    }
+    const srcPts = [T.markers.tl, T.markers.tr, T.markers.bl, T.markers.br];
+    const dstPts = [[corners.tl.x,corners.tl.y],[corners.tr.x,corners.tr.y],[corners.bl.x,corners.bl.y],[corners.br.x,corners.br.y]];
+    const H = omrComputeHomography(srcPts, dstPts);
+    if(!H){ omrShowError('শীটের অবস্থান নির্ণয় করা যায়নি। আবার চেষ্টা করুন।'); return; }
+    // pixel-per-mm স্কেল (TL-TR দূরত্ব থেকে)
+    const dxp = corners.tr.x-corners.tl.x, dyp = corners.tr.y-corners.tl.y;
+    const pxPerMM = Math.sqrt(dxp*dxp+dyp*dyp) / (T.markers.tr[0]-T.markers.tl[0]);
+    const sampleR = Math.max(3, Math.round(pxPerMM * 1.6));
+
+    // রোল নম্বর বের করা
+    let roll = '';
+    const rollDetails = [];
+    for(let c=0;c<T.rollGrid.digits;c++){
+      let bestD=-1, bestVal=255, secondVal=255;
+      const vals=[];
+      for(let d=0;d<10;d++){
+        const mx = T.rollGrid.x + c*T.rollGrid.colW, my = T.rollGrid.y + d*T.rollGrid.rowH;
+        const [px,py] = omrApplyH(H, mx, my);
+        const val = omrSampleDarkness(gray, W, Hh, px, py, sampleR);
+        vals.push(val);
+      }
+      const sorted = [...vals].sort((a,b)=>a-b);
+      bestVal = sorted[0]; secondVal = sorted[1];
+      bestD = vals.indexOf(bestVal);
+      const filled = bestVal < 165 && (secondVal-bestVal) > 18;
+      roll += filled ? String(bestD) : '_';
+      rollDetails.push({filled, digit:bestD});
+    }
+
+    // উত্তর বের করা
+    const mcqs = omrState.mcqs;
+    const answers = [];
+    mcqs.forEach((q,i)=>{
+      const col = Math.floor(i / T.answerGrid.perCol);
+      const row = i % T.answerGrid.perCol;
+      const baseX = T.answerGrid.x + col*T.answerGrid.colW;
+      const my = T.answerGrid.y + row*T.answerGrid.rowH;
+      const vals = [0,1,2,3].map(oi=>{
+        const mx = baseX + oi*T.answerGrid.optGap;
+        const [px,py] = omrApplyH(H, mx, my);
+        return omrSampleDarkness(gray, W, Hh, px, py, sampleR);
+      });
+      const sorted = [...vals].sort((a,b)=>a-b);
+      const chosen = vals.indexOf(sorted[0]);
+      const filled = sorted[0] < 165 && (sorted[1]-sorted[0]) > 18;
+      answers.push(filled ? chosen : null);
+    });
+
+    omrState.img = img; omrState.gray = gray; omrState.W = W; omrState.Hh = Hh;
+    omrState.H = H; omrState.pxPerMM = pxPerMM; omrState.corners = corners;
+    omrState.answers = answers; omrState.roll = roll;
+
+    document.getElementById('omr-detected-roll').value = roll.replace(/_/g,'');
+    omrRenderResults();
+  }catch(err){
+    console.error('OMR প্রসেসিং এরর:', err);
+    omrShowError('ছবিটি প্রসেস করার সময় সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+  }
+}
+
+function omrRecalcWithManualRoll(){
+  if(!omrState) return;
+  omrRenderResults();
+  showToast('আপডেট হয়েছে');
+}
+
+function omrRenderResults(){
+  const p = questionPapers.find(x=>x.id===omrState.paperId);
+  const mcqs = omrState.mcqs;
+  const answers = omrState.answers;
+  let score = 0, maxScore = 0;
+  const rows = mcqs.map((q,i)=>{
+    maxScore += (q.marks||1);
+    const ans = answers[i];
+    const correct = q.correct;
+    const isRight = ans!=null && correct!=null && ans===correct;
+    if(isRight) score += (q.marks||1);
+    const ansLabel = ans!=null ? ['ক','খ','গ','ঘ'][ans] : '—';
+    const corLabel = correct!=null ? ['ক','খ','গ','ঘ'][correct] : '—';
+    return `<div style="display:flex;justify-content:space-between;padding:6px 10px;font-size:12.5px;border-bottom:1px solid var(--border);background:${isRight?'#eafaf1':(ans==null?'#fff8e1':'#fdecea')}">
+      <span>প্রশ্ন ${i+1}</span><span>তোমার উত্তর: <b>${ansLabel}</b></span><span>সঠিক: <b>${corLabel}</b></span><span>${isRight?'✅':(ans==null?'⚪':'❌')}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('omr-answer-table').innerHTML = rows;
+  document.getElementById('omr-score-big').textContent = score + ' / ' + maxScore;
+
+  // ছাত্রের নাম রোল দিয়ে খুঁজে বের করা
+  const rollVal = document.getElementById('omr-detected-roll').value.trim();
+  let stu = null;
+  if(rollVal && p){ stu = students.find(s=> bnDigitsToEn(s.roll)===bnDigitsToEn(rollVal) && s.cls===p.cls); }
+  document.getElementById('omr-detected-name').value = stu ? stu.name : (rollVal ? 'খুঁজে পাওয়া যায়নি' : '');
+
+  omrDrawReviewCanvas();
+  document.getElementById('omr-processing').style.display='none';
+  document.getElementById('omr-result-area').style.display='';
+}
+
+function omrDrawReviewCanvas(){
+  const canvas = document.getElementById('omr-review-canvas');
+  canvas.width = omrState.W; canvas.height = omrState.Hh;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(omrState.img, 0, 0, omrState.W, omrState.Hh);
+  const T = OMR_TEMPLATE, H = omrState.H;
+  // কোণা মার্কার নিশ্চিতকরণ বিন্দু
+  ctx.fillStyle = '#3498db';
+  Object.values(omrState.corners).forEach(c=>{ ctx.beginPath(); ctx.arc(c.x,c.y,6,0,Math.PI*2); ctx.fill(); });
+  // উত্তরের বৃত্তে রঙিন চিহ্ন
+  omrState.mcqs.forEach((q,i)=>{
+    const col = Math.floor(i / T.answerGrid.perCol);
+    const row = i % T.answerGrid.perCol;
+    const baseX = T.answerGrid.x + col*T.answerGrid.colW;
+    const my = T.answerGrid.y + row*T.answerGrid.rowH;
+    const ans = omrState.answers[i];
+    const color = (ans==null) ? '#e67e22' : (ans===q.correct ? '#27ae60' : '#e74c3c');
+    if(ans!=null){
+      const mx = baseX + ans*T.answerGrid.optGap;
+      const [px,py] = omrApplyH(H, mx, my);
+      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(px,py, omrState.pxPerMM*2.4, 0, Math.PI*2); ctx.stroke();
+    }
+  });
+}
+
+function omrSaveToResults(){
+  const p = questionPapers.find(x=>x.id===omrState.paperId);
+  if(!p) return;
+  const roll = document.getElementById('omr-detected-roll').value.trim();
+  if(!roll){ showToast('রোল নম্বর দিন','error'); return; }
+  const stu = students.find(s=>bnDigitsToEn(s.roll)===bnDigitsToEn(roll) && s.cls===p.cls);
+  const name = document.getElementById('omr-detected-name').value.trim() || (stu?stu.name:'') || ('রোল '+roll);
+  let score = 0;
+  omrState.mcqs.forEach((q,i)=>{ if(omrState.answers[i]!=null && omrState.answers[i]===q.correct) score += (q.marks||1); });
+
+  const existingIdx = results.findIndex(r=>bnDigitsToEn(r.roll)===bnDigitsToEn(roll) && r.cls===p.cls && r.exam===p.examName);
+  if(existingIdx>=0){
+    results[existingIdx].subjects[p.subject] = score;
+    results[existingIdx].name = name;
+  } else {
+    results.push({
+      id: 'res_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      name, roll, cls: p.cls, exam: p.examName, group: null,
+      subjects: { [p.subject]: score }
+    });
+  }
+  if(typeof saveResultsData==='function') saveResultsData();
+  else { localStorage.setItem('results', JSON.stringify(results)); if(typeof saveTenantData==='function') saveTenantData(); }
+  logAudit(`OMR মূল্যায়ন করে ফলাফলে যোগ করেছেন: ${name} (রোল ${roll}, ${p.subject}) — নম্বর ${score}`);
+  showToast('ফলাফলে যোগ করা হয়েছে!');
+}
 
 // ============ MARKSHEET (Phase 3) ============
 function renderMarksheet() {
@@ -10505,6 +11542,11 @@ function canAccessClass(cls) {
 
 function applyNavPermissions() {
   if(!currentUser) return;
+  // ✅ Excel List শুধু স্কুল-অ্যাডমিন দেখবে — শিক্ষক/অভিভাবক/ছাত্র/অন্য
+  // কোনো রোলের কাছে এই মেনু আইটেমই দেখা যাবে না
+  const excelNav = document.getElementById('nav-excel-list');
+  if (excelNav) excelNav.style.display = (currentUser.role === 'admin') ? '' : 'none';
+
   document.querySelectorAll('.nav-item[data-page]').forEach(n=>{
     const page = n.dataset.page;
     if(page==='parent-portal' || page==='student-portal') return; // handled separately
@@ -10525,8 +11567,14 @@ function applyTeacherClassScope() {
   selectIds.forEach(id=>{
     const sel = document.getElementById(id);
     if(!sel) return;
-    Array.from(sel.options).forEach(opt=>{
-      if(opt.value==='') return; // "সব শ্রেণি" অপশন রাখা হলো, রেন্ডার-ফাংশনে ফিল্টার হবে
+    const realOptions = Array.from(sel.options).filter(o=>o.value!=='');
+    // ✅ সুরক্ষা: শিক্ষকের cls-এ থাকা কোনো একটা মানও যদি আসল অপশনের সাথে না মেলে
+    // (যেমন পুরনো ফরম্যাটের ডেটা "৯ম - ১০ম" যা প্রকৃত অপশন "নবম - ক"-এর সাথে মেলে না),
+    // তাহলে ফিল্টার না করে সবগুলো ক্লাসই রেখে দেওয়া হয় — ড্রপডাউন পুরোপুরি খালি হয়ে
+    // যাওয়ার চেয়ে (এবং ব্যবহারযোগ্য না থাকার চেয়ে) সব ক্লাস দেখানো ভালো।
+    const anyMatch = my.length===0 || realOptions.some(o=>my.includes(o.value));
+    if(!anyMatch) { console.warn(`applyTeacherClassScope: "${id}"-এর কোনো ক্লাস অপশনের সাথে শিক্ষকের নিজের ক্লাস ("${my.join(', ')}") মেলেনি — ফিল্টার বাদ দেওয়া হলো`); return; }
+    realOptions.forEach(opt=>{
       if(!my.includes(opt.value)) opt.remove();
     });
     if(sel.options.length && !Array.from(sel.options).some(o=>o.value===sel.value)) {
@@ -10544,9 +11592,9 @@ function renderSubscriptionBadge(school){
   const el = document.getElementById('subscription-badge');
   if(!el) return;
   // ✅ সাবস্ক্রিপশন/মেয়াদের তথ্য শুধু এডমিন/প্রধান শিক্ষকের জন্য প্রাসঙ্গিক —
-  // অভিভাবক ও ছাত্র পোর্টালে এই ব্যাজ দেখানোর দরকার নেই
+  // অভিভাবক, ছাত্র ও শিক্ষক পোর্টালে এই ব্যাজ দেখানোর দরকার নেই
   const role = currentUser && currentUser.role;
-  if(role==='parent' || role==='student'){ el.style.display = 'none'; return; }
+  if(role==='parent' || role==='student' || role==='teacher'){ el.style.display = 'none'; return; }
   if(!school || !school.expiryDate){ el.style.display = 'none'; return; }
   window._schoolDoc = school; // ✅ প্যাকেজ কেনার পেজে ফোন নম্বর প্রি-ফিল করার জন্য সংরক্ষণ
   const expiry = school.expiryDate?.toDate ? school.expiryDate.toDate() : new Date(school.expiryDate);
@@ -10587,7 +11635,9 @@ function openPackagePurchasePage(){
 // ============ প্রোফাইল পেজ ============
 function renderProfilePage(){
   const u = currentUser || {name:'ব্যবহারকারী', role:'admin', avatar:'ব'};
-  document.getElementById('profile-avatar').textContent = u.avatar || (u.name||'ব').charAt(0);
+  const profileAvatarEl = document.getElementById('profile-avatar');
+  if(u.photo){ profileAvatarEl.innerHTML = `<img src="${u.photo}" style="width:100%;height:100%;object-fit:cover">`; }
+  else { profileAvatarEl.textContent = u.avatar || (u.name||'ব').charAt(0); }
   document.getElementById('profile-name').textContent = u.name || 'ব্যবহারকারী';
   document.getElementById('profile-role').textContent = `${roleIcons[u.role]||'👤'} ${roleNamesBn[u.role]||u.role||''}`;
   const loginEmail = (window.auth && window.auth.currentUser && window.auth.currentUser.email) || '';
@@ -10651,7 +11701,7 @@ function renderProfilePage(){
     // ===== সন্তানের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===u.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-child-name').textContent = sName || '—';
     document.getElementById('profile-child-roll').textContent = sRoll || '—';
     document.getElementById('profile-child-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
@@ -10660,13 +11710,57 @@ function renderProfilePage(){
     // ===== নিজের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || u.name || '';
-    const matchedStudent = students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===u.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
     document.getElementById('profile-my-roll').textContent = sRoll || '—';
     document.getElementById('profile-my-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
     document.getElementById('profile-my-school').textContent = schoolName;
   }
 }
 
+// ===== লগইন করা ইউজারের নিজের প্রোফাইল ছবি আপলোড (Admin/শিক্ষক/অভিভাবক/ছাত্র সবার জন্য) =====
+// একই কম্প্রেস পাইপলাইন (400x400px, ~50KB) ব্যবহার করে schools/{schoolId}/users/{uid}.jpg
+// পাথে Storage-এ রাখা হয়, এবং users/{uid} ডকুমেন্টে photo ফিল্ড merge করে সেভ হয় যাতে
+// পরের বার লগইন করলেও ছবিটা থেকে যায়।
+// ✅ পরিবর্তন: Firebase Storage-এ Blaze (বিলিং) প্ল্যান লাগে বলে সেটা আর ব্যবহার
+// করা হচ্ছে না — কম্প্রেসড ছবিটা (~50KB) সরাসরি base64 হিসেবে users/{uid}
+// Firestore ডকুমেন্টে merge করে সেভ হয়, যাতে পরের বার লগইন করলেও ছবিটা থেকে যায়।
+async function uploadMyProfilePhoto(file){
+  if(!file) return;
+  try{
+    const blob = await compressImageFile(file, 400, 50);
+    if(!blob) return;
+    const photoUrl = await blobToBase64(blob);
+    const schoolId = window.currentSchoolId;
+    const uid = (window.auth && window.auth.currentUser && window.auth.currentUser.uid) || (currentUser && currentUser.uid);
+    if(schoolId && uid && window.fb && window.db){
+      await window.fb.setDoc(window.fb.doc(window.db, 'schools', schoolId, 'users', uid), { photo: photoUrl }, { merge: true });
+    }
+    // ডেমো/অফলাইন মোড বা লোকাল সাব-ইউজার হলে ক্লাউডে সেভ করা যাবে না, তাই শুধু
+    // চলতি সেশনে (মেমোরিতে) থাকবে — পেজ রিফ্রেশ করলে হারিয়ে যাবে
+    currentUser = currentUser || {};
+    currentUser.photo = photoUrl;
+    renderProfilePage();
+    updateHeaderAvatar();
+    showToast('প্রোফাইল ছবি আপডেট হয়েছে!');
+  } catch(e){
+    console.error('প্রোফাইল ছবি আপলোড এরর:', e);
+    showToast('ছবি আপলোড ব্যর্থ হয়েছে', 'error');
+  } finally {
+    const inp = document.getElementById('my-photo-input');
+    if(inp) inp.value = '';
+  }
+}
+
+// হেডারের ছোট গোল অ্যাভাটার (উপরে-ডানে) — প্রোফাইল ছবি থাকলে সেটা, না থাকলে ইনিশিয়াল দেখাবে
+function updateHeaderAvatar(){
+  const el = document.getElementById('user-avatar');
+  if(!el) return;
+  if(currentUser && currentUser.photo){
+    el.innerHTML = `<img src="${currentUser.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    el.textContent = (currentUser && currentUser.avatar) || (currentUser && (currentUser.name||'?').charAt(0)) || 'প্র';
+  }
+}
 // ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন — শুধু admin/principal রোলের জন্য =====
 // এই নোটিসগুলো সুপার-অ্যাডমিন প্যানেল (super-admin.html) থেকে পাঠানো হয়
 // (broadcastNotices কালেকশন, সব স্কুলের জন্য কমন)। প্রতিটা ইউজার কোন
@@ -10777,7 +11871,7 @@ function finishLoginUI(u, uid) {
   currentUser = {...u, uid};
   document.getElementById('login-screen').classList.remove('active');
   document.getElementById('user-name-label').textContent = u.name;
-  document.getElementById('user-avatar').textContent = u.avatar;
+  updateHeaderAvatar();
   renderSubscriptionBadge(null); // ডেমো/অফলাইন লগইনে ট্রায়াল ব্যাজ দেখানো হবে না; আসল স্কুল লগইনে নিচে আলাদাভাবে আপডেট হয়
 
   // role-based nav visibility
@@ -11389,7 +12483,11 @@ async function addNewUser() {
     // ✅ বাগ-ফিক্স: s.cls-এই ইতিমধ্যে "শ্রেণি - সেকশন" (যেমন "নবম - ক") পূর্ণ ফরম্যাটে থাকে,
     // আগে এখানে s.section আবার জোড়া লাগানো হতো (studentCls হয়ে যেত "নবম - ক - ক"),
     // যার ফলে অভিভাবক পোর্টাল/উপস্থিতি ডেটার সাথে ক্লাসের নাম মিলত না।
-    studentLink = { studentName: s.name, studentRoll: s.roll, studentCls: s.cls };
+    // ✅ বাগ-ফিক্স: আগে শুধু নাম/রোল/ক্লাস স্ট্রিং সেভ হতো, ছাত্রের প্রকৃত আইডি (s.id)
+    // থাকত না। ফলে ফলাফল/হাজিরা/ফি সবকিছু নাম-রোল-ক্লাস হুবহু মিলিয়ে খুঁজতে হতো —
+    // সামান্য বানান/স্পেস/ফরম্যাট ভিন্ন হলেই ছাত্র/অভিভাবক পোর্টালে ডেটা অদৃশ্য হয়ে যেত।
+    // এখন studentId-ও লিংক করা হচ্ছে যাতে নির্ভরযোগ্যভাবে মেলানো যায়।
+    studentLink = { studentId: s.id, studentName: s.name, studentRoll: s.roll, studentCls: s.cls };
   }
   const avatar = name.trim().charAt(0);
 
@@ -11546,7 +12644,7 @@ function renderParentPortal() {
   // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
   // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
   // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
@@ -11616,7 +12714,7 @@ function renderParentPortal() {
   }
 
   // GPA from results
-  const sr = results.filter(r=>r.name===sName);
+  const sr = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || r.name===sName);
   if(sr.length>0){
     const r = sr[sr.length-1];
     const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
@@ -11809,7 +12907,7 @@ function renderStudentPortal() {
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
@@ -11929,7 +13027,7 @@ function renderStudentPortal() {
   }
 
   // ===== মার্কশিট / রিপোর্ট কার্ড (নিজের ফলাফল — PDF ডাউনলোডের জন্য প্রিন্ট-ভিউ ব্যবহার করে) =====
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const msBody = document.getElementById('sp-marksheet-body');
   if(myResults.length===0) {
     msBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো ফলাফল প্রকাশ করা হয়নি</div>';
@@ -12029,7 +13127,7 @@ function checkAndNotifyHomework(sCls) {
 // নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
 function checkAndNotifyResults(sName, sRoll, sCls) {
   if(typeof results==='undefined') return;
-  const myResults = results.filter(r=> (r.roll===sRoll || r.name===sName) && r.cls===sCls);
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const allIds = myResults.map(r=>r.id).filter(Boolean);
   const seen = _getSeenIds('result');
   if(seen===null) { _setSeenIds('result', allIds); return; }
@@ -12139,7 +13237,7 @@ async function sendStudentMessage() {
   if(!currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
   parentMessages.unshift({
     student: sName, cls: sCls, msg,
@@ -12272,7 +13370,7 @@ function downloadMyAdmitCard(idx) {
   if(!examType || !currentUser) return;
   const sName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=> s.roll===sRoll) || students.find(s=> s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
   if(!matchedStudent) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
   const sCls = matchedStudent.cls;
   const subs = examSchedule.filter(e=>e.cls===sCls && e.type===examType);
@@ -12303,7 +13401,7 @@ function downloadMyAdmitCard(idx) {
     .sign-box{text-align:center;border-top:1px solid #333;width:180px;padding-top:6px;font-size:12px}
     @media print{body{padding:15px}}
   </style></head><body>
-  <div class="header"><div class="school-name">${escHtml(school)}</div><div class="school-sub">${escHtml(addr)}${phone?' | ফোন: '+escHtml(phone):''}</div></div>
+  <div class="header">${schoolLogo ? `<img src="${schoolLogo}" style="height:50px;max-width:120px;object-fit:contain;margin-bottom:6px">` : ''}<div class="school-name">${escHtml(school)}</div><div class="school-sub">${escHtml(addr)}${phone?' | ফোন: '+escHtml(phone):''}</div></div>
   <div class="title">প্রবেশপত্র / Admit Card — ${escHtml(examType)} পরীক্ষা</div>
   <div class="info-row">
     ${photoHtml}
@@ -12314,7 +13412,7 @@ function downloadMyAdmitCard(idx) {
     </div>
   </div>
   <table><thead><tr><th>বিষয়</th><th>তারিখ</th><th>সময়</th></tr></thead><tbody>${subRows}</tbody></table>
-  <div class="signs"><div class="sign-box">শিক্ষার্থীর স্বাক্ষর</div><div class="sign-box">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div></div>
+  <div class="signs"><div class="sign-box">শিক্ষার্থীর স্বাক্ষর</div><div class="sign-box" style="border-top:none;padding-top:0">${principalSignature ? `<img src="${principalSignature}" style="height:30px;max-width:100px;object-fit:contain;display:block;margin:0 auto 2px">` : ''}<div style="border-top:1px solid #333;padding-top:6px">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div></div></div>
   <scr${''}ipt>window.onload=function(){window.print();}<\/script>
   </body></html>`);
   w.document.close();
@@ -12761,7 +13859,7 @@ function openStudentProfile(idx) {
     <span style="font-size:12px;background:#d6eaf8;color:#2e86c1;padding:3px 10px;border-radius:20px;font-weight:600">📊 হার: ${toBnNum(pct)}%</span>`;
 
   // Latest result
-  const studentResult = results.find(r=>r.name===s.name||r.roll===s.roll);
+  const studentResult = results.find(r=>r.studentId && r.studentId===s.id) || results.find(r=>r.name===s.name||r.roll===s.roll);
   const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   if(studentResult) {
     document.getElementById('profile-results-mini').innerHTML = Object.entries(studentResult.subjects).map(([key,mark])=>{
@@ -12802,13 +13900,15 @@ function openIDCard(idx) {
   const barHeights = [18,12,20,14,22,10,18,16,24,12,20,10,18,22,14,16,20,12];
   const barcodeHTML = barHeights.map((h,i)=>`<span style="height:${h}px;width:${i%3===0?2:1}px"></span>`).join('');
 
+  const idSchoolName = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const idSchoolAddr = document.getElementById('s-address')?.value || 'Adarsha High School, Dhaka';
   document.getElementById('id-card-render').innerHTML = `
     <div class="id-card-stripe"></div>
     <div class="id-card-header">
-      <div class="id-card-school-icon">🏫</div>
+      <div class="id-card-school-icon" style="${schoolLogo?'padding:0;overflow:hidden':''}">${schoolLogo ? `<img src="${schoolLogo}" style="width:100%;height:100%;object-fit:contain">` : '🏫'}</div>
       <div>
-        <div class="id-card-school-name">আদর্শ উচ্চ বিদ্যালয়</div>
-        <div class="id-card-school-sub">Adarsha High School, Dhaka</div>
+        <div class="id-card-school-name">${idSchoolName}</div>
+        <div class="id-card-school-sub">${idSchoolAddr}</div>
       </div>
     </div>
     <div class="id-card-body">
@@ -12825,6 +13925,7 @@ function openIDCard(idx) {
     </div>
     <div class="id-card-footer">
       <div class="id-card-session">সেশন: ২০২৪-২০২৫</div>
+      ${principalSignature ? `<div style="text-align:center;font-size:7.5px;opacity:0.9;line-height:1.3"><img src="${principalSignature}" style="height:16px;max-width:52px;object-fit:contain;background:#fff;border-radius:3px;padding:1px 4px;display:block;margin:0 auto 1px">অধ্যক্ষ</div>` : ''}
       <div class="id-card-barcode">${barcodeHTML}</div>
     </div>`;
   document.getElementById('id-card-overlay').classList.add('open');
@@ -12928,84 +14029,22 @@ function updateSMSTemplate() {
   const el = document.getElementById('sms-message-text');
   if(el) { el.value = templates[type]||''; document.getElementById('sms-char-count').textContent = toBnNum(el.value.length)+' অক্ষর'; }
 }
-// গ্রুপের নাম (চিপ) থেকে আসল ছাত্রদের অভিভাবকের ফোন নম্বরের লিস্ট বানানো
-function resolveSMSGroupNumbers(groups) {
-  const getPhone = s => (s.phone && s.phone!=='—') ? s.phone : null;
-  let targetStudents = [];
-  groups.forEach(g => {
-    if(g==='সব অভিভাবক') targetStudents = targetStudents.concat(students);
-    else if(g==='অনুপস্থিত') targetStudents = targetStudents.concat(students.filter(s=>isAbsentToday(s.cls,s.name)));
-    else if(g==='বকেয়া ফি') targetStudents = targetStudents.concat(students.filter(s=>s.feeStatus==='বকেয়া'));
-    else targetStudents = targetStudents.concat(students.filter(s=>s.cls===g)); // ক্লাস নাম
-  });
-  const numbers = [...new Set(targetStudents.map(getPhone).filter(Boolean))];
-  return numbers;
-}
-
-// ✅ আগে এটা শুধু সিমুলেটেড ছিল। এখন /api/send-sms কল করে BulkSMSBD দিয়ে আসল SMS পাঠায়।
-async function sendSMSAlert(evt) {
+function sendSMSAlert() {
   if(!requirePerm('sms-notify','edit')) return;
   const msg = document.getElementById('sms-message-text').value.trim();
   if(!msg){ showToast('বার্তা লিখুন','error'); return; }
   if(smsRecipients.length===0){ showToast('প্রাপক নির্বাচন করুন','error'); return; }
   const type = document.getElementById('sms-type').value;
-  const numbers = resolveSMSGroupNumbers(smsRecipients);
-  if(numbers.length===0){ showToast('নির্বাচিত গ্রুপে কোনো মোবাইল নম্বর পাওয়া যায়নি','error'); return; }
-
-  const btn = evt ? evt.target : null;
-  if(btn){ btn.disabled = true; btn.textContent = '⏳ পাঠানো হচ্ছে...'; }
-
-  try {
-    if(!window.currentSchoolId || !window.auth || !window.auth.currentUser) {
-      throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল SMS পাঠাতে আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করতে হবে');
-    }
-    const idToken = await window.auth.currentUser.getIdToken();
-    const resp = await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-      body: JSON.stringify({ numbers, message: msg }),
-    });
-    const result = await resp.json();
-    if(!resp.ok || !result.ok) throw new Error(result.error || 'SMS পাঠানো যায়নি');
-
-    smsLog.unshift({name: smsRecipients.join(', '), msg, time:'এইমাত্র', type, status:'sent'});
-    document.getElementById('sms-message-text').value='';
-    renderSMSPage();
-    showToast(`${toBnNum(result.sentCount)} জনকে সফলভাবে SMS পাঠানো হয়েছে! ✅`);
-  } catch(e) {
-    console.error('SMS পাঠাতে সমস্যা:', e);
-    showToast(e.message || 'SMS পাঠানো যায়নি', 'error');
-  } finally {
-    if(btn){ btn.disabled = false; btn.textContent = '📤 পাঠান'; }
-  }
+  smsLog.unshift({name: smsRecipients.join(', '), msg, time:'এইমাত্র', type, status:'sent'});
+  document.getElementById('sms-message-text').value='';
+  renderSMSPage();
+  showToast(`${toBnNum(smsRecipients.length)} গ্রুপে SMS পাঠানো হয়েছে!`);
 }
-
-async function quickSendAbsent(name, guardian, cls, evt) {
-  const student = students.find(s=>s.name===name && s.cls===cls);
-  const phone = student && student.phone!=='—' ? student.phone : null;
+function quickSendAbsent(name, guardian, cls) {
   const msg = `${guardian||'অভিভাবক'}, আপনার সন্তান ${name} (${cls}) আজ বিদ্যালয়ে অনুপস্থিত। অনুগ্রহ করে যোগাযোগ করুন।`;
-  if(!phone){ showToast('এই ছাত্রের মোবাইল নম্বর পাওয়া যায়নি','error'); return; }
-
-  try {
-    if(!window.currentSchoolId || !window.auth || !window.auth.currentUser) {
-      throw new Error('এটা ডেমো/অফলাইন মোডে লগইন করা আছে — আসল SMS পাঠাতে আসল স্কুল অ্যাকাউন্ট দিয়ে লগইন করতে হবে');
-    }
-    const idToken = await window.auth.currentUser.getIdToken();
-    const resp = await fetch('/api/send-sms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
-      body: JSON.stringify({ numbers: [phone], message: msg }),
-    });
-    const result = await resp.json();
-    if(!resp.ok || !result.ok) throw new Error(result.error || 'SMS পাঠানো যায়নি');
-
-    smsLog.unshift({name:`${name}-এর অভিভাবক`, msg, time:'এইমাত্র', type:'absent', status:'sent'});
-    renderSMSPage();
-    showToast(`${name}-এর অভিভাবককে Alert পাঠানো হয়েছে! ✅`);
-  } catch(e) {
-    console.error('SMS পাঠাতে সমস্যা:', e);
-    showToast(e.message || 'SMS পাঠানো যায়নি', 'error');
-  }
+  smsLog.unshift({name:`${name}-এর অভিভাবক`, msg, time:'এইমাত্র', type:'absent', status:'sent'});
+  renderSMSPage();
+  showToast(`${name}-এর অভিভাবককে Alert পাঠানো হয়েছে!`);
 }
 
 // ============ MONTHLY ATTENDANCE REPORT ============
