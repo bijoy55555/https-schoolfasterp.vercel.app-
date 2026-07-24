@@ -96,6 +96,12 @@ service cloud.firestore {
       match /users/{uid} {
         allow read: if belongsToSchool(schoolId) || isSuperAdmin();
         allow write: if isSchoolAdmin(schoolId) || isSuperAdmin();
+        // নিজের প্রোফাইল ছবি নিজে বদলাতে পারবে (শুধু 'photo' ফিল্ড —
+        // role/schoolId-এর মতো অন্য কোনো ফিল্ড বদলানো যাবে না) — এটা
+        // uploadMyProfilePhoto()-এর জন্য দরকার, যাতে সাধারণ শিক্ষক/স্টাফও
+        // (স্কুল-অ্যাডমিন না হয়েও) নিজের ছবি সেভ করতে পারেন
+        allow update: if belongsToSchool(schoolId) && request.auth.uid == uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['photo']);
       }
 
       match /data/{docId} {

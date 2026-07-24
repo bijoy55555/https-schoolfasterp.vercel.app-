@@ -11735,20 +11735,19 @@ async function uploadMyProfilePhoto(file){
   try{
     const blob = await compressImageFile(file, 400, 50);
     if(!blob) return;
-    let photoUrl = '';
+    // নোট: Firebase Storage ২০২৬ থেকে ফ্রি (Spark) প্ল্যানে কাজ করে না (Blaze
+    // লাগে), তাই ছবি Storage-এ না পাঠিয়ে সরাসরি Firestore ডকুমেন্টে base64
+    // হিসেবে সেভ করা হচ্ছে (কমপ্রেসড ~৫০KB, base64-এ ~৬৭KB — Firestore-এর
+    // ১MB ডকুমেন্ট-সাইজ লিমিটের তুলনায় অনেক কম, তাই নিরাপদ)
+    const photoUrl = await blobToBase64(blob);
     const schoolId = window.currentSchoolId;
     const uid = (window.auth && window.auth.currentUser && window.auth.currentUser.uid) || (currentUser && currentUser.uid);
-    if(schoolId && uid && window.fb && window.fb.storageRef && window.storage && window.db){
-      const path = `schools/${schoolId}/users/${uid}.jpg`;
-      const ref = window.fb.storageRef(window.storage, path);
-      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
-      photoUrl = await window.fb.getDownloadURL(ref);
+    if(schoolId && uid && window.fb && window.db){
       await window.fb.setDoc(window.fb.doc(window.db, 'schools', schoolId, 'users', uid), { photo: photoUrl }, { merge: true });
-    } else {
-      // ডেমো/অফলাইন মোড বা লোকাল সাব-ইউজার — ক্লাউডে সেভ করা যাবে না, তাই শুধু চলতি
-      // সেশনে (মেমোরিতে) রাখা হচ্ছে, পেজ রিফ্রেশ করলে হারিয়ে যাবে
-      photoUrl = await blobToBase64(blob);
     }
+    // schoolId/uid না থাকলে (ডেমো/অফলাইন মোড বা লোকাল সাব-ইউজার) ক্লাউডে
+    // সেভ করা যাবে না, তাই শুধু চলতি সেশনে (মেমোরিতে) রাখা হচ্ছে, পেজ
+    // রিফ্রেশ করলে হারিয়ে যাবে
     currentUser = currentUser || {};
     currentUser.photo = photoUrl;
     renderProfilePage();
