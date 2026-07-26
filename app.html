@@ -1263,6 +1263,8 @@
                 <button class="btn btn-primary" onclick="sendDueSMS()" style="width:100%">📤 নির্বাচিতদের SMS পাঠান</button>
                 <button class="btn" style="background:#fdebd0;color:var(--accent);width:100%" onclick="sendAllDueSMS()">📢 সবাইকে একসাথে পাঠান</button>
                 <button class="btn" style="background:#d6eaf8;color:var(--primary);width:100%" onclick="sendPortalMessage()">📩 পোর্টালে বার্তা পাঠান (SMS ছাড়া)</button>
+                <button class="btn" style="background:#d5f5e3;color:#1e8449;width:100%" onclick="notifyAllExistingDueStudents()" title="এটা এখন অটোমেটিক চলে (অ্যাপ খোলা বা ফি/পোর্টাল পেজ লোড হওয়ার সময়ই)। এই বাটন শুধু জোর করে এখনই একবার চেক করে পাঠানোর জন্য">🔔 বকেয়া নোটিশ এখনই চেক করে পাঠান</button>
+                <div style="font-size:11px;color:var(--text-muted);line-height:1.5">✅ এখন থেকে এটা সম্পূর্ণ অটোমেটিক — বকেয়া থাকা যেকোনো ছাত্র (নতুন ভর্তি বা আগে থেকে থাকা, উভয়ই) অ্যাপ খোলা বা এই পেজ/অভিভাবক পোর্টাল লোড হওয়ার সাথে সাথেই পোর্টালে বকেয়া-নোটিশ পেয়ে যাবে — বাটন চাপার দরকার নেই। উপরের বাটনটা শুধু জোর করে এখনই একবার চেক করাতে চাইলে ব্যবহার করুন।</div>
               </div>
             </div>
             <!-- SMS History -->
@@ -5061,6 +5063,43 @@ function generateAutoFees() {
     // দেখাতে থাকত, যদিও এই মাসের নতুন বেতন এখনো বাকি।
     if(addedNew && typeof syncStudentFeeStatus==='function') syncStudentFeeStatus(s.name);
   });
+  // ✅ পুরোপুরি অটোমেটিক: generateAutoFees() যেখানে যেখানে চলে (অ্যাপ খোলার সময়, ফি পেজ/
+  // অভিভাবক পোর্টাল/নতুন ভর্তির সময়) সেখানেই এখন silently চেক করে নেয় কোন কোন বকেয়া
+  // ছাত্রকে এখনো পোর্টাল-নোটিশ পাঠানো হয়নি (পুরনো ভর্তি হওয়া ছাত্রসহ) — কাউকে বাটন
+  // চাপার দরকার নেই।
+  if(typeof autoSyncDueNotices==='function') autoSyncDueNotices();
+}
+
+// ✅ বর্তমানে বকেয়া থাকা প্রতিটা ছাত্র (নতুন-পুরনো নির্বিশেষে) চেক করে, যাদের এখনো
+// "বকেয়া" টাইপ পোর্টাল-বার্তা পাঠানো হয়নি তাদের সবাইকে চুপচাপ ব্যাকগ্রাউন্ডে নোটিশ পাঠিয়ে
+// দেয় — কোনো কনফার্মেশন/টোস্ট ছাড়াই, generateAutoFees() চলার সাথে সাথেই। ডুপ্লিকেট বার্তা
+// পাঠায় না (আগে থেকেই "বকেয়া" টাইপ বার্তা থাকলে স্কিপ করে)।
+function autoSyncDueNotices() {
+  if(typeof fees==='undefined' || typeof parentMessages==='undefined' || typeof students==='undefined') return;
+  const dueStudentNames = [...new Set(fees.filter(f=>f.status==='বকেয়া').map(f=>f.student))];
+  if(dueStudentNames.length===0) return;
+  let changed = false;
+  dueStudentNames.forEach(sName=>{
+    const alreadySent = parentMessages.some(m=>m.student===sName && m.type==='বকেয়া');
+    if(alreadySent) return; // আগেই পাঠানো হয়ে গেছে — আবার পাঠাবে না
+    const stu = students.find(s=>s.name===sName);
+    const feeRow = fees.find(f=>f.student===sName && f.status==='বকেয়া');
+    const cls = (stu && stu.cls) || (feeRow && feeRow.cls) || '';
+    const totalDue = fees.filter(f=>f.student===sName && f.status==='বকেয়া')
+      .reduce((sum,f)=>sum+(Number(f.amount)||0), 0);
+    parentMessages.unshift({
+      student: sName, cls,
+      msg: `আপনার সন্তান ${sName}-এর মোট ৳${totalDue} বকেয়া রয়েছে। অনুগ্রহ করে দ্রুত বকেয়া ফি পরিশোধ করুন।`,
+      time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+      createdAt: new Date().toISOString(),
+      type: 'বকেয়া', sender: 'school', read: false
+    });
+    changed = true;
+  });
+  if(changed) {
+    if(typeof saveTenantData==='function') saveTenantData().catch(e=>console.error('অটো বকেয়া-নোটিশ সেভ এরর:', e));
+    if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
+  }
 }
 
 let fees = [
@@ -6098,6 +6137,42 @@ function notifyGuardianIfNewStudentHasDue(studentName, cls) {
     type: 'বকেয়া', sender: 'school', read: false
   });
   if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
+}
+
+// ✅ আগে থেকে সিস্টেমে থাকা (এই আপডেটের আগে ভর্তি হওয়া) ছাত্রদের বকেয়া থাকলেও তারা
+// অটোমেটিক নোটিশ পায়নি — কারণ notifyGuardianIfNewStudentHasDue() শুধু নতুন ভর্তির
+// সময়ই চলে। এই ফাংশনটা একবারে (বাটন চেপে) বর্তমানে বকেয়া থাকা সব ছাত্রকে চেক করে,
+// যাদের এখনো "বকেয়া" টাইপ পোর্টাল-বার্তা পাঠানো হয়নি তাদের সবাইকে নোটিশ পাঠিয়ে দেয়।
+// একাধিকবার চাপলেও সমস্যা নেই — যাদের আগেই পাঠানো হয়ে গেছে তাদের আবার পাঠাবে না।
+async function notifyAllExistingDueStudents() {
+  if(typeof fees==='undefined' || typeof parentMessages==='undefined') return;
+  const dueStudentNames = [...new Set(fees.filter(f=>f.status==='বকেয়া').map(f=>f.student))];
+  if(dueStudentNames.length===0) { showToast('বর্তমানে কোনো ছাত্রের বকেয়া নেই'); return; }
+  if(!confirm(`বর্তমানে ${toBnNum(dueStudentNames.length)} জন ছাত্রের বকেয়া আছে। যাদের এখনো পোর্টাল-নোটিশ পাঠানো হয়নি তাদের সবাইকে অভিভাবক পোর্টালে "বকেয়া পরিশোধ করুন" নোটিশ পাঠানো হবে। এগিয়ে যাবেন?`)) return;
+
+  let sentCount = 0;
+  dueStudentNames.forEach(sName=>{
+    const alreadySent = parentMessages.some(m=>m.student===sName && m.type==='বকেয়া');
+    if(alreadySent) return; // ডুপ্লিকেট এড়ানো হলো
+    const stu = (typeof students!=='undefined') ? students.find(s=>s.name===sName) : null;
+    const feeRow = fees.find(f=>f.student===sName && f.status==='বকেয়া');
+    const cls = (stu && stu.cls) || (feeRow && feeRow.cls) || '';
+    const totalDue = fees.filter(f=>f.student===sName && f.status==='বকেয়া')
+      .reduce((sum,f)=>sum+(Number(f.amount)||0), 0);
+    parentMessages.unshift({
+      student: sName, cls,
+      msg: `আপনার সন্তান ${sName}-এর মোট ৳${totalDue} বকেয়া রয়েছে। অনুগ্রহ করে দ্রুত বকেয়া ফি পরিশোধ করুন।`,
+      time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+      createdAt: new Date().toISOString(),
+      type: 'বকেয়া', sender: 'school', read: false
+    });
+    sentCount++;
+  });
+
+  if(sentCount===0) { showToast('বকেয়া থাকা সব ছাত্রকে আগেই নোটিশ পাঠানো হয়ে গেছে — নতুন করে পাঠানোর কিছু নেই'); return; }
+  try { await saveTenantData(); } catch(e){ console.error('বাল্ক বকেয়া নোটিশ সেভ এরর:', e); }
+  if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
+  showToast(`✅ ${toBnNum(sentCount)} জন ছাত্রের অভিভাবক পোর্টালে বকেয়া-নোটিশ পাঠানো হয়েছে`);
 }
 function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
