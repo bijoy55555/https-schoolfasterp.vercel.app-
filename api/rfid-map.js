@@ -6,10 +6,18 @@
 // ===================================================================
 const { getAdmin, verifyRequestToken } = require("../lib/firebaseAdmin");
 
-async function getSchoolIdForUser(db, uid) {
+// ⚠️ সিকিউরিটি ফিক্স: devices.js-এর মতো এখানেও role চেক ছাড়াই যেকোনো লগইন করা
+// স্কুল-সদস্য RFID কার্ড ↔ ছাত্র ম্যাপিং বদলে/মুছে ফেলতে পারতো — যা সরাসরি
+// অ্যাটেনডেন্স রেকর্ড নষ্ট করতে পারে। এখন role === 'admin' বাধ্যতামূলক।
+async function getAdminSchoolIdForUser(db, uid) {
   const idxSnap = await db.collection("userIndex").doc(uid).get();
   if (!idxSnap.exists || !idxSnap.data().schoolId) {
     const err = new Error("এই ইউজারের সাথে কোনো স্কুল যুক্ত নেই");
+    err.statusCode = 403;
+    throw err;
+  }
+  if (idxSnap.data().role !== "admin") {
+    const err = new Error("শুধু স্কুল-অ্যাডমিন RFID ম্যাপিং পরিবর্তন করতে পারবেন — আপনার অনুমতি নেই");
     err.statusCode = 403;
     throw err;
   }
@@ -21,7 +29,7 @@ module.exports = async function handler(req, res) {
     const decoded = await verifyRequestToken(req);
     const admin = getAdmin();
     const db = admin.firestore();
-    const schoolId = await getSchoolIdForUser(db, decoded.uid);
+    const schoolId = await getAdminSchoolIdForUser(db, decoded.uid);
     const mapRef = db.collection("schools").doc(schoolId).collection("rfidMap");
 
     if (req.method === "POST") {

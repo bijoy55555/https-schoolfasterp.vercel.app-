@@ -13,10 +13,15 @@ module.exports = async function handler(req, res) {
   try {
     const decoded = await verifyRequestToken(req);
 
-    const { studentId, amount, studentName, phone, email, feeType, schoolId } = req.body || {};
+    const { studentId, amount, phone, email, feeType, schoolId } = req.body || {};
 
     if (!studentId || !amount) {
       res.status(400).json({ error: "studentId এবং amount দেওয়া বাধ্যতামূলক" });
+      return;
+    }
+    const numericAmount = Number(amount);
+    if (!(numericAmount > 0)) {
+      res.status(400).json({ error: "amount একটা বৈধ ধনাত্মক সংখ্যা হতে হবে" });
       return;
     }
 
@@ -36,6 +41,42 @@ module.exports = async function handler(req, res) {
     const finalSchoolId = tokenSchoolId;
 
     const schoolRef = db.collection("schools").doc(finalSchoolId);
+
+    // ⚠️ সিকিউরিটি ফিক্স: amount আগে সরাসরি ক্লায়েন্ট থেকে বিশ্বাস করে নেওয়া হতো —
+    // যে কারণে যে কোনো amount (যেমন ১ টাকা) পাঠিয়ে বড় বকেয়া ফি "পরিশোধিত" করানো
+    // সম্ভব ছিল। এখন studentId দিয়ে students কালেকশন থেকে আসল নাম বের করে (client-এর
+    // পাঠানো studentName আর বিশ্বাস করা হয় না), এবং fees কালেকশনে সেই ছাত্রের
+    // বকেয়া/আংশিক এন্ট্রিগুলোর মধ্যে amount হুবহু মিলে এমন একটা এন্ট্রি খোঁজা হয় —
+    // না মিললে পেমেন্টই শুরু হবে না।
+    const studentSnap = await schoolRef.collection("students").doc(String(studentId)).get();
+    if (!studentSnap.exists) {
+      res.status(404).json({ error: "এই ছাত্র পাওয়া যায়নি" });
+      return;
+    }
+    const verifiedStudentName = studentSnap.data().name;
+    if (!verifiedStudentName) {
+      res.status(400).json({ error: "ছাত্রের নাম খুঁজে পাওয়া যায়নি" });
+      return;
+    }
+
+    const dueFeesSnap = await schoolRef
+      .collection("fees")
+      .where("student", "==", verifiedStudentName)
+      .where("status", "in", ["বকেয়া", "আংশিক"])
+      .get();
+
+    const matchedFeeDoc = dueFeesSnap.docs.find((d) => Number(d.data().amount) === numericAmount);
+    if (!matchedFeeDoc) {
+      res.status(400).json({
+        error:
+          "এই পরিমাণ (৳" +
+          numericAmount +
+          ") এর সাথে মিলে এমন কোনো বকেয়া/আংশিক ফি এন্ট্রি পাওয়া যায়নি। ফি তালিকা থেকে সঠিক বকেয়া পরিমাণ বেছে আবার চেষ্টা করুন।",
+      });
+      return;
+    }
+    const matchedFeeId = matchedFeeDoc.id;
+    const studentName = verifiedStudentName;
 
     const paymentSettingsSnap = await schoolRef.collection("settings").doc("payment").get();
     if (!paymentSettingsSnap.exists) {
@@ -69,7 +110,7 @@ module.exports = async function handler(req, res) {
     const postData = {
       store_id: STORE_ID,
       store_passwd: STORE_PASSWORD,
-      total_amount: amount,
+      total_amount: numericAmount,
       currency: "BDT",
       tran_id: tranId,
       value_a: finalSchoolId,
@@ -102,10 +143,11 @@ module.exports = async function handler(req, res) {
 
     await schoolRef.collection("payments").doc(tranId).set({
       studentId,
-      studentName: studentName || "",
+      studentName,
+      feeId: matchedFeeId,
       phone: phone || "",
       feeType: feeType || "",
-      amount,
+      amount: numericAmount,
       status: "pending",
       createdBy: decoded.uid,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),

@@ -9,10 +9,19 @@
 const { getAdmin, verifyRequestToken } = require("../lib/firebaseAdmin");
 const { generateApiKey, hashApiKey } = require("../lib/biometricAttendance");
 
-async function getSchoolIdForUser(db, uid) {
+// ⚠️ সিকিউরিটি ফিক্স: আগে এখানে শুধু schoolId বের করা হতো, role চেক করা হতো না —
+// অথচ কমেন্টে লেখা ছিল "শুধু স্কুল-অ্যাডমিন"। ফলে যেকোনো লগইন করা শিক্ষক/অভিভাবক/
+// ছাত্রও বায়োমেট্রিক ডিভাইস রেজিস্টার/ডিলিট করতে পারতো (ও ডিভাইসের apiKey পেয়ে যেত)।
+// এখন role === 'admin' না হলে 403 দেওয়া হবে।
+async function getAdminSchoolIdForUser(db, uid) {
   const idxSnap = await db.collection("userIndex").doc(uid).get();
   if (!idxSnap.exists || !idxSnap.data().schoolId) {
     const err = new Error("এই ইউজারের সাথে কোনো স্কুল যুক্ত নেই");
+    err.statusCode = 403;
+    throw err;
+  }
+  if (idxSnap.data().role !== "admin") {
+    const err = new Error("শুধু স্কুল-অ্যাডমিন ডিভাইস ম্যানেজমেন্ট করতে পারবেন — আপনার অনুমতি নেই");
     err.statusCode = 403;
     throw err;
   }
@@ -24,7 +33,7 @@ module.exports = async function handler(req, res) {
     const decoded = await verifyRequestToken(req);
     const admin = getAdmin();
     const db = admin.firestore();
-    const schoolId = await getSchoolIdForUser(db, decoded.uid);
+    const schoolId = await getAdminSchoolIdForUser(db, decoded.uid);
     const devicesRef = db.collection("schools").doc(schoolId).collection("devices");
 
     if (req.method === "POST") {
