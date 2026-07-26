@@ -4418,7 +4418,7 @@ function generateAutoFees() {
     let guard = 0;
     while(cursor <= today && guard < 24) {
       const monthKey = `${cursor.getFullYear()}-${String(cursor.getMonth()+1).padStart(2,'0')}`;
-      const already = fees.some(f=>f.student===s.name && f.autoMonthKey===monthKey);
+      const already = fees.some(f=>normName(f.student)===normName(s.name) && f.autoMonthKey===monthKey);
       if(!already) {
         fees.push({
           student: s.name, cls: s.cls, type:'মাসিক বেতন', amount: Number(s.monthlyFee),
@@ -4647,6 +4647,32 @@ function bnDigitsToEn(str) {
   if(str===undefined||str===null) return str;
   const map = {'০':'0','১':'1','২':'2','৩':'3','৪':'4','৫':'5','৬':'6','৭':'7','৮':'8','৯':'9'};
   return String(str).replace(/[০-৯]/g, d=>map[d]);
+}
+// ✅ ছাত্রের নাম মেলানোর সময় (ফি/রেজাল্ট/মেসেজ) এক্সট্রা স্পেস বা শুরু/শেষের স্পেসের কারণে
+// যাতে মিল না হওয়ার সমস্যা না হয় — ফি এন্ট্রি ফর্মে নাম ম্যানুয়ালি টাইপ করার সময় এমন হতে পারে।
+function normName(str) {
+  if(str===undefined||str===null) return '';
+  return String(str).trim().replace(/\s+/g,' ');
+}
+// ✅ কেন্দ্রীয় হেল্পার: currentUser (parent/student লগইন)-এর সাথে আসল লাইভ ছাত্র তালিকার
+// রেকর্ড মিলিয়ে সবসময় একই সঠিক নাম/রোল/ক্লাস ফেরত দেয়। আগে প্রতিটা ফাংশন (পেমেন্ট,
+// বার্তা, এডমিট কার্ড, আইডি কার্ড ইত্যাদি) নিজে নিজে এই হিসাব আলাদাভাবে করত — কোথাও
+// cached (পুরনো) নাম, কোথাও লাইভ নাম ব্যবহার হওয়ায় গরমিল হতো (যেমন: পেমেন্ট করার পরও
+// বকেয়া দেখানো)। এখন থেকে সবাই এই একটা ফাংশনই ব্যবহার করবে, যাতে সব জায়গায় হুবহু একই
+// পরিচয় (identity) ব্যবহার হয়।
+function getMatchedChild() {
+  if(!currentUser) return { sName:'', sRoll:'০০১', sCls:'দশম - ক', matchedStudent:null };
+  const cachedRoll = currentUser.studentRoll || '০০১';
+  const cachedName = currentUser.studentName || currentUser.name;
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId)
+    || students.find(s=>s.roll===cachedRoll)
+    || students.find(s=>normName(s.name)===normName(cachedName));
+  return {
+    sName: (matchedStudent && matchedStudent.name) || cachedName,
+    sRoll: (matchedStudent && matchedStudent.roll) || cachedRoll,
+    sCls: (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক',
+    matchedStudent,
+  };
 }
 // যেকোনো তারিখ-স্ট্রিং (বাংলা বা ইংরেজি সংখ্যায়) নিরাপদে Date অবজেক্টে রূপান্তর করে
 function parseDateSafe(str) {
@@ -6037,7 +6063,7 @@ async function renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls) {
   // ✅ বাগ-ফিক্স: আগে এখানে ক্লাস-চেক ছাড়াই শুধু নাম/রোল মেলানো হতো, অথচ মার্কশিট
   // সেকশনে ক্লাসসহ মেলানো হতো — ফলে একই ফলাফল এক জায়গায় দেখাত, আরেক জায়গায় না।
   // এখন সব জায়গায় একই নিয়ম: আগে studentId, তারপর রোল/নাম+ক্লাস ফলব্যাক।
-  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.name===sName || r.roll===sRoll) && r.cls===sCls));
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((normName(r.name)===normName(sName) || r.roll===sRoll) && r.cls===sCls));
   const resultRows = myResults.map(r=>{
     const vals = Object.values(r.subjects||{}).filter(v=>typeof v==='number');
     const avg = vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length) : 0;
@@ -9998,7 +10024,7 @@ function renderProfilePage(){
     // ===== সন্তানের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || '';
-    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>normName(s.name)===normName(sName));
     document.getElementById('profile-child-name').textContent = sName || '—';
     document.getElementById('profile-child-roll').textContent = sRoll || '—';
     document.getElementById('profile-child-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
@@ -10007,7 +10033,7 @@ function renderProfilePage(){
     // ===== নিজের সংক্ষিপ্ত তথ্য =====
     const sRoll = u.studentRoll || '';
     const sName = u.studentName || u.name || '';
-    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+    const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>normName(s.name)===normName(sName));
     document.getElementById('profile-my-roll').textContent = sRoll || '—';
     document.getElementById('profile-my-cls').textContent = (matchedStudent && matchedStudent.cls) || u.studentCls || '—';
     document.getElementById('profile-my-school').textContent = schoolName;
@@ -10849,17 +10875,9 @@ function renderParentPortal() {
   if(!currentUser) return;
   generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
   autoExpireParentMessages(); // পুরনো (৩০+ দিন) বা সমাধান হয়ে যাওয়া বার্তা চুপচাপ মুছে দেয়
-  // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentName/studentRoll/studentCls ভুলভাবে বা পুরনোভাবে
-  // cache হয়ে সেভ হয়েছিল (যেমন ছাত্র মুছে/নতুন করে বানানোর পর cached নাম আসল লাইভ নামের
-  // সাথে হুবহু না মেলা)। তাই currentUser.studentName/studentRoll/studentCls-কে সরাসরি বিশ্বাস
-  // না করে, আসল ছাত্র তালিকা (students) থেকে id/roll মিলিয়ে সঠিক নাম, রোল ও ক্লাস বের করা হয়
-  // — এতে fees/results-এর মতো নাম-ভিত্তিক মিলানোও (f.student===sName) ঠিকভাবে কাজ করবে।
-  const cachedRoll = currentUser.studentRoll || '০০১';
-  const cachedName = currentUser.studentName || currentUser.name;
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===cachedRoll) || students.find(s=>s.name===cachedName);
-  const sName = (matchedStudent && matchedStudent.name) || cachedName;
-  const sRoll = (matchedStudent && matchedStudent.roll) || cachedRoll;
-  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  // ✅ বাগ-ফিক্স: getMatchedChild() সব জায়গায় হুবহু একই (আসল লাইভ) নাম/রোল/ক্লাস দেয় —
+  // cached ডেটার উপর সরাসরি ভরসা না করে। এতে fees/results-এর নাম-ভিত্তিক মিলানোও ঠিক থাকবে।
+  const { sName, sRoll, sCls, matchedStudent } = getMatchedChild();
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
     ? currentUser.name + ' — অভিভাবক পোর্টাল'
@@ -10874,7 +10892,7 @@ function renderParentPortal() {
   renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls); // ✅ বার্ষিক রেকর্ড — শুধু এই সন্তানের
 
   // Fee status
-  const studentFees = fees.filter(f=>f.student===sName);
+  const studentFees = fees.filter(f=>normName(f.student)===normName(sName));
   const hasDue = studentFees.some(f=>f.status==='বকেয়া');
   const hasPartial = studentFees.some(f=>f.status==='আংশিক');
   const feeEl = document.getElementById('pp-fee-status');
@@ -10929,7 +10947,7 @@ function renderParentPortal() {
   }
 
   // GPA from results
-  const sr = results.filter(r=>r.name===sName);
+  const sr = results.filter(r=>normName(r.name)===normName(sName));
   if(sr.length>0){
     const r = sr[sr.length-1];
     const avg = Object.values(r.subjects).reduce((a,b)=>a+getGPA(b),0)/Object.keys(r.subjects).length;
@@ -11022,7 +11040,7 @@ function renderParentPortal() {
     });
   }
   const myMessages = [
-    ...(parentMessages||[]).filter(m=>m.student===sName),
+    ...(parentMessages||[]).filter(m=>normName(m.student)===normName(sName)),
     ...(_lateNoticesCache[sName]||[])
   ];
   document.getElementById('pp-msg-badge').textContent = myMessages.length>0 ? toBnNum(myMessages.length) : '';
@@ -11138,11 +11156,7 @@ function renderParentPortal() {
 // ছাত্রর নিজের শ্রেণি অনুযায়ী ফিল্টার করে রিড-অনলি আকারে দেখায়।
 function renderStudentPortal() {
   if(!currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
-  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  const { sName, sRoll, sCls, matchedStudent } = getMatchedChild();
 
   document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
   document.getElementById('sp-student-info').textContent = `রোল: ${sRoll} | শ্রেণি: ${sCls}`;
@@ -11261,7 +11275,7 @@ function renderStudentPortal() {
   }
 
   // ===== মার্কশিট / রিপোর্ট কার্ড (নিজের ফলাফল — PDF ডাউনলোডের জন্য প্রিন্ট-ভিউ ব্যবহার করে) =====
-  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || normName(r.name)===normName(sName)) && r.cls===sCls));
   const msBody = document.getElementById('sp-marksheet-body');
   if(myResults.length===0) {
     msBody.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px">এখনো কোনো ফলাফল প্রকাশ করা হয়নি</div>';
@@ -11361,7 +11375,7 @@ function checkAndNotifyHomework(sCls) {
 // নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
 function checkAndNotifyResults(sName, sRoll, sCls) {
   if(typeof results==='undefined') return;
-  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
+  const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || normName(r.name)===normName(sName)) && r.cls===sCls));
   const allIds = myResults.map(r=>r.id).filter(Boolean);
   const seen = _getSeenIds('result');
   if(seen===null) { _setSeenIds('result', allIds); return; }
@@ -11443,7 +11457,7 @@ function renderStudentMessages(sName, sCls) {
   const threadEl = document.getElementById('sp-msg-thread');
   const badgeEl = document.getElementById('sp-msg-badge');
   if(!threadEl) return;
-  const myMsgs = (parentMessages||[]).filter(m=>m.student===sName)
+  const myMsgs = (parentMessages||[]).filter(m=>normName(m.student)===normName(sName))
     .slice().sort((a,b)=> new Date(a.createdAt||0) - new Date(b.createdAt||0));
   const unread = myMsgs.filter(m=>m.sender==='school' && m.unreadByStudent).length;
   if(badgeEl) badgeEl.textContent = unread>0 ? toBnNum(unread)+' নতুন' : '';
@@ -11469,10 +11483,7 @@ async function sendStudentMessage() {
   const msg = (input.value||'').trim();
   if(!msg) { showToast('একটা বার্তা লিখুন', 'error'); return; }
   if(!currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
-  const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  const { sName, sCls } = getMatchedChild();
   parentMessages.unshift({
     student: sName, cls: sCls, msg,
     time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
@@ -11602,9 +11613,7 @@ function renderStudentAdmitCards(sCls) {
 function downloadMyAdmitCard(idx) {
   const examType = (window._spAdmitTypes||[])[idx];
   if(!examType || !currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+  const { matchedStudent } = getMatchedChild();
   if(!matchedStudent) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
   const sCls = matchedStudent.cls;
   const subs = examSchedule.filter(e=>e.cls===sCls && e.type===examType);
@@ -11655,10 +11664,8 @@ function downloadMyAdmitCard(idx) {
 // ============ আইডি কার্ড ডাউনলোড (STUDENT PORTAL — বিদ্যমান openIDCard() রিইউজ করে) ============
 function downloadMyIDCard() {
   if(!currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  let idx = students.findIndex(s=> s.roll===sRoll);
-  if(idx===-1) idx = students.findIndex(s=> s.name===sName);
+  const { matchedStudent } = getMatchedChild();
+  const idx = matchedStudent ? students.indexOf(matchedStudent) : -1;
   if(idx===-1) { showToast('ছাত্রের তথ্য পাওয়া যায়নি','error'); return; }
   openIDCard(idx);
 }
@@ -11671,7 +11678,7 @@ function renderStudentLibrary(sName) {
   const el = document.getElementById('sp-library-body');
   const badgeEl = document.getElementById('sp-lib-badge');
   if(!el) return;
-  const myIssues = (bookIssues||[]).filter(i=>i.student===sName)
+  const myIssues = (bookIssues||[]).filter(i=>normName(i.student)===normName(sName))
     .slice().sort((a,b)=> (b.issueDate||'').localeCompare(a.issueDate||''));
   const activeCount = myIssues.filter(i=>i.status==='ইস্যুকৃত').length;
   if(badgeEl) badgeEl.textContent = activeCount>0 ? `${toBnNum(activeCount)}টি জমা আছে` : '';
@@ -12535,8 +12542,8 @@ function openPaymentModal() {
   selectedPayMethod = 'bkash';
   goPayStep(1);
   // pre-fill due fee if any
-  const sName = currentUser.studentName || currentUser.name;
-  const hasDue = fees.some(f=>f.student===sName && f.status==='বকেয়া');
+  const { sName } = getMatchedChild();
+  const hasDue = fees.some(f=>normName(f.student)===normName(sName) && f.status==='বকেয়া');
   if(hasDue) document.getElementById('pay-fee-type').value = '500';
   document.getElementById('pay-phone').value = '';
   document.getElementById('pay-err').style.display='none';
@@ -12583,8 +12590,8 @@ async function startRealPayment() {
   const feeText = sel.options[sel.selectedIndex].text.split('—')[0].trim();
   const icons = {bkash:'🩷',nagad:'🧡',rocket:'🟣',bank:'🏦'};
   const names = {bkash:'বিকাশ',nagad:'নগদ',rocket:'রকেট',bank:'ব্যাংক'};
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = bnDigitsToEn(currentUser.studentRoll || '0');
+  const { sName, sRoll: sRollMatched } = getMatchedChild();
+  const sRoll = bnDigitsToEn(sRollMatched || '0');
 
   document.getElementById('pay-step2-icon').textContent = icons[selectedPayMethod]||'💳';
   document.getElementById('pay-step2-title').textContent = 'পেমেন্ট গেটওয়েতে পাঠানো হচ্ছে...';
@@ -12649,7 +12656,7 @@ function applyPaidStatusForStudent(sName, sCls, amount, method) {
   const dateStr = `${toBnNum(now.getDate())} ${months[now.getMonth()]}`;
 
   // ১) fees তালিকায় থাকা এই ছাত্রের বকেয়া এন্ট্রিগুলো "পরিশোধিত" করে দেওয়া হলো
-  const dueEntries = fees.filter(f=>f.student===sName && f.status==='বকেয়া');
+  const dueEntries = fees.filter(f=>normName(f.student)===normName(sName) && f.status==='বকেয়া');
   if(dueEntries.length>0) {
     dueEntries.forEach(f=>{ f.status='পরিশোধিত'; f.date=dateStr; f.month=now.getMonth(); f.method=method||f.method; });
   } else {
@@ -12658,9 +12665,9 @@ function applyPaidStatusForStudent(sName, sCls, amount, method) {
   }
 
   // ২) ছাত্র তালিকায় (students) এই ছাত্রের feeStatus আপডেট — বাকি কোনো বকেয়া না থাকলে "পরিশোধিত"
-  const stu = students.find(s=>s.name===sName);
+  const stu = students.find(s=>normName(s.name)===normName(sName));
   if(stu) {
-    const stillDue = fees.some(f=>f.student===sName && f.status==='বকেয়া');
+    const stillDue = fees.some(f=>normName(f.student)===normName(sName) && f.status==='বকেয়া');
     stu.feeStatus = stillDue ? 'আংশিক' : 'পরিশোধিত';
   }
 
@@ -12690,8 +12697,9 @@ async function handlePaymentReturn() {
           const data = snap.data();
           if(data.status==='paid') {
             showToast('✅ পেমেন্ট নিশ্চিত হয়েছে! ৳'+toBnNum(data.amount||'')+' গৃহীত হয়েছে।');
-            const sName = (currentUser && (currentUser.studentName||currentUser.name)) || data.studentName;
-            const sCls = currentUser && currentUser.studentCls;
+            const matched = getMatchedChild();
+            const sName = matched.sName || data.studentName;
+            const sCls = matched.sCls;
             applyPaidStatusForStudent(sName, sCls, data.amount, data.method);
           } else {
             showToast('⏳ পেমেন্ট এখনো প্রসেস হচ্ছে, একটু পর আবার চেক করুন।','error');
