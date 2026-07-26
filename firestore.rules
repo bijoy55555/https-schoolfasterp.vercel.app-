@@ -37,6 +37,27 @@ service cloud.firestore {
     function isSchoolAdmin(schoolId) {
       return belongsToSchool(schoolId) && myIndex().role == 'admin';
     }
+    // ✅ সিকিউরিটি ফিক্স: এতদিন fees/results/students/attendance/data-এর মতো
+    // সংবেদনশীল কালেকশনে write শুধু belongsToSchool(schoolId) দিয়ে খোলা ছিল —
+    // মানে parent/student রোলের ইউজারও (UI-তে বাটন লুকানো থাকলেও) ব্রাউজার
+    // কনসোল থেকে সরাসরি Firestore SDK কল করে লিখতে/মুছতে পারতো। নিচের
+    // role-নির্দিষ্ট ফাংশনগুলো দিয়ে এখন শুধু admin/principal/teacher (staff)
+    // ইউজাররাই এই কালেকশনগুলোতে লিখতে পারবে — parent/student শুধু read করতে পারবে।
+    function isPrincipal(schoolId) {
+      return belongsToSchool(schoolId) && myIndex().role == 'principal';
+    }
+    function isTeacher(schoolId) {
+      return belongsToSchool(schoolId) && myIndex().role == 'teacher';
+    }
+    // fees লেখার অনুমতি: admin/principal (app.html-এর permission matrix অনুযায়ী
+    // teacher-এর fees edit ডিফল্টে বন্ধ)
+    function canWriteFees(schoolId) {
+      return isSchoolAdmin(schoolId) || isPrincipal(schoolId);
+    }
+    // attendance/result লেখার অনুমতি: admin/principal/teacher — parent/student না
+    function isStaff(schoolId) {
+      return isSchoolAdmin(schoolId) || isPrincipal(schoolId) || isTeacher(schoolId);
+    }
 
     // ===== superAdmins/{uid} — নিজের ডকুমেন্ট নিজে read করতে পারবে
     // (লগইনের সময় isSuperAdmin কিনা যাচাই করতে ক্লায়েন্ট থেকেই দরকার হয়)।
@@ -105,14 +126,16 @@ service cloud.firestore {
       }
 
       match /data/{docId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if isStaff(schoolId) || isSuperAdmin();
       }
 
       // ===== schools/{schoolId}/attendance/{clsDateId} — প্রতিটা শ্রেণি+তারিখের
       // উপস্থিতি আলাদা ডকুমেন্ট (আগে data/main-এর ভেতর একটা ফিল্ড ছিল, ১MB
       // লিমিট ও একসাথে-এডিট-করলে-ওভাররাইট সমস্যা এড়াতে আলাদা করা হয়েছে) =====
       match /attendance/{clsDateId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if isStaff(schoolId) || isSuperAdmin();
       }
 
       // ===== schools/{schoolId}/students/{studentId}, /fees/{feeId}, /results/{resultId}
@@ -121,13 +144,16 @@ service cloud.firestore {
       // স্কুল বড় হলেও ১MB লিমিটে ধাক্কা খাবে না, আর দুইজন স্টাফ ভিন্ন রেকর্ড নিয়ে
       // একসাথে কাজ করলে একে অপরের ডেটা ওভাররাইট করবে না =====
       match /students/{studentId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if canWriteFees(schoolId) || isSuperAdmin(); // admin/principal — permission matrix অনুযায়ী teacher students এডিট করতে পারে না
       }
       match /fees/{feeId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if canWriteFees(schoolId) || isSuperAdmin();
       }
       match /results/{resultId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow write: if isStaff(schoolId) || isSuperAdmin(); // admin/principal/teacher — teacher result এডিট করতে পারে
       }
 
       // ===== schools/{schoolId}/devices/{deviceId} — RFID/ZKTeco/QR বায়োমেট্রিক ডিভাইস
@@ -162,13 +188,15 @@ service cloud.firestore {
       // ব্যাকআপের সময়/ধরন থাকে, যা সুপার-অ্যাডমিন প্যানেল থেকে সব স্কুলের
       // ব্যাকআপ স্বাস্থ্য (মনিটরিং) দেখতে ব্যবহার হয় =====
       match /backups/{backupId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        // ব্যাকআপে পুরো স্কুলের সব ছাত্র/ফি/রেজাল্টের ডেটা থাকে — parent/student-এর
+        // এটা দেখার/লেখার দরকার নেই, শুধু staff (admin/principal/teacher)
+        allow read, write: if isStaff(schoolId) || isSuperAdmin();
       }
       // ===== schools/{schoolId}/backups/{backupId}/chunks/{chunkId} — ১MB
       // ডকুমেন্ট লিমিট এড়াতে বড় ব্যাকআপ JSON-কে এখানে ছোট ছোট অংশে ভাগ করে
       // রাখা হয় (দেখুন app.html-এর createBackupPoint ফাংশন) =====
       match /backups/{backupId}/chunks/{chunkId} {
-        allow read, write: if belongsToSchool(schoolId) || isSuperAdmin();
+        allow read, write: if isStaff(schoolId) || isSuperAdmin();
       }
 
       // ===== schools/{schoolId}/settings/{docId} — স্কুলের নিজস্ব সেটিংস

@@ -10,11 +10,14 @@
 //   Name: TRIAL_GATE_PASSWORD   Value: 585858   (অথবা আপনার পছন্দের নতুন পাসওয়ার্ড)
 //   → Save → পরের ডিপ্লয়মেন্ট থেকে কার্যকর হবে
 //
-// Environment Variable সেট না থাকলে ডিফল্ট হিসেবে '585858' ব্যবহার হবে (যাতে সেটআপ
-// ছাড়াই কাজ করে), তবে প্রকৃত নিরাপত্তার জন্য Vercel-এ নিজের পাসওয়ার্ড সেট করা উচিত —
-// তাহলে সেটা কোনো কোডেই লেখা থাকবে না, শুধু Vercel-এর সিক্রেট স্টোরেজে থাকবে।
+// ⚠️ সিকিউরিটি ফিক্স: আগে TRIAL_GATE_PASSWORD সেট না থাকলে একটা হার্ডকোডেড ডিফল্ট
+// ('585858') ব্যবহার হতো — আর সেই ডিফল্টটা এই ফাইলের কমেন্টেই (যা GitHub-এ পাবলিক)
+// লেখা ছিল। কেউ Vercel-এ env variable সেট করতে ভুলে গেলে পুরো গেটটাই কার্যত পাবলিক
+// হয়ে যেত। এখন env variable সেট না থাকলে এই এন্ডপয়েন্ট fail-closed থাকে (সবসময়
+// 500 দেবে, কোনো পাসওয়ার্ডই কাজ করবে না) — আপনাকে অবশ্যই Vercel Dashboard-এ নিজের
+// পাসওয়ার্ড সেট করতে হবে, নাহলে ট্রায়াল গেট খুলবেই না।
 //
-// Body (JSON): { "password": "585858" }
+// Body (JSON): { "password": "আপনার-সেট-করা-পাসওয়ার্ড" }
 // Response:    { "ok": true }  অথবা  { "ok": false, "error": "..." }
 // ===================================================================
 
@@ -26,7 +29,16 @@ module.exports = async function handler(req, res) {
 
   try {
     const { password } = req.body || {};
-    const correctPassword = process.env.TRIAL_GATE_PASSWORD || "585858";
+    const correctPassword = process.env.TRIAL_GATE_PASSWORD;
+
+    if (!correctPassword) {
+      console.error("verify-trial-gate: TRIAL_GATE_PASSWORD env variable সেট করা নেই — গেট বন্ধ রাখা হলো।");
+      res.status(500).json({
+        ok: false,
+        error: "সার্ভারে ট্রায়াল-গেট পাসওয়ার্ড সেটআপ করা নেই — অ্যাডমিনিস্ট্রেটরকে জানান।",
+      });
+      return;
+    }
 
     if (!password || typeof password !== "string") {
       res.status(400).json({ ok: false, error: "পাসওয়ার্ড দিন" });

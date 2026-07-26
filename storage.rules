@@ -26,14 +26,23 @@ service firebase.storage {
     function belongsToSchool(schoolId) {
       return hasIndex() && myIndex().schoolId == schoolId;
     }
+    // ✅ সিকিউরিটি ফিক্স: আগে belongsToSchool() থাকলেই যেকোনো ছাত্র/অভিভাবকও
+    // যেকোনো ছাত্রের ছবি ওভাররাইট করতে পারতো (role চেক ছিল না)। এখন লেখার
+    // জন্য staff (admin/principal/teacher) হওয়া বাধ্যতামূলক
+    function isStaff(schoolId) {
+      return belongsToSchool(schoolId) &&
+        myIndex().role in ['admin', 'principal', 'teacher'];
+    }
 
     // ===== schools/{schoolId}/students/{fileName} — ছাত্রের কম্প্রেসড ছবি।
-    // শুধু ওই স্কুলের ইউজার (বা সুপার-অ্যাডমিন) পড়তে/লিখতে পারবে। আকার ও টাইপ
-    // সীমাবদ্ধ রাখা হয়েছে যাতে ভুলবশত বড়/অন্য-ধরনের ফাইল আপলোড না হয় —
-    // ক্লায়েন্ট-সাইডে আগেই কম্প্রেস হয় (~৫০KB), তাই ১MB যথেষ্ট মার্জিন =====
+    // পড়া ওই স্কুলের যে কেউ পারবে (parent/student-এর নিজের/সন্তানের ছবি দেখতে
+    // হয়), কিন্তু লেখা/আপলোড শুধু staff (admin/principal/teacher) করতে পারবে —
+    // যাতে একজন ছাত্র/অভিভাবক অন্য কারো ছবি বদলে/ওভাররাইট করে দিতে না পারে।
+    // আকার ও টাইপ সীমাবদ্ধ রাখা হয়েছে যাতে ভুলবশত বড়/অন্য-ধরনের ফাইল আপলোড না
+    // হয় — ক্লায়েন্ট-সাইডে আগেই কম্প্রেস হয় (~৫০KB), তাই ১MB যথেষ্ট মার্জিন =====
     match /schools/{schoolId}/students/{fileName} {
       allow read: if belongsToSchool(schoolId) || isSuperAdmin();
-      allow write: if (belongsToSchool(schoolId) || isSuperAdmin())
+      allow write: if (isStaff(schoolId) || isSuperAdmin())
         && request.resource.size < 1 * 1024 * 1024
         && request.resource.contentType.matches('image/.*');
     }
