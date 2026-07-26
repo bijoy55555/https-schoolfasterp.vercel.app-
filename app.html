@@ -6065,6 +6065,10 @@ async function saveStudent() {
   document.getElementById('s-photo').value='';
   closeModal('student-modal');
   generateAutoFees();
+  // ✅ নতুন ফিচার: নতুন ভর্তি হওয়া ছাত্রের যদি সাথে সাথেই বকেয়া ফি তৈরি হয়ে যায়
+  // (যেমন পুরনো তারিখ থেকে "বেতন শুরুর তারিখ" দেওয়া হলে অতীতের মাসগুলো অটো বকেয়া হয়ে যায়),
+  // তাহলে অভিভাবক পোর্টালে "আমার বার্তা"-তে সাথে সাথেই বকেয়া পরিশোধের নোটিশ পাঠানো হবে।
+  notifyGuardianIfNewStudentHasDue(name, cls);
   renderStudents(); renderDashboard();
   showToast('ছাত্র সফলভাবে ভর্তি হয়েছে! ক্লাউডে সেভ হচ্ছে...');
   // ✅ বাগ-ফিক্স: আগে নতুন ভর্তি হওয়া ছাত্র শুধু মেমোরিতে থাকত, ২০ সেকেন্ডের অটো-সেভ
@@ -6074,6 +6078,26 @@ async function saveStudent() {
       .then(()=> showToast('✅ ছাত্রের তথ্য ক্লাউডে সফলভাবে সেভ হয়েছে'))
       .catch(()=> showToast('⚠️ ছাত্র লোকালি যোগ হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন', 'error'));
   }
+}
+
+// ✅ নতুন ভর্তি হওয়া ছাত্রের বকেয়া ফি থাকলে (মোট বকেয়া টাকার পরিমাণসহ) অভিভাবক পোর্টালে
+// একটা "বকেয়া" টাইপ পোর্টাল-বার্তা অটো তৈরি করে — অ্যাডমিনকে আলাদাভাবে SMS/বার্তা পাঠাতে হবে না।
+// এই বার্তা autoExpireParentMessages() এর মাধ্যমে বকেয়া পরিশোধ হয়ে গেলে নিজে থেকেই মুছে যাবে।
+function notifyGuardianIfNewStudentHasDue(studentName, cls) {
+  if(typeof fees==='undefined' || typeof parentMessages==='undefined') return;
+  const dueFees = fees.filter(f=>f.student===studentName && f.status==='বকেয়া');
+  if(dueFees.length===0) return; // বকেয়া না থাকলে কোনো বার্তা পাঠানো হবে না
+  const totalDue = dueFees.reduce((sum,f)=>sum+(Number(f.amount)||0), 0);
+  const alreadySent = parentMessages.some(m=>m.student===studentName && m.type==='বকেয়া');
+  if(alreadySent) return; // ডুপ্লিকেট বার্তা এড়াতে
+  parentMessages.unshift({
+    student: studentName, cls,
+    msg: `আপনার সন্তান ${studentName}-এর ভর্তির সময় থেকে মোট ৳${totalDue} বকেয়া রয়েছে। অনুগ্রহ করে দ্রুত বকেয়া ফি পরিশোধ করুন।`,
+    time: new Date().toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+    createdAt: new Date().toISOString(),
+    type: 'বকেয়া', sender: 'school', read: false
+  });
+  if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
 }
 function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
@@ -14739,29 +14763,76 @@ function applyPaidStatusForStudent(sName, sCls, amount, method) {
   const now = new Date();
   const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
   const dateStr = `${toBnNum(now.getDate())} ${months[now.getMonth()]}`;
+  let remaining = Number(amount)||0;
 
-  // ১) fees তালিকায় থাকা এই ছাত্রের বকেয়া এন্ট্রিগুলো "পরিশোধিত" করে দেওয়া হলো
-  const dueEntries = fees.filter(f=>f.student===sName && f.status==='বকেয়া');
-  if(dueEntries.length>0) {
-    dueEntries.forEach(f=>{ f.status='পরিশোধিত'; f.date=dateStr; f.month=now.getMonth(); f.method=method||f.method; });
-  } else {
-    // কোনো বকেয়া এন্ট্রি না থাকলেও, পেমেন্ট হয়েছে এমন একটা নতুন রেকর্ড যোগ করা হলো
-    fees.unshift({ student:sName, cls:sCls||'', type:'মাসিক বেতন', amount:amount||0, date:dateStr, month:now.getMonth(), method:method||'অনলাইন', status:'পরিশোধিত', receiptNo:receiptCounter++ });
+  // ✅ বাগ-ফিক্স: আগে যত টাকাই পে করা হোক (এমনকি মোট বকেয়ার চেয়ে কম হলেও), এই ছাত্রের
+  // সব "বকেয়া" এন্ট্রি একসাথে "পরিশোধিত" করে দেওয়া হতো। এখন পে করা টাকার পরিমাণ অনুযায়ী
+  // হিসাব হয় — সবচেয়ে পুরনো বকেয়া (dueDate অনুযায়ী) আগে ক্লিয়ার হয়, এবং টাকা কম পড়লে
+  // শেষ এন্ট্রিটা ভেঙে (আংশিক পরিশোধিত অংশ + বাকি বকেয়া অংশ) দুই ভাগ করা হয়।
+  const dueEntries = fees.filter(f=>f.student===sName && f.status==='বকেয়া')
+    .sort((a,b)=> String(a.dueDate||'').localeCompare(String(b.dueDate||'')));
+
+  for(const f of dueEntries) {
+    if(remaining<=0) break;
+    const feeAmt = Number(f.amount)||0;
+    if(remaining >= feeAmt) {
+      // এই এন্ট্রি পুরোপুরি পরিশোধ হয়ে গেছে
+      f.status='পরিশোধিত'; f.date=dateStr; f.month=now.getMonth(); f.method=method||f.method;
+      f.receiptNo = f.receiptNo || receiptCounter++;
+      remaining -= feeAmt;
+    } else {
+      // টাকা কম পড়ছে — এই এন্ট্রিটা ভেঙে ফেলা হলো: পরিশোধিত অংশ নতুন এন্ট্রি হিসেবে যোগ,
+      // বাকি অংশ আসল এন্ট্রিতে "বকেয়া" হিসেবেই থেকে যাবে (কমে যাওয়া পরিমাণে)
+      fees.push({
+        student:sName, cls:f.cls||sCls||'', type:f.type||'মাসিক বেতন', amount:remaining,
+        date:dateStr, month:now.getMonth(), method:method||'অনলাইন', status:'পরিশোধিত',
+        receiptNo:receiptCounter++, dueDate:f.dueDate, autoMonthKey:f.autoMonthKey
+      });
+      f.amount = feeAmt - remaining; // বাকি বকেয়া অংশ
+      remaining = 0;
+    }
+  }
+  if(remaining>0) {
+    // বকেয়ার চেয়ে বেশি টাকা দেওয়া হয়েছে (বা কোনো বকেয়া এন্ট্রিই ছিল না) — অতিরিক্ত/নতুন
+    // অংশটা একটা পরিশোধিত রেকর্ড হিসেবে যোগ করা হলো
+    fees.unshift({ student:sName, cls:sCls||'', type:'মাসিক বেতন', amount:remaining, date:dateStr, month:now.getMonth(), method:method||'অনলাইন', status:'পরিশোধিত', receiptNo:receiptCounter++ });
   }
 
-  // ২) ছাত্র তালিকায় (students) এই ছাত্রের feeStatus আপডেট — বাকি কোনো বকেয়া না থাকলে "পরিশোধিত"
+  // ২) ছাত্র তালিকায় (students) এই ছাত্রের feeStatus আপডেট
+  //    — কোনো বকেয়া না থাকলে "পরিশোধিত", কিছু বকেয়া থাকলেও কিছু অংশ পরিশোধ হয়ে থাকলে "আংশিক",
+  //      একদমই কিছু পরিশোধ না হয়ে থাকলে (যেমন amount=0) আগের মতোই "বকেয়া"
   const stu = students.find(s=>s.name===sName);
   if(stu) {
     const stillDue = fees.some(f=>f.student===sName && f.status==='বকেয়া');
-    stu.feeStatus = stillDue ? 'আংশিক' : 'পরিশোধিত';
+    const hasAnyPaid = fees.some(f=>f.student===sName && f.status==='পরিশোধিত');
+    stu.feeStatus = stillDue ? (hasAnyPaid ? 'আংশিক' : 'বকেয়া') : 'পরিশোধিত';
   }
 
-  // ৪) এই ছাত্রের বকেয়া নিয়ে আগে যদি পোর্টাল-বার্তা পাঠানো হয়ে থাকে, ফি এখন পরিশোধ হয়ে যাওয়ায়
-  //    সেই বার্তাটা আর দরকার নেই — অটোমেটিক মুছে ফেলা হলো
+  // ৩) আংশিক পরিশোধের পর বকেয়া কমে গেলে, আগে পাঠানো বকেয়া-নোটিশ বার্তার (পোর্টাল-বার্তা)
+  //    টাকার পরিমাণটাও আপডেট করে দেওয়া হলো, যাতে অভিভাবক ভুল/পুরনো অংক না দেখেন
+  updateDuePortalMessageAmount(sName);
+
+  // ৪) এই ছাত্রের বকেয়া নিয়ে আগে যদি পোর্টাল-বার্তা পাঠানো হয়ে থাকে এবং এখন আর কোনো বকেয়া
+  //    না থাকে, সেই বার্তাটা আর দরকার নেই — অটোমেটিক মুছে ফেলা হলো
   autoExpireParentMessages();
   if(document.getElementById('page-students')?.classList.contains('active')) renderStudents();
   if(document.getElementById('page-fees')?.classList.contains('active')) renderFees();
   if(document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
+}
+
+// ✅ আংশিক পেমেন্টের পর ওই ছাত্রের জন্য আগে থেকে পাঠানো "বকেয়া" টাইপ পোর্টাল-বার্তা থাকলে,
+// তার লেখায় বকেয়ার নতুন (কমে যাওয়া) পরিমাণ বসিয়ে দেয় — বার্তাটা পুরোপুরি মুছে ফেলার
+// সিদ্ধান্ত (বকেয়া শূন্য হলে) autoExpireParentMessages() আলাদাভাবে নেয়।
+function updateDuePortalMessageAmount(sName) {
+  if(typeof parentMessages==='undefined') return;
+  const msgIdx = parentMessages.findIndex(m=>m.student===sName && m.type==='বকেয়া');
+  if(msgIdx===-1) return;
+  const remainingDue = fees.filter(f=>f.student===sName && f.status==='বকেয়া')
+    .reduce((sum,f)=>sum+(Number(f.amount)||0), 0);
+  if(remainingDue<=0) return; // শূন্য হলে autoExpireParentMessages() বার্তাটা মুছে দেবে
+  parentMessages[msgIdx].msg = `আপনার সন্তান ${sName}-এর আংশিক পেমেন্টের পর এখনো ৳${remainingDue} বকেয়া রয়েছে। অনুগ্রহ করে বাকি বকেয়া দ্রুত পরিশোধ করুন।`;
+  parentMessages[msgIdx].createdAt = new Date().toISOString(); // ৩০ দিনের অটো-এক্সপায়ার কাউন্ট নতুন করে শুরু
+  if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
 }
 
 async function handlePaymentReturn() {
