@@ -10772,13 +10772,16 @@ function renderParentPortal() {
   if(!currentUser) return;
   generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
   autoExpireParentMessages(); // পুরনো (৩০+ দিন) বা সমাধান হয়ে যাওয়া বার্তা চুপচাপ মুছে দেয়
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = currentUser.studentRoll || '০০১';
-  // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentCls ভুলভাবে সেভ হয়েছিল (যেমন "নবম - ক - ক",
-  // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
-  // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
-  // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+  // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentName/studentRoll/studentCls ভুলভাবে বা পুরনোভাবে
+  // cache হয়ে সেভ হয়েছিল (যেমন ছাত্র মুছে/নতুন করে বানানোর পর cached নাম আসল লাইভ নামের
+  // সাথে হুবহু না মেলা)। তাই currentUser.studentName/studentRoll/studentCls-কে সরাসরি বিশ্বাস
+  // না করে, আসল ছাত্র তালিকা (students) থেকে id/roll মিলিয়ে সঠিক নাম, রোল ও ক্লাস বের করা হয়
+  // — এতে fees/results-এর মতো নাম-ভিত্তিক মিলানোও (f.student===sName) ঠিকভাবে কাজ করবে।
+  const cachedRoll = currentUser.studentRoll || '০০১';
+  const cachedName = currentUser.studentName || currentUser.name;
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===cachedRoll) || students.find(s=>s.name===cachedName);
+  const sName = (matchedStudent && matchedStudent.name) || cachedName;
+  const sRoll = (matchedStudent && matchedStudent.roll) || cachedRoll;
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
