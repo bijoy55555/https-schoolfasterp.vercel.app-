@@ -11389,12 +11389,17 @@ function checkAndNotifyFeeDue(sName) {
   const dueFees = fees.filter(f=>f.student===sName && (f.status==='বকেয়া' || f.status==='আংশিক'));
   const allIds = dueFees.map(f=>f.id).filter(Boolean);
   const seen = _getSeenIds('feedue');
-  if(seen===null) { _setSeenIds('feedue', allIds); return; }
-  const newOnes = dueFees.filter(f=>f.id && !seen.includes(f.id));
+  // ✅ বাগ-ফিক্স: হোমওয়ার্ক/রেজাল্টের ক্ষেত্রে প্রথমবার লগইন করলে "আগে থেকেই জানা"
+  // ধরে নিয়ে চুপচাপ বেসলাইন সেট করাটা ঠিক ছিল। কিন্তু ফি-র বেলায় এটা ভুল প্রমাণিত
+  // হয়েছে: নতুন ছাত্র ভর্তির সাথে সাথেই বকেয়া তৈরি হয়, আর নতুন অভিভাবক অ্যাকাউন্ট
+  // প্রথমবার খোলার সময়ও সেই বকেয়ার নোটিফিকেশন পাওয়ার কথা — আগে সেটা বেসলাইনে
+  // ধরে চুপ করে যেত, কোনো নোটিফিকেশনই যেত না। এখন প্রথমবার হলেও বিদ্যমান বকেয়ার
+  // জন্য নোটিফাই করা হচ্ছে, শুধু বেসলাইন সেট করে না।
+  const newOnes = seen===null ? dueFees : dueFees.filter(f=>f.id && !seen.includes(f.id));
   newOnes.forEach(f=>{
-    pushAppNotification('fee', '💰 নতুন বকেয়া ফি যুক্ত হয়েছে', `${f.feeType||'ফি'} — ৳${toBnNum(Number(f.amount||0))} বকেয়া হয়েছে, অনলাইনে পরিশোধ করুন`);
+    pushAppNotification('fee', '💰 বকেয়া ফি আছে', `${f.feeType||'ফি'} — ৳${toBnNum(Number(f.amount||0))} বকেয়া, অনলাইনে পরিশোধ করুন`);
   });
-  if(newOnes.length>0) _setSeenIds('feedue', allIds);
+  if(seen===null || newOnes.length>0) _setSeenIds('feedue', allIds);
 }
 
 // বেল আইকনের উপর অপঠিত সংখ্যার ব্যাজ আপডেট করে (ছাত্র ও অভিভাবক — দুই পোর্টালের বেলেই)
