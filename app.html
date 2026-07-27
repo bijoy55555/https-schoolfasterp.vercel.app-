@@ -14834,8 +14834,24 @@ async function startRealPayment() {
   // /api/initiate-payment আসলে students কালেকশনের প্রকৃত ডকুমেন্ট আইডি আশা করে
   // (রোল না) — ফলে "এই ছাত্র পাওয়া যায়নি" এরর আসত। parent.html/student.html-এর
   // মতোই এখন লাইভ ছাত্র তালিকা থেকে matchedStudent বের করে তার আসল .id পাঠানো হচ্ছে।
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===_cachedRoll) || students.find(s=>s.name===_cachedName);
+  // ✅ বাগ-ফিক্স ২: রোল/নাম মেলানোর সময় বাংলা-ইংরেজি সংখ্যার ফরম্যাট (০০৮ vs 008)
+  // বা অতিরিক্ত স্পেস আলাদা থাকলে আগে মিল খুঁজে পেত না — এখন উভয়পাশ নরমালাইজ
+  // করে (ইংরেজি সংখ্যা + trim + lowercase) তুলনা করা হচ্ছে যাতে এই ধরনের
+  // ফরম্যাট-পার্থক্যে "ছাত্রের তথ্য খুঁজে পাওয়া যায়নি" এরর না আসে।
+  const _normRoll = v => bnDigitsToEn(String(v||'').trim());
+  const _normName = v => String(v||'').trim().toLowerCase();
+  const matchedStudent =
+    students.find(s=>s.id && currentUser.studentId && s.id===currentUser.studentId) ||
+    students.find(s=>_normRoll(s.roll)===_normRoll(_cachedRoll) && _normRoll(_cachedRoll)!=='') ||
+    students.find(s=>_normName(s.name)===_normName(_cachedName) && _normName(_cachedName)!=='');
   if(!matchedStudent) {
+    console.error('পেমেন্ট: ছাত্র মেলানো ব্যর্থ', {
+      currentUser_studentId: currentUser.studentId,
+      currentUser_studentRoll: currentUser.studentRoll,
+      currentUser_studentName: currentUser.studentName || currentUser.name,
+      totalStudentsLoaded: students.length,
+      sampleStudentRolls: students.slice(0,5).map(s=>({id:s.id, roll:s.roll, name:s.name}))
+    });
     const err = document.getElementById('pay-err');
     err.textContent = 'ছাত্রের তথ্য খুঁজে পাওয়া যায়নি — পেজ রিফ্রেশ করে আবার চেষ্টা করুন';
     err.style.display = 'block';
