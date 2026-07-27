@@ -597,7 +597,7 @@
   <!-- ===== Firebase SDK (যোগ করা হয়েছে) ===== -->
   <script type="module">
     import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
     // ✅ ছাত্রের ছবি এখন Firestore ডকুমেন্টে base64 হিসেবে না রেখে Firebase Storage-এ
@@ -630,7 +630,7 @@
 
     // ✅ classic <script> ব্লক (নিচে, মডিউল না) থেকে ব্যবহারের জন্য এক্সপোজ করা হলো
     window.fb = {
-      doc, getDoc, setDoc, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch,
+      doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, collection, getDocs, deleteDoc, query, orderBy, limit, where, writeBatch,
       signInWithEmailAndPassword, signOut, getIdTokenResult, onAuthStateChanged,
       httpsCallable,
       initializeApp, deleteApp, getAuth, createUserWithEmailAndPassword,
@@ -12486,27 +12486,16 @@ async function loadTenantData(schoolId) {
     }
     if (d.payrollStatus) payrollStatus = d.payrollStatus;
     if (d.dueSMSLog) dueSMSLog = d.dueSMSLog;
-    // ✅ বাগ-ফিক্স: parentMessages আগে data/main ডকুমেন্টের একটা বড় অ্যারে-ফিল্ড হিসেবে
-    // পুরো ডকুমেন্ট overwrite (setDoc, merge ছাড়া) দিয়ে সেভ হতো। একাধিক ট্যাব/সেশন
-    // (যেমন অ্যাডমিন + অভিভাবক পোর্টাল) একই সাথে খোলা থাকলে, একটা পুরনো/স্টেইল ট্যাবের
-    // ২০-সেকেন্ড অটো-সেভ পরে চললে সেটা তার নিজের পুরনো (নতুন বার্তা ছাড়া) parentMessages
-    // অ্যারে দিয়ে পুরো ডকুমেন্ট ওভাররাইট করে দিত — ফলে অন্য ট্যাবে সদ্য পাঠানো বকেয়া-নোটিশ
-    // ক্লাউডে সেভ হওয়ার কিছুক্ষণ পরই মুছে/হারিয়ে যেত (এই কারণেই অভিভাবক পোর্টালে বার্তা
-    // দেখা যাচ্ছিল না)। এখন students/fees/results-এর মতোই প্রতিটা বার্তা আলাদা ডকুমেন্ট
-    // (schools/{id}/parentMessages/{id}) — শুধু বদলে যাওয়া/নতুন রেকর্ডই সিঙ্ক হয়, তাই
-    // একাধিক ট্যাব একসাথে থাকলেও একে অপরের বার্তা মুছে ফেলে না।
-    try {
-      const { records: newParentMsgs, isEmpty: pmEmpty } = await loadCollectionRecords(schoolId, 'parentMessages');
-      if (!pmEmpty) {
-        parentMessages = newParentMsgs;
-        parentMessages.forEach(m => { window._lastSynced.parentMessages[m.id] = JSON.stringify(m); });
-      } else if (d.parentMessages && d.parentMessages.length > 0) {
-        parentMessages = await migrateArrayToCollection(schoolId, 'parentMessages', d.parentMessages, 'msg', window._lastSynced.parentMessages);
-      }
-    } catch (e) {
-      console.error('parentMessages কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
-      if (d.parentMessages) parentMessages = d.parentMessages;
-    }
+    // ✅ বাগ-ফিক্স (২য় চেষ্টা): parentMessages আগে data/main ডকুমেন্টের ভেতর একটা বড়
+    // অ্যারে-ফিল্ড হিসেবে পুরো ডকুমেন্ট overwrite (setDoc) দিয়ে সেভ হতো — একাধিক
+    // ট্যাব/সেশন একসাথে খোলা থাকলে একটার সেভ আরেকটার নতুন বার্তা মুছে দিত।
+    // (প্রথমে এটাকে আলাদা কালেকশনে সরানো হয়েছিল, কিন্তু Firestore সিকিউরিটি রুলস
+    // নতুন কালেকশন পাথ অনুমতি না দেওয়ার ঝুঁকি থাকায় — যা যাচাই করা যাচ্ছিল না —
+    // এখন এটা এই একই data/main ডকুমেন্টেই থাকছে, কিন্তু atomic arrayUnion/arrayRemove
+    // অপারেশন (updateDoc দিয়ে) ব্যবহার করে যোগ/মোছা হয়, পুরো ডকুমেন্ট/অ্যারে কখনো
+    // পুরোপুরি overwrite হয় না — দেখুন cloudAppendParentMessage/cloudRemoveParentMessage)।
+    if (d.parentMessages) parentMessages = d.parentMessages;
+    _lastSyncedParentMessagesSnapshot = JSON.parse(JSON.stringify(parentMessages || []));
     if (d.classesList) classesList = d.classesList;
     if (d.onlineClasses) onlineClasses = d.onlineClasses;
     if (d.examSchedule) examSchedule = d.examSchedule;
@@ -12628,7 +12617,39 @@ async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix
   }
 }
 // সর্বশেষ-সিঙ্ক-করা অবস্থার স্ন্যাপশট (id -> JSON স্ট্রিং), ডিফ বের করতে ব্যবহার হয়
-window._lastSynced = { students: {}, fees: {}, results: {}, parentMessages: {} };
+window._lastSynced = { students: {}, fees: {}, results: {} };
+
+// ✅ বাগ-ফিক্স: parentMessages আগে data/main ডকুমেন্টের একটা বড় অ্যারে-ফিল্ড হিসেবে
+// প্রতিবার পুরো ডকুমেন্ট overwrite (setDoc, merge ছাড়া) করে সেভ হতো। একাধিক ট্যাব/সেশন
+// (যেমন অ্যাডমিন + অভিভাবক পোর্টাল, বা পুরনো/স্টেইল কোনো ট্যাব) একই সাথে খোলা থাকলে,
+// একটা ট্যাবের ২০-সেকেন্ড অটো-সেভ পরে চললে সেটা তার নিজের পুরনো (নতুন বার্তা ছাড়া)
+// parentMessages অ্যারে দিয়ে পুরো ডকুমেন্ট ওভাররাইট করে দিত — ফলে অন্য ট্যাবে সদ্য
+// পাঠানো বকেয়া-নোটিশ ক্লাউডে সেভ হওয়ার কিছুক্ষণ পরই মুছে/হারিয়ে যেত (এই কারণেই
+// অভিভাবক পোর্টালে বার্তা দেখা যাচ্ছিল না)। এখন এই ফাংশনটা শেষ-সিঙ্ক-করা স্ন্যাপশটের
+// সাথে বর্তমান অ্যারে তুলনা করে শুধু বদলে যাওয়া/নতুন/মোছা বার্তাগুলোর জন্য atomic
+// arrayUnion/arrayRemove (updateDoc) কল করে — কখনো পুরো অ্যারে/ডকুমেন্ট overwrite করে
+// না, তাই একাধিক ট্যাব/স্টাফ একসাথে বার্তা পাঠালেও একে অপরেরটা মুছে ফেলে না।
+let _lastSyncedParentMessagesSnapshot = [];
+async function syncParentMessagesDiff(schoolId, arr) {
+  if (!schoolId || !window.fb || !window.fb.updateDoc) return;
+  try {
+    const lastJSONs = new Set(_lastSyncedParentMessagesSnapshot.map(m => JSON.stringify(m)));
+    const curJSONs = new Set((arr || []).map(m => JSON.stringify(m)));
+    const toAdd = (arr || []).filter(m => !lastJSONs.has(JSON.stringify(m)));
+    const toRemove = _lastSyncedParentMessagesSnapshot.filter(m => !curJSONs.has(JSON.stringify(m)));
+    if (toAdd.length === 0 && toRemove.length === 0) return; // কিছু বদলায়নি — অপ্রয়োজনীয় রাইট এড়ানো হলো
+    const ref = window.fb.doc(window.db, 'schools', schoolId, 'data', 'main');
+    if (toRemove.length > 0) {
+      await window.fb.updateDoc(ref, { parentMessages: window.fb.arrayRemove(...toRemove) });
+    }
+    if (toAdd.length > 0) {
+      await window.fb.updateDoc(ref, { parentMessages: window.fb.arrayUnion(...toAdd) });
+    }
+    _lastSyncedParentMessagesSnapshot = JSON.parse(JSON.stringify(arr || []));
+  } catch (e) {
+    console.error('parentMessages ডিফ-সিঙ্ক এরর:', e);
+  }
+}
 
 async function saveTenantData() {
   if (!window.currentSchoolId) return; // ডেমো মোডে সিঙ্ক হবে না
@@ -12639,16 +12660,17 @@ async function saveTenantData() {
       syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
       syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
       syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
-      // ✅ parentMessages এখন আলাদা কালেকশনে ডিফ-সিঙ্ক হয় (নিচে data/main-এর বড়
-      // setDoc-এ ইচ্ছাকৃতভাবে নেই) — কারণ ব্যাখ্যা দেখুন loadTenantData()-এর কমেন্টে।
-      syncCollectionDiff(window.currentSchoolId, 'parentMessages', parentMessages, window._lastSynced.parentMessages, 'msg'),
     ]);
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
       teachers, notices,
-      // ⚠️ attendance, students, fees, results, parentMessages ইচ্ছাকৃতভাবে এখানে নেই —
-      // এগুলো এখন আলাদা কালেকশনে সেভ হয় (saveAttendanceDay / syncCollectionDiff দেখুন),
-      // যাতে বড় স্কুলে এই একটামাত্র ডকুমেন্ট ১MB লিমিটের কাছে না যায়, একাধিক ট্যাব/স্টাফ
+      // ⚠️ attendance, students, fees, results ইচ্ছাকৃতভাবে এখানে নেই — এগুলো এখন
+      // আলাদা কালেকশনে সেভ হয় (saveAttendanceDay / syncCollectionDiff দেখুন), যাতে
+      // বড় স্কুলে এই একটামাত্র ডকুমেন্ট ১MB লিমিটের কাছে না যায় এবং দুইজন স্টাফ
       // একসাথে ভিন্ন রেকর্ড এডিট করলে একে অপরের ডেটা মুছে না যায়।
+      // ⚠️ parentMessages-ও ইচ্ছাকৃতভাবে এখানে নেই — ওটা আলাদাভাবে atomic
+      // arrayUnion/arrayRemove (updateDoc) দিয়ে সিঙ্ক হয় (নিচে syncParentMessagesDiff
+      // কল দেখুন), যাতে এই পুরো-ডকুমেন্ট setDoc কখনো ভুল করে অন্য ট্যাবের যোগ করা
+      // নতুন বার্তা মুছে না ফেলে।
       payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule, questionPapers, questionBank,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
@@ -12660,6 +12682,9 @@ async function saveTenantData() {
       schoolConfig: window._schoolCfg || {},
       updatedAt: new Date().toISOString()
     });
+    // ✅ parentMessages এখন উপরের setDoc-এর অংশ না — এখানে আলাদাভাবে শুধু
+    // বদলে যাওয়া/নতুন/মোছা বার্তাগুলোর জন্য atomic arrayUnion/arrayRemove কল হয়
+    await syncParentMessagesDiff(window.currentSchoolId, parentMessages);
   } catch (e) {
     console.error('টেন্যান্ট ডেটা সেভ এরর:', e);
     throw e;
@@ -12712,8 +12737,13 @@ async function performDataCleanup(btn) {
         syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
         syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
         syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
-        syncCollectionDiff(window.currentSchoolId, 'parentMessages', parentMessages, window._lastSynced.parentMessages, 'msg'),
       ]);
+      // parentMessages এখন data/main ডকুমেন্টের একটা সাধারণ ফিল্ড (arrayUnion/arrayRemove
+      // দিয়ে সিঙ্ক হয়) — ফ্যাক্টরি-রিসেটে এটা সরাসরি খালি অ্যারে দিয়ে সেট করে দেওয়া হলো
+      try {
+        await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), { parentMessages: [] }, { merge: true });
+        _lastSyncedParentMessagesSnapshot = []; // ডিফ-সিঙ্ক স্ন্যাপশটও রিসেট করা হলো, নাহলে পরের সেভে ভুল ডিফ হিসাব হবে
+      } catch (e) { console.error('parentMessages রিসেট এরর:', e); }
 
       // ৩) হাজিরা (attendance) আলাদা কালেকশনে থাকে (প্রতিটা ক্লাস+তারিখ একটা ডকুমেন্ট) —
       // এগুলো সরাসরি কোয়েরি করে ব্যাচে ডিলিট করতে হবে
