@@ -14828,8 +14828,22 @@ async function startRealPayment() {
   const feeText = sel.options[sel.selectedIndex].text.split('—')[0].trim();
   const icons = {bkash:'🩷',nagad:'🧡',rocket:'🟣',bank:'🏦'};
   const names = {bkash:'বিকাশ',nagad:'নগদ',rocket:'রকেট',bank:'ব্যাংক'};
-  const sName = currentUser.studentName || currentUser.name;
-  const sRoll = bnDigitsToEn(currentUser.studentRoll || '0');
+  const _cachedName = currentUser.studentName || currentUser.name;
+  const _cachedRoll = currentUser.studentRoll || '০০১';
+  // ✅ বাগ-ফিক্স: আগে এখানে studentId হিসেবে রোল নম্বর (sRoll) পাঠানো হতো, কিন্তু
+  // /api/initiate-payment আসলে students কালেকশনের প্রকৃত ডকুমেন্ট আইডি আশা করে
+  // (রোল না) — ফলে "এই ছাত্র পাওয়া যায়নি" এরর আসত। parent.html/student.html-এর
+  // মতোই এখন লাইভ ছাত্র তালিকা থেকে matchedStudent বের করে তার আসল .id পাঠানো হচ্ছে।
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===_cachedRoll) || students.find(s=>s.name===_cachedName);
+  if(!matchedStudent) {
+    const err = document.getElementById('pay-err');
+    err.textContent = 'ছাত্রের তথ্য খুঁজে পাওয়া যায়নি — পেজ রিফ্রেশ করে আবার চেষ্টা করুন';
+    err.style.display = 'block';
+    return;
+  }
+  const sName = matchedStudent.name;
+  const sRoll = bnDigitsToEn(matchedStudent.roll || '0');
+  const sStudentId = matchedStudent.id;
 
   document.getElementById('pay-step2-icon').textContent = icons[selectedPayMethod]||'💳';
   document.getElementById('pay-step2-title').textContent = 'পেমেন্ট গেটওয়েতে পাঠানো হচ্ছে...';
@@ -14858,7 +14872,7 @@ async function startRealPayment() {
       },
       body: JSON.stringify({
         schoolId: window.currentSchoolId,
-        studentId: sRoll,
+        studentId: sStudentId,
         amount,
         studentName: sName,
         phone,
