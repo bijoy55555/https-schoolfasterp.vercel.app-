@@ -50,7 +50,13 @@ module.exports = async function handler(req, res) {
     // না মিললে পেমেন্টই শুরু হবে না।
     const studentSnap = await schoolRef.collection("students").doc(String(studentId)).get();
     if (!studentSnap.exists) {
-      res.status(404).json({ error: "এই ছাত্র পাওয়া যায়নি" });
+      // 🔍 ডায়াগনস্টিক: ঠিক কী দিয়ে খোঁজা হয়েছিল সেটাও এরর মেসেজে দেখানো হচ্ছে
+      res.status(404).json({
+        error:
+          `এই ছাত্র পাওয়া যায়নি — খোঁজা হয়েছিল: schoolId="${finalSchoolId}", ` +
+          `studentId="${studentId}" (এটা students কালেকশনে কোনো ডকুমেন্টের সাথে মেলেনি)`,
+        debug: { schoolId: finalSchoolId, searchedStudentId: String(studentId) },
+      });
       return;
     }
     const verifiedStudentName = studentSnap.data().name;
