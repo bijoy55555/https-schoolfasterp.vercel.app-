@@ -12486,7 +12486,27 @@ async function loadTenantData(schoolId) {
     }
     if (d.payrollStatus) payrollStatus = d.payrollStatus;
     if (d.dueSMSLog) dueSMSLog = d.dueSMSLog;
-    if (d.parentMessages) parentMessages = d.parentMessages;
+    // ✅ বাগ-ফিক্স: parentMessages আগে data/main ডকুমেন্টের একটা বড় অ্যারে-ফিল্ড হিসেবে
+    // পুরো ডকুমেন্ট overwrite (setDoc, merge ছাড়া) দিয়ে সেভ হতো। একাধিক ট্যাব/সেশন
+    // (যেমন অ্যাডমিন + অভিভাবক পোর্টাল) একই সাথে খোলা থাকলে, একটা পুরনো/স্টেইল ট্যাবের
+    // ২০-সেকেন্ড অটো-সেভ পরে চললে সেটা তার নিজের পুরনো (নতুন বার্তা ছাড়া) parentMessages
+    // অ্যারে দিয়ে পুরো ডকুমেন্ট ওভাররাইট করে দিত — ফলে অন্য ট্যাবে সদ্য পাঠানো বকেয়া-নোটিশ
+    // ক্লাউডে সেভ হওয়ার কিছুক্ষণ পরই মুছে/হারিয়ে যেত (এই কারণেই অভিভাবক পোর্টালে বার্তা
+    // দেখা যাচ্ছিল না)। এখন students/fees/results-এর মতোই প্রতিটা বার্তা আলাদা ডকুমেন্ট
+    // (schools/{id}/parentMessages/{id}) — শুধু বদলে যাওয়া/নতুন রেকর্ডই সিঙ্ক হয়, তাই
+    // একাধিক ট্যাব একসাথে থাকলেও একে অপরের বার্তা মুছে ফেলে না।
+    try {
+      const { records: newParentMsgs, isEmpty: pmEmpty } = await loadCollectionRecords(schoolId, 'parentMessages');
+      if (!pmEmpty) {
+        parentMessages = newParentMsgs;
+        parentMessages.forEach(m => { window._lastSynced.parentMessages[m.id] = JSON.stringify(m); });
+      } else if (d.parentMessages && d.parentMessages.length > 0) {
+        parentMessages = await migrateArrayToCollection(schoolId, 'parentMessages', d.parentMessages, 'msg', window._lastSynced.parentMessages);
+      }
+    } catch (e) {
+      console.error('parentMessages কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
+      if (d.parentMessages) parentMessages = d.parentMessages;
+    }
     if (d.classesList) classesList = d.classesList;
     if (d.onlineClasses) onlineClasses = d.onlineClasses;
     if (d.examSchedule) examSchedule = d.examSchedule;
@@ -12608,7 +12628,7 @@ async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix
   }
 }
 // সর্বশেষ-সিঙ্ক-করা অবস্থার স্ন্যাপশট (id -> JSON স্ট্রিং), ডিফ বের করতে ব্যবহার হয়
-window._lastSynced = { students: {}, fees: {}, results: {} };
+window._lastSynced = { students: {}, fees: {}, results: {}, parentMessages: {} };
 
 async function saveTenantData() {
   if (!window.currentSchoolId) return; // ডেমো মোডে সিঙ্ক হবে না
@@ -12619,14 +12639,17 @@ async function saveTenantData() {
       syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
       syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
       syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
+      // ✅ parentMessages এখন আলাদা কালেকশনে ডিফ-সিঙ্ক হয় (নিচে data/main-এর বড়
+      // setDoc-এ ইচ্ছাকৃতভাবে নেই) — কারণ ব্যাখ্যা দেখুন loadTenantData()-এর কমেন্টে।
+      syncCollectionDiff(window.currentSchoolId, 'parentMessages', parentMessages, window._lastSynced.parentMessages, 'msg'),
     ]);
     await window.fb.setDoc(window.fb.doc(window.db, 'schools', window.currentSchoolId, 'data', 'main'), {
       teachers, notices,
-      // ⚠️ attendance, students, fees, results ইচ্ছাকৃতভাবে এখানে নেই — এগুলো এখন
-      // আলাদা কালেকশনে সেভ হয় (saveAttendanceDay / syncCollectionDiff দেখুন), যাতে
-      // বড় স্কুলে এই একটামাত্র ডকুমেন্ট ১MB লিমিটের কাছে না যায় এবং দুইজন স্টাফ
+      // ⚠️ attendance, students, fees, results, parentMessages ইচ্ছাকৃতভাবে এখানে নেই —
+      // এগুলো এখন আলাদা কালেকশনে সেভ হয় (saveAttendanceDay / syncCollectionDiff দেখুন),
+      // যাতে বড় স্কুলে এই একটামাত্র ডকুমেন্ট ১MB লিমিটের কাছে না যায়, একাধিক ট্যাব/স্টাফ
       // একসাথে ভিন্ন রেকর্ড এডিট করলে একে অপরের ডেটা মুছে না যায়।
-      payrollStatus, dueSMSLog, parentMessages, classesList, onlineClasses, examSchedule, questionPapers, questionBank,
+      payrollStatus, dueSMSLog, classesList, onlineClasses, examSchedule, questionPapers, questionBank,
       teacherAtt, books, bookIssues, transportRoutes, smsLog, leaveBalances,
       users, // ✅ বাগ-ফিক্স: ইউজার তালিকা (নতুন তৈরি করা অভিভাবক/ছাত্র/শিক্ষক আইডি সহ) এখন Firestore-এ সেভ হবে
       // ✅ বাগ-ফিক্স: আগে এগুলো Firestore-এ সেভ হতো না (শুধু ম্যানুয়াল ব্যাকআপে যেত) —
@@ -12689,6 +12712,7 @@ async function performDataCleanup(btn) {
         syncCollectionDiff(window.currentSchoolId, 'students', students, window._lastSynced.students, 'stu'),
         syncCollectionDiff(window.currentSchoolId, 'fees', fees, window._lastSynced.fees, 'fee'),
         syncCollectionDiff(window.currentSchoolId, 'results', results, window._lastSynced.results, 'res'),
+        syncCollectionDiff(window.currentSchoolId, 'parentMessages', parentMessages, window._lastSynced.parentMessages, 'msg'),
       ]);
 
       // ৩) হাজিরা (attendance) আলাদা কালেকশনে থাকে (প্রতিটা ক্লাস+তারিখ একটা ডকুমেন্ট) —
