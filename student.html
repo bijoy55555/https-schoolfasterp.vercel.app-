@@ -10348,7 +10348,7 @@ function ensureIds(arr, prefix) {
 async function loadCollectionRecords(schoolId, collName) {
   const snap = await window.fb.getDocs(window.fb.collection(window.db, 'schools', schoolId, collName));
   const records = [];
-  snap.forEach(docSnap => records.push(docSnap.data()));
+  snap.forEach(docSnap => records.push({ ...docSnap.data(), id: docSnap.id }));
   return { records, isEmpty: snap.empty };
 }
 // পুরনো data/main-এর অ্যারে থেকে এক-কালীন মাইগ্রেশন — প্রতিটা রেকর্ডকে id দিয়ে আলাদা ডকুমেন্ট বানায়
