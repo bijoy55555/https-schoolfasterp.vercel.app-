@@ -13138,7 +13138,7 @@ function renderParentPortal() {
 
   // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল এলে) =====
   checkAndNotifyHomework(sCls);
-  checkAndNotifyResults(sName, sRoll, sCls);
+  checkAndNotifyResults(sName, sRoll, sCls, matchedStudent);
   renderNotifBadge();
 
   // Fee status
@@ -13402,7 +13402,7 @@ function renderStudentPortal() {
 
   // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল এলে) =====
   checkAndNotifyHomework(sCls);
-  checkAndNotifyResults(sName, sRoll, sCls);
+  checkAndNotifyResults(sName, sRoll, sCls, matchedStudent);
   renderNotifBadge();
 
   // ===== পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) =====
@@ -13611,7 +13611,13 @@ function checkAndNotifyHomework(sCls) {
 }
 
 // নিজের নতুন ফলাফল প্রকাশ হলে নোটিফাই করে
-function checkAndNotifyResults(sName, sRoll, sCls) {
+// ✅ বাগ-ফিক্স: আগে এখানে matchedStudent ব্যবহার হতো, কিন্তু সেটা এই ফাংশনের
+// নিজস্ব স্কোপে সংজ্ঞায়িত ছিল না (শুধু renderParentPortal/renderStudentPortal-এর
+// ভেতরে ছিল) — ফলে "matchedStudent is not defined" এরর হয়ে পুরো
+// renderParentPortal()/renderStudentPortal() ফাংশনটাই এখানে থেমে যেত, আর তার
+// পরের সব আপডেট (ফি অবস্থা, ফি টেবিল, হোমওয়ার্ক তালিকা, বকেয়া ব্যানার) কখনো
+// চলতোই না। এখন matchedStudent প্যারামিটার হিসেবে সরাসরি পাস করা হচ্ছে।
+function checkAndNotifyResults(sName, sRoll, sCls, matchedStudent) {
   if(typeof results==='undefined') return;
   const myResults = results.filter(r=> (matchedStudent && r.studentId && r.studentId===matchedStudent.id) || ((r.roll===sRoll || r.name===sName) && r.cls===sCls));
   const allIds = myResults.map(r=>r.id).filter(Boolean);
