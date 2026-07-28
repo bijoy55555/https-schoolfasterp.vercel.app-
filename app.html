@@ -1156,6 +1156,7 @@
         <button class="fee-tab active" id="ftab-payments" onclick="switchFeeTab('payments')">💳 পেমেন্ট তালিকা</button>
         <button class="fee-tab" id="ftab-ledger" onclick="switchFeeTab('ledger')">📒 আয়-ব্যয় হিসাব</button>
         <button class="fee-tab" id="ftab-due-sms" onclick="switchFeeTab('due-sms')">📲 বকেয়া রিমাইন্ডার</button>
+        <button class="fee-tab" id="ftab-special" onclick="switchFeeTab('special')">🧾 বিশেষ ফি পাঠান</button>
       </div>
 
       <!-- TAB 1: Payments -->
@@ -1287,6 +1288,52 @@
                 <span class="badge badge-red" id="msg-inbox-badge" style="display:none"></span>
               </div>
               <div class="card-body" style="padding:0;max-height:280px;overflow-y:auto" id="msg-inbox-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: বিশেষ/এককালীন ফি (পরীক্ষা ফি, অনুষ্ঠান ফি ইত্যাদি) — একসাথে অনেক ছাত্রের জন্য পাঠানো -->
+      <div id="fee-tab-special" style="display:none">
+        <div style="display:flex;gap:18px;flex-wrap:wrap">
+          <!-- Left: Student picker -->
+          <div style="flex:1.4;min-width:300px">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">👥 ছাত্র বাছাই করুন</div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <span class="badge badge-red" id="special-fee-count-badge">০ জন</span>
+                  <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="selectAllSpecialFee()">সব নির্বাচন</button>
+                </div>
+              </div>
+              <div class="card-body" style="padding:12px 14px">
+                <select class="form-select" id="special-fee-class-filter" onchange="renderSpecialFeeStudents()">
+                  <option value="">সব শ্রেণি</option>
+                </select>
+              </div>
+              <div class="card-body" style="padding:0">
+                <table><thead><tr><th><input type="checkbox" id="special-fee-select-all" onchange="toggleAllSpecialFee(this)"></th><th>ছাত্র</th><th>শ্রেণি</th><th>মোবাইল</th></tr></thead>
+                <tbody id="special-fee-students-tbody"></tbody></table>
+              </div>
+            </div>
+          </div>
+          <!-- Right: Fee compose -->
+          <div style="flex:1;min-width:260px">
+            <div class="card" style="margin-bottom:16px">
+              <div class="card-header"><div class="card-title">🧾 নতুন বিশেষ ফি</div></div>
+              <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+                <div class="form-group">
+                  <label class="form-label">ফির নাম *</label>
+                  <input class="form-input" id="special-fee-name" placeholder="যেমন: মাসিক পরীক্ষা ফি / বার্ষিক অনুষ্ঠান ফি">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">প্রতি ছাত্র পরিমাণ (৳) *</label>
+                  <input class="form-input" id="special-fee-amount" type="number" placeholder="যেমন: ৫০০">
+                </div>
+                <div style="font-size:11px;color:var(--text-muted)" id="special-selected-count">০ জন নির্বাচিত</div>
+                <button class="btn btn-primary" onclick="sendSpecialFee()" style="width:100%">📤 বকেয়া হিসেবে যোগ করে পোর্টালে পাঠান</button>
+                <div style="font-size:11px;color:var(--text-muted);line-height:1.5">✅ নির্বাচিত প্রতিটা ছাত্রের নামে এই পরিমাণ "বকেয়া" হিসেবে যোগ হবে (ফি ম্যানেজমেন্ট ও ড্যাশবোর্ডের মোট বকেয়ায়ও দেখাবে), এবং সাথে সাথে অভিভাবকের পোর্টালে এই নির্দিষ্ট ফি-এর নাম উল্লেখ করে একটা বার্তা চলে যাবে।</div>
+              </div>
             </div>
           </div>
         </div>
@@ -7008,12 +7055,13 @@ async function fetchLateNoticesForStudent(schoolId, sName) {
 }
 
 function switchFeeTab(tab) {
-  ['payments','ledger','due-sms'].forEach(t => {
+  ['payments','ledger','due-sms','special'].forEach(t => {
     document.getElementById('ftab-'+t).classList.toggle('active', t===tab);
     document.getElementById('fee-tab-'+t).style.display = t===tab ? 'block' : 'none';
   });
   if(tab==='ledger') renderLedger();
   if(tab==='due-sms') renderDueSMSTab();
+  if(tab==='special') renderSpecialFeeTab();
 }
 
 function renderFees(list) {
@@ -7676,6 +7724,99 @@ function sendDueSMS() {
 function sendAllDueSMS() {
   selectAllDue();
   sendDueSMS();
+}
+
+// ---- বিশেষ/এককালীন ফি (পরীক্ষা ফি, অনুষ্ঠান ফি ইত্যাদি) — একসাথে অনেক ছাত্রের জন্য ----
+function renderSpecialFeeTab() {
+  // শ্রেণি ফিল্টার ড্রপডাউন — বর্তমান ছাত্র তালিকা থেকে যত ধরনের শ্রেণি আছে, সেগুলো দিয়েই বানানো হয়
+  const sel = document.getElementById('special-fee-class-filter');
+  const currentVal = sel.value;
+  const classes = [...new Set((students||[]).map(s=>s.cls).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">সব শ্রেণি</option>' + classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = classes.includes(currentVal) ? currentVal : '';
+  renderSpecialFeeStudents();
+}
+
+function renderSpecialFeeStudents() {
+  const clsFilter = document.getElementById('special-fee-class-filter').value;
+  const list = (students||[]).filter(s => (!s.status || s.status==='সক্রিয়') && (!clsFilter || s.cls===clsFilter));
+  window._specialFeeStudents = list;
+  document.getElementById('special-fee-students-tbody').innerHTML = list.length===0
+    ? '<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text-muted)">কোনো ছাত্র পাওয়া যায়নি</td></tr>'
+    : list.map((s,i)=>`<tr>
+        <td style="padding:10px 14px"><input type="checkbox" class="special-fee-cb" value="${i}" onchange="updateSpecialFeeSelectedCount()"></td>
+        <td style="padding:10px 14px"><b>${s.name}</b></td>
+        <td style="padding:10px 14px">${s.cls}</td>
+        <td style="padding:10px 14px;font-size:12px;color:var(--text-muted)">${s.phone && s.phone!=='—' ? s.phone : '—'}</td>
+      </tr>`).join('');
+  document.getElementById('special-fee-select-all').checked = false;
+  updateSpecialFeeSelectedCount();
+}
+
+function updateSpecialFeeSelectedCount() {
+  const n = document.querySelectorAll('.special-fee-cb:checked').length;
+  document.getElementById('special-selected-count').textContent = toBnNum(n)+' জন নির্বাচিত';
+  document.getElementById('special-fee-count-badge').textContent = toBnNum(n)+' জন';
+}
+
+function toggleAllSpecialFee(cb) {
+  document.querySelectorAll('.special-fee-cb').forEach(c=>c.checked=cb.checked);
+  updateSpecialFeeSelectedCount();
+}
+
+function selectAllSpecialFee() {
+  document.querySelectorAll('.special-fee-cb').forEach(c=>c.checked=true);
+  const allCb = document.getElementById('special-fee-select-all');
+  if(allCb) allCb.checked = true;
+  updateSpecialFeeSelectedCount();
+}
+
+// নির্বাচিত প্রতিটা ছাত্রের নামে fees[]-এ একটা নতুন "বকেয়া" এন্ট্রি যোগ করে (নির্দিষ্ট নাম+পরিমাণসহ),
+// এবং সাথে সাথে অভিভাবকের পোর্টালে এই নির্দিষ্ট ফি-এর কথা উল্লেখ করে একটা বার্তা পাঠায়।
+// এটা মাসিক বেতনের অটো-জেনারেশন থেকে সম্পূর্ণ আলাদা — শুধু অ্যাডমিন ম্যানুয়ালি চাইলেই তৈরি হয়।
+async function sendSpecialFee() {
+  if(!requirePerm('fees','edit')) return;
+  const name = document.getElementById('special-fee-name').value.trim();
+  const amount = parseFloat(document.getElementById('special-fee-amount').value);
+  const selected = [...document.querySelectorAll('.special-fee-cb:checked')].map(c=>parseInt(c.value));
+  const list = window._specialFeeStudents || [];
+
+  if(!name){ showToast('ফির নাম লিখুন','error'); return; }
+  if(!amount || amount<=0){ showToast('সঠিক পরিমাণ লিখুন','error'); return; }
+  if(selected.length===0){ showToast('অন্তত একজন ছাত্র নির্বাচন করুন','error'); return; }
+
+  const now = new Date();
+  const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  const dateStr = `${toBnNum(now.getDate())} ${months[now.getMonth()]}`;
+  const todayISO = now.toISOString().split('T')[0];
+
+  selected.forEach(i => {
+    const s = list[i];
+    if(!s) return;
+    fees.push({
+      student: s.name, cls: s.cls, type: name, amount,
+      date:'—', month: now.getMonth(), method:'—', status:'বকেয়া',
+      dueDate: todayISO, special:true,
+    });
+    syncStudentFeeStatus(s.name);
+    const totalDue = fees.filter(f=>f.student===s.name && f.status==='বকেয়া').reduce((sum,f)=>sum+(Number(f.amount)||0), 0);
+    parentMessages.unshift({
+      student: s.name, cls: s.cls,
+      msg: `প্রিয় অভিভাবক, আপনার সন্তান ${s.name}-এর জন্য নতুন "${name}" বাবদ ৳${toBnNum(amount)} যোগ হয়েছে। বর্তমানে মোট বকেয়া ৳${toBnNum(totalDue)}। অনুগ্রহ করে যথাসময়ে পরিশোধ করুন। — বিদ্যালয়`,
+      time: now.toLocaleTimeString('bn-BD',{hour:'2-digit',minute:'2-digit'}),
+      createdAt: now.toISOString(),
+      type: 'বিশেষ-ফি', sender:'school', read:false
+    });
+  });
+
+  try { await saveTenantData(); } catch(e){ console.error('বিশেষ ফি সেভ এরর:', e); }
+
+  showToast(`${toBnNum(selected.length)} জন ছাত্রের জন্য "${name}" (৳${toBnNum(amount)}) বকেয়া হিসেবে যোগ ও পোর্টালে পাঠানো হয়েছে ✅`);
+  document.getElementById('special-fee-name').value='';
+  document.getElementById('special-fee-amount').value='';
+  renderFees(); renderDashboard(); renderPortalMsgHistory();
+  if(document.getElementById('student-tbody')) renderStudents();
+  renderSpecialFeeStudents();
 }
 
 // ✅ SMS গেটওয়ে যুক্ত না থাকায় আসল SMS পাঠানো হয় না — এই ফাংশনটা বার্তাটা
