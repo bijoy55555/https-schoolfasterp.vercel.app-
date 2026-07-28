@@ -13114,14 +13114,21 @@ function renderParentPortal() {
   if(!currentUser) return;
   generateAutoFees(); // অভিভাবক পোর্টাল খোলার সময়ও সবশেষ বকেয়া হিসাব করে নেয়
   autoExpireParentMessages(); // পুরনো (৩০+ দিন) বা সমাধান হয়ে যাওয়া বার্তা চুপচাপ মুছে দেয়
-  const sName = currentUser.studentName || currentUser.name;
+  const _cachedName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ✅ বাগ-ফিক্স: আগে কিছু ইউজারের studentCls ভুলভাবে সেভ হয়েছিল (যেমন "নবম - ক - ক",
   // সেকশন দুইবার জোড়া লেগে)। তাই currentUser.studentCls-কে সরাসরি বিশ্বাস না করে,
   // আসল ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক ক্লাস বের করা হয় — এতে পুরনো ভুল ডেটা থাকা
   // অ্যাকাউন্টও এখন থেকে ঠিক ক্লাসের সাথে মিলে যাবে, নতুন করে ইউজার বানানোর দরকার নেই।
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===_cachedName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  // ✅ বাগ-ফিক্স: fee/result রেকর্ড সবসময় ছাত্রের "বর্তমান" নাম দিয়ে সেভ হয় (fees.student =
+  // s.name, generateAutoFees() দেখুন)। কিন্তু আগে এখানে sName হিসেবে অভিভাবক অ্যাকাউন্ট
+  // তৈরির সময়কার cache করা নাম (currentUser.studentName) ব্যবহার হতো — ছাত্রের নাম পরে
+  // এডিট/ঠিক করা হলে এই দুই নাম আলাদা হয়ে যেত, ফলে fees.filter(f=>f.student===sName)
+  // কিছুই মিলাতে পারত না — বকেয়া ব্যানার, ফি বিবরণ টেবিল সব খালি দেখাত।
+  // এখন matchedStudent পাওয়া গেলে তার আসল/বর্তমান নামই ব্যবহার করা হচ্ছে।
+  const sName = (matchedStudent && matchedStudent.name) || _cachedName;
 
   document.getElementById('pp-parent-name').textContent = currentUser.role==='parent'
     ? currentUser.name + ' — অভিভাবক পোর্টাল'
@@ -13380,11 +13387,14 @@ function renderParentPortal() {
 // ছাত্রর নিজের শ্রেণি অনুযায়ী ফিল্টার করে রিড-অনলি আকারে দেখায়।
 function renderStudentPortal() {
   if(!currentUser) return;
-  const sName = currentUser.studentName || currentUser.name;
+  const _cachedName = currentUser.studentName || currentUser.name;
   const sRoll = currentUser.studentRoll || '০০১';
   // ছাত্র তালিকা থেকে রোল/নাম মিলিয়ে সঠিক শ্রেণি বের করা হয় (parent portal-এর মতোই)
-  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===sName);
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===sRoll) || students.find(s=>s.name===_cachedName);
   const sCls = (matchedStudent && matchedStudent.cls) || currentUser.studentCls || 'দশম - ক';
+  // ✅ বাগ-ফিক্স: fee/result রেকর্ড ছাত্রের বর্তমান নাম দিয়ে সেভ থাকে — cache করা পুরনো
+  // নামের বদলে matchedStudent-এর আসল/বর্তমান নাম ব্যবহার করা হচ্ছে (parent portal-এর মতোই)
+  const sName = (matchedStudent && matchedStudent.name) || _cachedName;
 
   document.getElementById('sp-student-name').textContent = sName + ' — ছাত্র পোর্টাল';
   document.getElementById('sp-student-info').textContent = `রোল: ${sRoll} | শ্রেণি: ${sCls}`;
