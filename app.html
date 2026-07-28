@@ -14795,10 +14795,28 @@ function openPaymentModal() {
   if(!currentUser) return;
   selectedPayMethod = 'bkash';
   goPayStep(1);
-  // pre-fill due fee if any
-  const sName = currentUser.studentName || currentUser.name;
-  const hasDue = fees.some(f=>f.student===sName && f.status==='বকেয়া');
-  if(hasDue) document.getElementById('pay-fee-type').value = '500';
+  // ✅ বাগ-ফিক্স: আগে "ফি ধরন" ড্রপডাউনে ৫টা স্থির/ডামি অপশন (৳৫০০, ৳২০০...) HTML-এই
+  // হার্ডকোড করা ছিল — এই amount-গুলো Firestore-এর প্রকৃত fees এন্ট্রির amount-এর
+  // সাথে প্রায় কখনোই মিলত না। যেহেতু /api/initiate-payment amount-কে ছাত্রের আসল
+  // বকেয়া/আংশিক ফি এন্ট্রির সাথে হুবহু মিলিয়ে দেখে, এই ড্রপডাউনটা এখন লাইভ ছাত্র
+  // তালিকা থেকে matchedStudent বের করে তার real বকেয়া/আংশিক fees এন্ট্রি দিয়েই
+  // পপুলেট করা হচ্ছে — যাতে যেটাই সিলেক্ট করা হোক, সার্ভারে সেটা সবসময় একটা
+  // বৈধ এন্ট্রির সাথে মিলবে (parent.html/student.html-এর সাথে সামঞ্জস্যপূর্ণ ফিক্স)।
+  const _cachedName = currentUser.studentName || currentUser.name;
+  const _cachedRoll = currentUser.studentRoll || '০০১';
+  const matchedStudent = students.find(s=>s.id===currentUser.studentId) || students.find(s=>s.roll===_cachedRoll) || students.find(s=>s.name===_cachedName);
+  const sName = (matchedStudent && matchedStudent.name) || _cachedName;
+  const dueFees = fees.filter(f=>f.student===sName && (f.status==='বকেয়া' || f.status==='আংশিক'));
+  const sel = document.getElementById('pay-fee-type');
+  if(dueFees.length > 0) {
+    sel.innerHTML = dueFees.map(f=>
+      `<option value="${Number(f.amount)}">${escHtml(f.type||'ফি')} — ৳${toBnNum(Number(f.amount))}</option>`
+    ).join('');
+  } else {
+    sel.innerHTML = '';
+    showToast('আপাতত কোনো বকেয়া/আংশিক ফি নেই — পরিশোধ করার কিছু নেই', 'error');
+    return;
+  }
   document.getElementById('pay-phone').value = '';
   document.getElementById('pay-err').style.display='none';
   document.getElementById('payment-modal').classList.add('open');
