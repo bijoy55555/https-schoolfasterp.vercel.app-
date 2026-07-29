@@ -6267,15 +6267,26 @@ async function notifyAllExistingDueStudents() {
   if(typeof renderPortalMsgHistory==='function') renderPortalMsgHistory();
   showToast(`✅ ${toBnNum(sentCount)} জন ছাত্রের অভিভাবক পোর্টালে বকেয়া-নোটিশ পাঠানো হয়েছে`);
 }
-function deleteStudent(idx) {
+// ✅ বাগ-ফিক্স: আগে ডিলিট করলে সাথে সাথে স্ক্রিন থেকে সরে যেত, কিন্তু ক্লাউডে সেভ
+// ব্যর্থ হলে (ইন্টারনেট/পারমিশন সমস্যা) সেটা কোথাও দেখানো হতো না — ফলে কিছুক্ষণ পর
+// রিলোড/লগইন করলে "মুছে ফেলা" ছাত্র আবার ফিরে আসতো, কোনো ব্যাখ্যা ছাড়াই। এখন সেভ
+// শেষ না হওয়া পর্যন্ত অপেক্ষা করা হয় — ব্যর্থ হলে তালিকায় ফিরিয়ে এনে স্পষ্ট এরর দেখানো হয়।
+async function deleteStudent(idx) {
   if(!requirePerm('students','del')) return;
   if(!confirm('এই ছাত্রকে তালিকা থেকে সরাবেন?')) return;
+  const removed = students[idx];
+  if(!removed) return;
   students.splice(idx,1);
   renderStudents(); renderDashboard();
-  showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
-  // ✅ বাগ-ফিক্স: মোছার পরও সাথে সাথে ক্লাউডে সেভ করা হচ্ছে, নইলে অ্যাপ দ্রুত বন্ধ করলে
-  // মোছা ছাত্র পরে আবার (পুরনো ক্লাউড ডেটা থেকে) ফিরে আসতে পারত।
-  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
+  try {
+    if(typeof saveTenantData==='function') await saveTenantData();
+    showToast('ছাত্র তালিকা থেকে সরানো হয়েছে','error');
+  } catch(e) {
+    console.error('ছাত্র ডিলিট — ক্লাউড সেভ এরর:', e);
+    students.splice(idx,0,removed); // ব্যর্থ হলে তালিকায় ফিরিয়ে আনা হলো
+    renderStudents(); renderDashboard();
+    showToast('❌ মুছতে ব্যর্থ হয়েছে (ইন্টারনেট বা পারমিশন সমস্যা) — আবার চেষ্টা করুন', 'error');
+  }
 }
 
 // ============ DUMMY STUDENT GENERATOR (টেস্টিং-এর জন্য) ============
@@ -13007,9 +13018,24 @@ async function performDataCleanup(btn) {
 }
 
 let _autoSaveTimer = null;
+let _autoSaveFailStreak = 0;
+async function _autoSaveTick() {
+  try {
+    await saveTenantData();
+    // ✅ বাগ-ফিক্স: আগে অটো-সেভ ব্যর্থ হলে (ইন্টারনেট/পারমিশন সমস্যা) কোথাও দেখানো হতো
+    // না — ফলে মোছা/এডিট করা ডেটা আসলে ক্লাউডে সেভই হচ্ছে না সেটা বোঝার উপায় ছিল না,
+    // এবং পরে রিলোড করলে পুরনো ডেটা আবার ফিরে আসতো। এখন বারবার ব্যর্থ হলে সতর্ক করা হয়।
+    if (_autoSaveFailStreak >= 2) showToast('✅ ক্লাউডের সাথে সংযোগ ফিরে এসেছে, সেভ হচ্ছে');
+    _autoSaveFailStreak = 0;
+  } catch (e) {
+    _autoSaveFailStreak++;
+    console.error('অটো-সেভ এরর:', e);
+    if (_autoSaveFailStreak === 2) showToast('⚠️ ক্লাউডে সেভ হচ্ছে না (ইন্টারনেট/পারমিশন সমস্যা) — সাম্প্রতিক পরিবর্তন হারিয়ে যেতে পারে', 'error');
+  }
+}
 function startAutoSave() {
   if (_autoSaveTimer) clearInterval(_autoSaveTimer);
-  _autoSaveTimer = setInterval(saveTenantData, 20000); // প্রতি ২০ সেকেন্ডে অটো-সেভ
+  _autoSaveTimer = setInterval(_autoSaveTick, 20000); // প্রতি ২০ সেকেন্ডে অটো-সেভ
   window.addEventListener('beforeunload', saveTenantData);
 }
 
