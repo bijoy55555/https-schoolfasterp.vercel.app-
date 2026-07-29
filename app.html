@@ -16,12 +16,17 @@
   * { margin:0; padding:0; box-sizing:border-box; }
   body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; min-height:100dvh; }
   .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; height:100dvh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
-  .sidebar-close { display:none; }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
   .sidebar-overlay.active { display:block; }
-  @media(max-width:1024px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0); z-index:220} .main{margin-left:0!important} .sidebar-close{display:block} }
+  @media(max-width:1024px) { .sidebar{transform:translateX(-100%)} .sidebar.open{transform:translateX(0); z-index:220} .main{margin-left:0!important} }
+  /* বড় স্ক্রিনে (কম্পিউটার) সাইডবার ডিফল্টে খোলা থাকে, কিন্তু ✕/☰ দিয়ে বন্ধ-খোলা করা যাবে */
+  @media(min-width:1025px) {
+    .main { transition: margin-left 0.28s cubic-bezier(.4,0,.2,1); }
+    body.sidebar-collapsed .sidebar { transform: translateX(-100%); }
+    body.sidebar-collapsed .main { margin-left:0; }
+  }
   .sidebar-logo { padding:22px 20px 18px; border-bottom:1px solid rgba(255,255,255,0.08); position:relative; text-align:center; }
-  .sidebar-close { position:absolute; top:16px; right:14px; background:none; border:none; color:rgba(255,255,255,0.7); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
+  .sidebar-close { display:block; position:absolute; top:16px; right:14px; background:none; border:none; color:rgba(255,255,255,0.7); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
   .sidebar-close:hover { color:#fff; }
   .sidebar-logo .school-name { font-size:15px; font-weight:700; color:#fff; line-height:1.3; }
   .sidebar-logo .school-sub { font-size:11px; color:rgba(255,255,255,0.45); margin-top:2px; }
@@ -34,8 +39,8 @@
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
   .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; }
-  .hamburger { display:none; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
-  @media(max-width:1024px) { .hamburger{display:block} .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
+  .hamburger { display:block; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
+  @media(max-width:1024px) { .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
   /* ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন (শুধু অ্যাডমিন/প্রধান শিক্ষক দেখবে) ===== */
@@ -676,7 +681,7 @@
 
 <aside class="sidebar">
   <div class="sidebar-logo">
-    <button class="sidebar-close" onclick="closeSidebar()" title="মেনু বন্ধ করুন">✕</button>
+    <button class="sidebar-close" onclick="closeSidebar(true)" title="মেনু বন্ধ করুন">✕</button>
     <div class="logo-badge"><svg viewBox="0 0 24 24" width="18" height="18" fill="#fff" xmlns="http://www.w3.org/2000/svg"><path d="M12 2 1 8l11 6 9-4.91V17h2V8L12 2Zm0 8.5L4.24 8 12 4.5 19.76 8 12 10.5ZM5 11.18v4.68C5 17.66 8.13 19 12 19s7-1.34 7-3.14v-4.68l-7 3.82-7-3.82Z"/></svg></div>
     <div class="school-name">আদর্শ উচ্চ বিদ্যালয়</div>
     <div class="school-sub">Adarsha High School, Dhaka</div>
@@ -5406,12 +5411,20 @@ function hwSubmittedCount(h) {
 
 // ============ SIDEBAR / NAV ============
 function toggleSidebar() {
-  document.querySelector('.sidebar').classList.toggle('open');
-  document.getElementById('overlay').classList.toggle('active');
+  if (window.innerWidth <= 1024) {
+    document.querySelector('.sidebar').classList.toggle('open');
+    document.getElementById('overlay').classList.toggle('active');
+  } else {
+    document.body.classList.toggle('sidebar-collapsed');
+  }
 }
-function closeSidebar() {
-  document.querySelector('.sidebar').classList.remove('open');
-  document.getElementById('overlay').classList.remove('active');
+function closeSidebar(force) {
+  if (window.innerWidth <= 1024) {
+    document.querySelector('.sidebar').classList.remove('open');
+    document.getElementById('overlay').classList.remove('active');
+  } else if (force) {
+    document.body.classList.add('sidebar-collapsed');
+  }
 }
 // সাইডবারে সংশ্লিষ্ট nav-item না ধরেই কোনো পেজে যাওয়ার জন্য ছোট হেল্পার (যেমন প্রোফাইল পেজের বাটনগুলো)
 function navGo(id){
