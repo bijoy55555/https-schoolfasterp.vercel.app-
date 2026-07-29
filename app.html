@@ -6077,23 +6077,32 @@ function compressImageFile(file, maxDim = 400, maxSizeKB = 50) {
       const img = new Image();
       img.onerror = () => reject(new Error('ছবি লোড করতে ব্যর্থ'));
       img.onload = () => {
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
-          else { width = Math.round(width * maxDim / height); height = maxDim; }
+        // ✅ বাগ-ফিক্স: এই কলব্যাকটা Promise executor-এর বাইরে (event handler হিসেবে)
+        // async ভাবে চলে, তাই এখানে কোনো এরর থ্রো হলে আগে সেটা কখনো catch হতো না —
+        // promise-টা চিরকালের জন্য pending থেকে যেত এবং await uploadStudentPhoto(...)
+        // ফর্ম সাবমিট চিরতরে আটকে দিত (না রেজলভ, না রিজেক্ট)। এখন try/catch দিয়ে
+        // যেকোনো এরর ধরে reject() করা হচ্ছে, যাতে বাইরের try/catch সেটা ধরতে পারে।
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          let quality = 0.85;
+          const tryExport = () => {
+            canvas.toBlob(blob => {
+              if (!blob) { reject(new Error('ছবি কম্প্রেস করতে ব্যর্থ')); return; }
+              if (blob.size / 1024 <= maxSizeKB || quality <= 0.3) resolve(blob);
+              else { quality -= 0.15; tryExport(); }
+            }, 'image/jpeg', quality);
+          };
+          tryExport();
+        } catch (err) {
+          reject(err);
         }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        let quality = 0.85;
-        const tryExport = () => {
-          canvas.toBlob(blob => {
-            if (!blob) { reject(new Error('ছবি কম্প্রেস করতে ব্যর্থ')); return; }
-            if (blob.size / 1024 <= maxSizeKB || quality <= 0.3) resolve(blob);
-            else { quality -= 0.15; tryExport(); }
-          }, 'image/jpeg', quality);
-        };
-        tryExport();
       };
       img.src = e.target.result;
     };
@@ -6119,14 +6128,11 @@ async function uploadStudentPhoto(schoolId, studentId, file) {
   try {
     const blob = await compressImageFile(file, 400, 50);
     if (!blob) return '';
-    if (schoolId && window.fb && window.fb.storageRef && window.storage) {
-      const path = `schools/${schoolId}/students/${studentId}.jpg`;
-      const ref = window.fb.storageRef(window.storage, path);
-      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
-      return await window.fb.getDownloadURL(ref);
-    }
-    // ডেমো/অফলাইন মোড (কোনো schoolId নেই) — ক্লাউড Storage ব্যবহার করা যায় না,
-    // তাই ছোট কম্প্রেসড ছবিটাই base64 হিসেবে রাখা হচ্ছে (এটা তখনও ছোট, কারণ আগেই কম্প্রেস করা হয়েছে)
+    // ⚠️ বাগ-ফিক্স: Firebase Storage ২০২৬ থেকে ফ্রি (Spark) প্ল্যানে কাজ করে না (Blaze
+    // লাগে) — আগে এখানে window.fb.uploadBytes() দিয়ে Storage-এ আপলোডের চেষ্টা হতো,
+    // যা Spark প্ল্যানের স্কুলে (বিলিং চালু না থাকলে) ব্যর্থ হতো বা আটকে থাকত, ফলে
+    // ছবি সহ ছাত্র ভর্তি করলে ফর্ম সম্পন্নই হতো না। uploadMyProfilePhoto()-এর মতোই
+    // এখন কম্প্রেসড ছবি সরাসরি base64 হিসেবে রাখা হচ্ছে (Firestore-এ সেভ হবে, Storage লাগবে না)
     return await blobToBase64(blob);
   } catch (e) {
     console.error('ছবি আপলোড এরর:', e);
@@ -6142,12 +6148,8 @@ async function uploadTeacherPhoto(schoolId, teacherId, file) {
   try {
     const blob = await compressImageFile(file, 400, 50);
     if (!blob) return '';
-    if (schoolId && window.fb && window.fb.storageRef && window.storage) {
-      const path = `schools/${schoolId}/teachers/${teacherId}.jpg`;
-      const ref = window.fb.storageRef(window.storage, path);
-      await window.fb.uploadBytes(ref, blob, { contentType: 'image/jpeg' });
-      return await window.fb.getDownloadURL(ref);
-    }
+    // ⚠️ বাগ-ফিক্স: uploadStudentPhoto()-এর মতোই — Firebase Storage Spark (ফ্রি)
+    // প্ল্যানে কাজ করে না, তাই এখন base64 হিসেবে সরাসরি Firestore-এ সেভ হচ্ছে
     return await blobToBase64(blob);
   } catch (e) {
     console.error('শিক্ষকের ছবি আপলোড এরর:', e);
