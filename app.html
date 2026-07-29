@@ -4510,7 +4510,7 @@
   <div class="modal-box">
     <div class="modal-header"><div class="modal-header-title" id="md-modal-title">+ নতুন শ্রেণি যোগ</div><button class="modal-close" onclick="closeModal('master-add-modal')">×</button></div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label" id="md-name-label">শ্রেণির নাম *</label><input class="form-input" id="md-name" placeholder="যেমন: একাদশ"></div>
+      <div class="form-group" id="md-name-wrap"><label class="form-label" id="md-name-label">শ্রেণির নাম *</label><input class="form-input" id="md-name" placeholder="যেমন: একাদশ"></div>
       <div class="form-group" id="md-extra-wrap" style="display:none"><label class="form-label" id="md-extra-label">সংশ্লিষ্ট শ্রেণি</label>
         <select class="form-select" id="md-extra"></select>
       </div>
@@ -8745,6 +8745,7 @@ function setActiveSession(idx){ if(!requirePerm('session','edit')) return; sessi
 function deleteSession(idx){ if(!requirePerm('session','del')) return; sessions.splice(idx,1); renderSessions(); showToast('মুছা হয়েছে','error'); }
 
 // ============ MASTER DATA (CLASS/SECTION/SUBJECT/GROUP) ============
+const STANDARD_CLASS_NAMES = ['প্লে','নার্সারি','কেজি','প্রথম','দ্বিতীয়','তৃতীয়','চতুর্থ','পঞ্চম','ষষ্ঠ','সপ্তম','অষ্টম','নবম','দশম','একাদশ','দ্বাদশ'];
 let currentMasterTab = 'class';
 const masterConfig = {
   class:   {title:'শ্রেণি তালিকা', list:()=>classesList, nameLabel:'শ্রেণির নাম *', hasExtra:false, cols:['শ্রেণির নাম']},
@@ -8779,7 +8780,17 @@ function openMasterAddModal() {
   const cfg = masterConfig[currentMasterTab];
   document.getElementById('md-modal-title').textContent = '+ নতুন ' + cfg.title.replace(' তালিকা','') + ' যোগ';
   document.getElementById('md-name-label').textContent = cfg.nameLabel;
-  document.getElementById('md-name').value='';
+  const nameWrap = document.getElementById('md-name-wrap');
+  if(currentMasterTab==='class') {
+    const existingNames = classesList.map(c=>c.name);
+    const availableNames = STANDARD_CLASS_NAMES.filter(n=>!existingNames.includes(n));
+    const optionsHtml = availableNames.length
+      ? availableNames.map(n=>`<option value="${n}">${n}</option>`).join('')
+      : '<option value="">সব শ্রেণি ইতিমধ্যে যোগ করা হয়েছে</option>';
+    nameWrap.innerHTML = `<label class="form-label" id="md-name-label">${cfg.nameLabel}</label><select class="form-select" id="md-name">${optionsHtml}</select>`;
+  } else {
+    nameWrap.innerHTML = `<label class="form-label" id="md-name-label">${cfg.nameLabel}</label><input class="form-input" id="md-name" placeholder="যেমন: একাদশ">`;
+  }
   const extraWrap = document.getElementById('md-extra-wrap');
   const extraLabelEl = document.getElementById('md-extra-label');
   if(cfg.hasExtra) {
@@ -8797,7 +8808,8 @@ function saveMasterItem() {
   if(!requirePerm('master-data','edit')) return;
   const cfg = masterConfig[currentMasterTab];
   const name = document.getElementById('md-name').value.trim();
-  if(!name){showErr('md-error','নাম লিখুন');return;}
+  if(!name){showErr('md-error', currentMasterTab==='class' ? 'একটি শ্রেণি নির্বাচন করুন' : 'নাম লিখুন');return;}
+  if(currentMasterTab==='class' && classesList.some(c=>c.name===name)){showErr('md-error','এই শ্রেণি ইতিমধ্যে যোগ করা আছে');return;}
   hideErr('md-error');
   const extraEl = document.getElementById('md-extra');
   if(currentMasterTab==='section') sectionsList.push({name, cls: extraEl?extraEl.value:''});
