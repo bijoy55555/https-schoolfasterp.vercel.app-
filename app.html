@@ -917,14 +917,8 @@
       </div>
       <div class="two-col">
         <div class="card">
-          <div class="card-header"><div class="card-title">আজকের ক্লাস রুটিন</div><span class="card-link">দশম - ক</span></div>
-          <div class="card-body">
-            <div class="schedule-item"><div class="schedule-time">৮:০০</div><div class="schedule-dot" style="background:#2e86c1"></div><div><div class="schedule-subject">বাংলা ব্যাকরণ</div><div class="schedule-class">মো. রফিকুল ইসলাম</div></div></div>
-            <div class="schedule-item"><div class="schedule-time">৯:০০</div><div class="schedule-dot" style="background:#1e8449"></div><div><div class="schedule-subject">গণিত</div><div class="schedule-class">নাসরিন সুলতানা</div></div></div>
-            <div class="schedule-item"><div class="schedule-time">১০:০০</div><div class="schedule-dot" style="background:#e67e22"></div><div><div class="schedule-subject">ইংরেজি</div><div class="schedule-class">আনিসুর রহমান</div></div></div>
-            <div class="schedule-item"><div class="schedule-time">১১:০০</div><div class="schedule-dot" style="background:#8e44ad"></div><div><div class="schedule-subject">বিজ্ঞান</div><div class="schedule-class">ফারজানা আক্তার</div></div></div>
-            <div class="schedule-item"><div class="schedule-time">১২:০০</div><div class="schedule-dot" style="background:#c0392b"></div><div><div class="schedule-subject">ইতিহাস</div><div class="schedule-class">শামসুল হক</div></div></div>
-          </div>
+          <div class="card-header"><div class="card-title">আজকের ক্লাস রুটিন</div><span class="card-link" id="dash-today-routine-label"></span></div>
+          <div class="card-body" id="dash-today-routine"></div>
         </div>
         <div class="card">
           <div class="card-header">
@@ -5516,8 +5510,6 @@ function renderDashboard() {
   const collected = fees.filter(f=>f.status==='পরিশোধিত').reduce((a,f)=>a+f.amount,0);
   document.getElementById('dash-fee').textContent = toBnNum(collected)+'৳';
   document.getElementById('dash-fee-sub').textContent = `${fees.filter(f=>f.status==='বকেয়া').length} টি বকেয়া`;
-  document.getElementById('dash-att').textContent = '৯১%';
-  document.getElementById('dash-att-sub').textContent = 'আজকের রেকর্ড';
 
   // Recent students
   const tbody = document.getElementById('dash-recent-students');
@@ -5526,17 +5518,48 @@ function renderDashboard() {
     <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
   </tr>`).join('');
 
-  // Class attendance bars
-  const classes = ['দশম','নবম','অষ্টম','সপ্তম','ষষ্ঠ'];
-  const pcts = [95,92,88,90,82];
-  const colors = ['#1e8449','#1e8449','#d4ac0d','#1e8449','#c0392b'];
-  document.getElementById('dash-class-att').innerHTML = classes.map((c,i)=>`
-    <div style="margin-bottom:14px">
+  // ✅ আসল হাজিরার ডেটা থেকে "আজকের উপস্থিতি" ও শ্রেণিভিত্তিক বার হিসাব করা হয় —
+  // আগে এখানে ফিক্সড ডামি মান (৯১%, ৯৫/৯২/৮৮/৯০/৮২) বসানো ছিল যা কখনো বদলাতো না
+  const todayDk = dateKey();
+  const bnDaysShort = ['রবি','সোম','মঙ্গল','বুধ','বৃহ','শুক্র','শনি'];
+  const clsListForAtt = [...new Set(students.map(s=>s.cls).filter(Boolean))];
+  const classAttSummaries = [];
+  let todayPresentSum = 0, todayMarkedSum = 0;
+  clsListForAtt.forEach(cls=>{
+    const rec = (attendance[cls] && attendance[cls][todayDk]) ? attendance[cls][todayDk] : null;
+    if(!rec) return;
+    const vals = Object.values(rec);
+    if(vals.length===0) return;
+    const present = vals.filter(v=>v==='P'||v==='L').length;
+    todayPresentSum += present; todayMarkedSum += vals.length;
+    classAttSummaries.push({cls, pct: Math.round(present/vals.length*100)});
+  });
+  document.getElementById('dash-att').textContent = todayMarkedSum>0 ? toBnNum(Math.round(todayPresentSum/todayMarkedSum*100))+'%' : '—';
+  document.getElementById('dash-att-sub').textContent = todayMarkedSum>0 ? 'আজকের রেকর্ড' : 'আজ হাজিরা নেওয়া হয়নি';
+
+  document.getElementById('dash-class-att').innerHTML = classAttSummaries.length ? classAttSummaries.map(p=>{
+    const color = p.pct>=80?'#1e8449':p.pct>=50?'#d4ac0d':'#c0392b';
+    return `<div style="margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
-        <span style="font-weight:600">${c} শ্রেণি</span><span style="color:${colors[i]};font-weight:700">${toBnNum(pcts[i])}%</span>
+        <span style="font-weight:600">${p.cls} শ্রেণি</span><span style="color:${color};font-weight:700">${toBnNum(p.pct)}%</span>
       </div>
-      <div class="att-bar"><div class="att-fill" style="width:${pcts[i]}%;background:linear-gradient(90deg,${colors[i]},${colors[i]}cc)"></div></div>
-    </div>`).join('');
+      <div class="att-bar"><div class="att-fill" style="width:${p.pct}%;background:linear-gradient(90deg,${color},${color}cc)"></div></div>
+    </div>`;
+  }).join('') : `<div style="padding:10px;color:var(--text-muted);font-size:13px">আজ এখনো কোনো শ্রেণির হাজিরা নেওয়া হয়নি</div>`;
+
+  // ✅ "আজকের ক্লাস রুটিন" — আগে HTML-এ সরাসরি বসানো ডামি সময়সূচি দেখাতো, এখন routines[] থেকে সত্যিকারের আজকের ক্লাস দেখায়
+  const todayShort = bnDaysShort[new Date().getDay()];
+  const labelEl = document.getElementById('dash-today-routine-label');
+  if(labelEl) labelEl.textContent = todayShort + 'বার';
+  const todaysClasses = routines.filter(r=>Array.isArray(r.days) && r.days.includes(todayShort))
+    .slice().sort((a,b)=>String(a.time||'').localeCompare(String(b.time||''),'bn'));
+  const routineDotColors = ['#2e86c1','#1e8449','#e67e22','#8e44ad','#c0392b','#16a085'];
+  const routineBody = document.getElementById('dash-today-routine');
+  if(routineBody) {
+    routineBody.innerHTML = todaysClasses.length ? todaysClasses.map((r,i)=>`
+      <div class="schedule-item"><div class="schedule-time">${r.time||''}</div><div class="schedule-dot" style="background:${routineDotColors[i%routineDotColors.length]}"></div><div><div class="schedule-subject">${r.subject||''} — ${r.cls||''}</div><div class="schedule-class">${r.teacher||'—'}</div></div></div>
+    `).join('') : `<div style="padding:10px;color:var(--text-muted);font-size:13px">আজকের জন্য কোনো ক্লাস রুটিন যোগ করা হয়নি</div>`;
+  }
 
   // Notices
   document.getElementById('dash-notices').innerHTML = notices.slice(0,4).map(n=>`
@@ -5911,18 +5934,20 @@ function renderDashboardChartsAll() {
     const typeMap = {};
     fees.filter(f=>f.status==='পরিশোধিত').forEach(f=>{ typeMap[f.type] = (typeMap[f.type]||0)+Number(f.amount||0); });
     const typeLabels = Object.keys(typeMap);
-    if(typeLabels.length) {
-      drawDonutChart('dash-chart-income-source', typeLabels, Object.values(typeMap),
-        ['#1e8449','#2e86c1','#e67e22','#8e44ad','#c0392b','#16a085'], 'dash-income-source-legend');
-    }
+    // ✅ আগে ডেটা না থাকলে এই চার্ট রিড্র-ই হতো না, ফলে ক্লিনআপ/মুছে ফেলার পরও আগের পুরনো
+    // চার্ট ও লিজেন্ড স্ক্রিনে আটকে থাকতো। এখন সবসময় রিড্র হয়, খালি হলে "কোনো তথ্য নেই" দেখাবে।
+    drawDonutChart('dash-chart-income-source',
+      typeLabels.length ? typeLabels : ['কোনো তথ্য নেই'],
+      typeLabels.length ? Object.values(typeMap) : [0],
+      ['#1e8449','#2e86c1','#e67e22','#8e44ad','#c0392b','#16a085'], 'dash-income-source-legend');
 
     const catMap = {};
     expenses.forEach(e=>{ catMap[e.cat] = (catMap[e.cat]||0)+Number(e.amount||0); });
     const catLabels = Object.keys(catMap);
-    if(catLabels.length) {
-      drawDonutChart('dash-chart-expense-cat', catLabels, Object.values(catMap),
-        ['#c0392b','#e67e22','#8e44ad','#2e86c1','#1e8449','#16a085'], 'dash-expense-cat-legend');
-    }
+    drawDonutChart('dash-chart-expense-cat',
+      catLabels.length ? catLabels : ['কোনো তথ্য নেই'],
+      catLabels.length ? Object.values(catMap) : [0],
+      ['#c0392b','#e67e22','#8e44ad','#2e86c1','#1e8449','#16a085'], 'dash-expense-cat-legend');
 
     const paid = fees.filter(f=>f.status==='পরিশোধিত').length;
     const due = fees.filter(f=>f.status==='বকেয়া').length;
@@ -12930,7 +12955,7 @@ async function performDataCleanup(btn) {
     eventBudgets = []; books = []; bookIssues = []; vehicles = [];
     transportRoutes = []; teacherAtt = {}; payrollStatus = {};
     smsLog = []; dueSMSLog = []; parentMessages = []; leaveBalances = {};
-    cctvCameras = []; attendance = {};
+    cctvCameras = []; attendance = {}; auditLog = [];
 
     if (window.currentSchoolId) {
       // ২) students/fees/results — আলাদা কালেকশন, তাই ডিফ-সিঙ্ক করলেই ক্লাউড থেকে
