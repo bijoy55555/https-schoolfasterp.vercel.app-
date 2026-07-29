@@ -4285,6 +4285,29 @@
   </div>
 </div>
 
+<!-- ✅ নির্দিষ্ট বকেয়া এন্ট্রি সরাসরি স্কুলে নগদ/হাতে-হাতে পরিশোধ হলে সেটাকে "পরিশোধিত" করার মডাল
+     — নতুন ডুপ্লিকেট এন্ট্রি বানায় না, আসল বকেয়া এন্ট্রিটাকেই আপডেট করে -->
+<div class="modal-overlay" id="cash-collect-modal">
+  <div class="modal-box">
+    <div class="modal-header" style="background:var(--accent)"><div class="modal-header-title">💵 নগদ আদায় করুন</div><button class="modal-close" onclick="closeModal('cash-collect-modal')">×</button></div>
+    <div class="modal-body">
+      <div style="background:#fdf6ec;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.7">
+        ছাত্র: <b id="cc-student">—</b><br>
+        ফি ধরন: <b id="cc-type">—</b><br>
+        বকেয়া পরিমাণ: <b id="cc-amount">—</b>
+      </div>
+      <div class="form-group"><label class="form-label">টাকা গ্রহণের পদ্ধতি *</label>
+        <select class="form-select" id="cc-method"><option>নগদ</option><option>বিকাশ</option><option>নগদ (মোবাইল)</option><option>রকেট</option><option>ব্যাংক</option></select>
+      </div>
+      <div class="form-error" id="cc-error"></div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('cash-collect-modal')">বাতিল</button>
+        <button class="btn btn-primary" style="flex:2" onclick="confirmCashCollect()">✓ পরিশোধিত হিসেবে সেভ করুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- RESULT MODAL -->
 <div class="modal-overlay" id="result-modal">
   <div class="modal-box" style="max-width:520px">
@@ -7076,6 +7099,7 @@ function renderFees(list) {
     <td><span class="badge ${feeClass(f.status)}">${f.status}</span></td>
     <td class="no-print" style="white-space:nowrap">
       ${f.status==='পরিশোধিত'?`<button class="btn" style="background:#d5f5e3;color:var(--success);font-size:11px;padding:4px 8px;margin:2px" onclick="openReceipt(${fees.indexOf(f)})">🧾 রসিদ</button>`:''}
+      ${(f.status==='বকেয়া'||f.status==='আংশিক')?`<button class="btn" style="background:#fdebd0;color:var(--accent);font-size:11px;padding:4px 8px;margin:2px" onclick="openCashCollectModal(${fees.indexOf(f)})">💵 নগদ আদায় করুন</button>`:''}
       <button class="btn btn-danger" style="margin:2px" onclick="deleteFee(${fees.indexOf(f)})">মুছুন</button>
     </td>
   </tr>`).join('');
@@ -7148,6 +7172,43 @@ function deleteFee(idx) {
   renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
   showToast('পেমেন্ট রেকর্ড মুছে ফেলা হয়েছে','error');
   if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
+}
+
+// ---- নগদ/হাতে-হাতে আদায় (স্কুলে এসে সরাসরি টাকা জমা দিলে) ----
+// এটা নতুন কোনো এন্ট্রি বানায় না — যে বকেয়া/আংশিক এন্ট্রির পাশে বাটন চাপা হয়েছে,
+// ঠিক সেটাকেই "পরিশোধিত" বানিয়ে দেয়, তাই বকেয়ার হিসাব ডাবল হয় না।
+function openCashCollectModal(idx) {
+  const f = fees[idx];
+  if(!f) return;
+  window._cashCollectIdx = idx;
+  document.getElementById('cc-student').textContent = f.student + (f.cls ? ` — ${f.cls}` : '');
+  document.getElementById('cc-type').textContent = f.type || '—';
+  document.getElementById('cc-amount').textContent = '৳' + toBnNum(f.amount);
+  document.getElementById('cc-method').value = 'নগদ';
+  hideErr('cc-error');
+  openModal('cash-collect-modal');
+}
+
+function confirmCashCollect() {
+  if(!requirePerm('fees','edit')) return;
+  const idx = window._cashCollectIdx;
+  const f = fees[idx];
+  if(!f){ showErr('cc-error','এই এন্ট্রিটা আর পাওয়া যাচ্ছে না, পেজ রিফ্রেশ করুন'); return; }
+  const method = document.getElementById('cc-method').value;
+  const now = new Date();
+  const months = ['জানুয়ারি','ফেব্রুয়ারি','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ্টেম্বর','অক্টোবর','নভেম্বর','ডিসেম্বর'];
+  f.status = 'পরিশোধিত';
+  f.date = `${toBnNum(now.getDate())} ${months[now.getMonth()]}`;
+  f.month = now.getMonth();
+  f.method = method;
+  f.receiptNo = f.receiptNo || receiptCounter++;
+  syncStudentFeeStatus(f.student);
+  closeModal('cash-collect-modal');
+  renderFees(); renderDashboard(); if(document.getElementById('student-tbody')) renderStudents();
+  autoExpireParentMessages(); // এই বকেয়া মিটে যাওয়ায় সংশ্লিষ্ট পোর্টাল-নোটিশ থাকলে নিজে থেকেই মুছে যাবে
+  showToast(`${f.student}-এর "${f.type}" নগদ আদায় হয়েছে ✅ রসিদ প্রস্তুত।`);
+  if(typeof saveTenantData==='function') saveTenantData().catch(()=>{});
+  setTimeout(()=>openReceipt(idx),500);
 }
 
 // ---- RECEIPT ----
@@ -7888,7 +7949,7 @@ async function autoExpireParentMessages() {
   parentMessages = parentMessages.filter(m => {
     const t = m.createdAt ? new Date(m.createdAt).getTime() : Date.now();
     if(t < cutoff) return false; // ৩০ দিনের বেশি পুরনো — মুছে যাক
-    if(m.type==='বকেয়া') {
+    if(m.type==='বকেয়া' || m.type==='বিশেষ-ফি') {
       const stillDue = fees.some(f=>f.student===m.student && f.status==='বকেয়া');
       if(!stillDue) return false; // ফি পরিশোধ হয়ে গেছে — এই বার্তার আর দরকার নেই
     }
