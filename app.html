@@ -12661,17 +12661,29 @@ async function loadTenantData(schoolId) {
     // বরং প্রতিটা আলাদা কালেকশনে (schools/{id}/students|fees|results/{id})। প্রথমে
     // নতুন কালেকশন থেকে লোড করা হয়; খালি পেলে ও পুরনো data/main-এ ডেটা থাকলে
     // এক-কালীন মাইগ্রেশন চালিয়ে নতুন কালেকশনে কপি করে নেওয়া হয়।
+    // ✅ আসল বাগ-ফিক্স: এই তিনটা fallback (students/fees/results) আগে শুধু "নতুন কালেকশন
+    // খালি" এই শর্তে চলতো — কিন্তু কোনো সাময়িক নেটওয়ার্ক/পারমিশন সমস্যায় getDocs ব্যর্থ
+    // হলে (catch ব্লকেও একই ফলব্যাক ছিল), অথবা সব ছাত্র মুছে ফেলার পর কালেকশন সত্যিই খালি
+    // হয়ে গেলে — দুই ক্ষেত্রেই এটা data/main ডকুমেন্টে সেই পুরনো (মাইগ্রেশনের আগের) স্ট্যাল
+    // ডেমো/পুরনো ডেটা থেকে ছাত্র/ফি/ফলাফল আবার ফিরিয়ে আনতো — এই কারণেই মোছা ছাত্র
+    // "নিজে থেকে" আবার ফিরে আসছিল! এখন d.collectionsMigrated ফ্ল্যাগ একবার সত্যি হয়ে
+    // গেলে এই ফলব্যাক আর কখনো চলবে না — নতুন কালেকশন খালি মানেই তখন "সত্যিই খালি"।
     try {
       const { records: newStudents, isEmpty: stuEmpty } = await loadCollectionRecords(schoolId, 'students');
       if (!stuEmpty) {
         students = newStudents;
         students.forEach(s => { window._lastSynced.students[s.id] = JSON.stringify(s); });
-      } else if (d.students && d.students.length > 0) {
+      } else if (!d.collectionsMigrated && d.students && d.students.length > 0) {
         students = await migrateArrayToCollection(schoolId, 'students', d.students, 'stu', window._lastSynced.students);
+      } else {
+        students = [];
       }
     } catch (e) {
-      console.error('students কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
-      if (d.students) students = d.students;
+      console.error('students কালেকশন লোড এরর:', e);
+      showToast('ছাত্র তালিকা লোড করতে সমস্যা হয়েছে — ইন্টারনেট চেক করে পেজ রিলোড করুন', 'error');
+      // ⚠️ এখানে আর d.students (পুরনো স্ট্যাল ডেটা) দিয়ে ফলব্যাক করা হচ্ছে না — সেটাই
+      // আসল "মোছা ছাত্র ফিরে আসা" বাগের কারণ ছিল। লোড ব্যর্থ হলে বর্তমান মেমোরির অ্যারেই
+      // (যা আগে থেকে ছিল) অক্ষত থাকবে, ভুল/পুরনো ডেটা দিয়ে ওভাররাইট হবে না।
     }
     if (d.teachers) teachers = d.teachers;
     try {
@@ -12679,24 +12691,28 @@ async function loadTenantData(schoolId) {
       if (!feesEmpty) {
         fees = newFees;
         fees.forEach(f => { window._lastSynced.fees[f.id] = JSON.stringify(f); });
-      } else if (d.fees && d.fees.length > 0) {
+      } else if (!d.collectionsMigrated && d.fees && d.fees.length > 0) {
         fees = await migrateArrayToCollection(schoolId, 'fees', d.fees, 'fee', window._lastSynced.fees);
+      } else {
+        fees = [];
       }
     } catch (e) {
-      console.error('fees কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
-      if (d.fees) fees = d.fees;
+      console.error('fees কালেকশন লোড এরর:', e);
+      showToast('ফি তালিকা লোড করতে সমস্যা হয়েছে — ইন্টারনেট চেক করে পেজ রিলোড করুন', 'error');
     }
     try {
       const { records: newResults, isEmpty: resultsEmpty } = await loadCollectionRecords(schoolId, 'results');
       if (!resultsEmpty) {
         results = newResults;
         results.forEach(r => { window._lastSynced.results[r.id] = JSON.stringify(r); });
-      } else if (d.results && d.results.length > 0) {
+      } else if (!d.collectionsMigrated && d.results && d.results.length > 0) {
         results = await migrateArrayToCollection(schoolId, 'results', d.results, 'res', window._lastSynced.results);
+      } else {
+        results = [];
       }
     } catch (e) {
-      console.error('results কালেকশন লোড এরর, পুরনো ফরম্যাটে ফলব্যাক:', e);
-      if (d.results) results = d.results;
+      console.error('results কালেকশন লোড এরর:', e);
+      showToast('ফলাফল তালিকা লোড করতে সমস্যা হয়েছে — ইন্টারনেট চেক করে পেজ রিলোড করুন', 'error');
     }
     if (d.notices) notices = d.notices;
     // ✅ উপস্থিতি এখন schools/{id}/data/main-এর একটা বিশাল ফিল্ড না, বরং আলাদা
@@ -12932,6 +12948,10 @@ async function saveTenantData() {
       lessonPlans, assignments, assignmentSubmissions, academicEvents, vouchers, expenses, eventBudgets, permissions,
       cctvCameras,
       schoolConfig: window._schoolCfg || {},
+      // ✅ এই ফ্ল্যাগ একবার true হয়ে গেলে loadTenantData() আর কখনো data/main-এর পুরনো
+      // (মাইগ্রেশনের আগের) students/fees/results ফিল্ড থেকে ফলব্যাক করবে না — এটাই
+      // "মোছা ছাত্র নিজে থেকে আবার ফিরে আসা" বাগের আসল সমাধান।
+      collectionsMigrated: true,
       updatedAt: new Date().toISOString()
     });
     // ✅ parentMessages এখন উপরের setDoc-এর অংশ না — এখানে আলাদাভাবে শুধু
