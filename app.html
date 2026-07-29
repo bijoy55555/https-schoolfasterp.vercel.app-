@@ -12927,9 +12927,12 @@ function renderDataCleanupPage() {
   if (!box) return;
   box.innerHTML = `বর্তমানে আছে: <strong>${toBnNum(students.length)}</strong> জন ছাত্র, `
     + `<strong>${toBnNum(teachers.length)}</strong> জন শিক্ষক, `
+    + `<strong>${toBnNum(alumni.length)}</strong> জন প্রাক্তন ছাত্র, `
     + `<strong>${toBnNum(assignments.length)}</strong>টা অ্যাসাইনমেন্ট, `
     + `<strong>${toBnNum(examSchedule.length)}</strong>টা পরীক্ষার সময়সূচি, `
-    + `<strong>${toBnNum(questionPapers.length)}</strong>টা প্রশ্নপত্র — নিচের বাটনে ক্লিক করলে এইসব (ও আরও অনেক কিছু) মুছে যাবে।`;
+    + `<strong>${toBnNum(questionPapers.length)}</strong>টা প্রশ্নপত্র, `
+    + `<strong>${toBnNum(leaveRequests.length)}</strong>টা ছুটির আবেদন, `
+    + `<strong>${toBnNum(events.length)}</strong>টা ইভেন্ট — নিচের বাটনে ক্লিক করলে এইসব (ও আরও অনেক কিছু, ডেমো হোক বা আপনার নিজের বসানো রিয়েল ডাটা) মুছে যাবে।`;
   const input = document.getElementById('cleanup-confirm-input');
   if (input) input.value = '';
 }
@@ -12956,6 +12959,10 @@ async function performDataCleanup(btn) {
     transportRoutes = []; teacherAtt = {}; payrollStatus = {};
     smsLog = []; dueSMSLog = []; parentMessages = []; leaveBalances = {};
     cctvCameras = []; attendance = {}; auditLog = [];
+    // ✅ এই ৫টা রিয়েল-ডাটার জায়গা আগে ক্লিনআপের তালিকায় ছিল না — স্কুল নিজে এগুলোতে
+    // তথ্য বসালেও ডিলিট চাপলে থেকে যেত। ক্লাস/সেকশন/সাবজেক্ট তালিকা ও লগইন ইউজার/পারমিশন
+    // ইচ্ছাকৃতভাবে বাদ রাখা হলো — ওগুলো মুছলে স্কুলের বেসিক কাঠামো ভেঙে যাবে বা অ্যাডমিন লগইন হারাতে পারে।
+    alumni = []; leaveRequests = []; events = []; commLog = []; smsRecipients = [];
 
     if (window.currentSchoolId) {
       // ২) students/fees/results — আলাদা কালেকশন, তাই ডিফ-সিঙ্ক করলেই ক্লাউড থেকে
