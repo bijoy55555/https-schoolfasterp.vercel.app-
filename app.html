@@ -12833,6 +12833,7 @@ async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix
   if (!schoolId || !Array.isArray(arr)) return;
   ensureIds(arr, prefix);
   const currentIds = new Set();
+  const errors = [];
   for (const rec of arr) {
     currentIds.add(rec.id);
     const json = JSON.stringify(rec);
@@ -12840,16 +12841,31 @@ async function syncCollectionDiff(schoolId, collName, arr, lastSyncedMap, prefix
       try {
         await window.fb.setDoc(window.fb.doc(window.db, 'schools', schoolId, collName, rec.id), rec);
         lastSyncedMap[rec.id] = json;
-      } catch (e) { console.error(`${collName} সিঙ্ক এরর (${rec.id}):`, e); }
+      } catch (e) {
+        console.error(`${collName} সিঙ্ক এরর (${rec.id}):`, e);
+        errors.push(e); // ✅ বাগ-ফিক্স: আগে এখানে এরর শুধু console-এ লগ হয়ে চাপা পড়ে যেত, উপরের ফাংশন কখনো জানতোই না যে সেভ ব্যর্থ হয়েছে
+      }
     }
   }
   for (const oldId of Object.keys(lastSyncedMap)) {
     if (!currentIds.has(oldId)) {
       try {
         await window.fb.deleteDoc(window.fb.doc(window.db, 'schools', schoolId, collName, oldId));
-      } catch (e) { console.error(`${collName} ডিলিট-সিঙ্ক এরর (${oldId}):`, e); }
-      delete lastSyncedMap[oldId];
+        // ✅ বাগ-ফিক্স (আসল কারণ): আগে এই লাইনটা try/catch-এর বাইরে ছিল, তাই ডিলিট ব্যর্থ
+        // হলেও (পারমিশন/নেটওয়ার্ক সমস্যায়) lastSyncedMap থেকে এই আইডি মুছে ফেলা হতো —
+        // ফলে পরের কোনো সেভেই আর রিট্রাই হতো না এবং Firestore-এ আসল ডকুমেন্টটা থেকেই
+        // যেত। এখন শুধু ডিলিট সত্যিই সফল হলে তবেই lastSyncedMap থেকে সরানো হচ্ছে; ব্যর্থ
+        // হলে সেটা মাপে থেকে যায় বলে পরের সেভে আবার চেষ্টা হয় — আর এই কারণেই মোছা
+        // ছাত্র/ফি/ফলাফল কোনো এরর না দেখিয়েই রিলোডের পর ফিরে আসছিল।
+        delete lastSyncedMap[oldId];
+      } catch (e) {
+        console.error(`${collName} ডিলিট-সিঙ্ক এরর (${oldId}):`, e);
+        errors.push(e);
+      }
     }
+  }
+  if (errors.length > 0) {
+    throw new Error(`${collName}: ${errors.length}টা রেকর্ড ক্লাউডে সিঙ্ক করতে ব্যর্থ হয়েছে (দেখুন কনসোল)`);
   }
 }
 // সর্বশেষ-সিঙ্ক-করা অবস্থার স্ন্যাপশট (id -> JSON স্ট্রিং), ডিফ বের করতে ব্যবহার হয়
