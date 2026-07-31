@@ -6082,11 +6082,29 @@ function filterStudents() {
 function compressImageFile(file, maxDim = 400, maxSizeKB = 50) {
   return new Promise((resolve, reject) => {
     if (!file) { resolve(null); return; }
+
+    // ✅ বাগ-ফিক্স (মোবাইল-হ্যাং সমস্যা): কিছু মোবাইল ব্রাউজার/ওয়েবভিউতে (বিশেষত
+    // আইফোনের HEIC ছবি বা কিছু Android OEM ব্রাউজারে) img.onload/img.onerror বা
+    // canvas.toBlob() এর কলব্যাক কখনোই ফায়ার হয় না — ফলে এই Promise-টা চিরকালের
+    // জন্য pending থেকে যেত। যেহেতু uploadStudentPhoto() এটাকে await করে এবং
+    // saveStudent() ছবি আপলোড শেষ না হওয়া পর্যন্ত মডাল বন্ধ করে না (closeModal),
+    // তাই ফর্মের মডাল-ওভারলে (কালো ব্যাকগ্রাউন্ড) পর্দায় স্থায়ীভাবে আটকে থাকত —
+    // দেখে মনে হতো পুরো "ছাত্র তালিকা" পেজ হ্যাং হয়ে গেছে, যদিও আসলে নিচে পেজ
+    // ঠিকই রেন্ডার হতো, শুধু ওভারলে-টাই সব ক্লিক আটকে দিত। এখন ১৫ সেকেন্ডের একটা
+    // সেফটি টাইমআউট যোগ করা হলো, যাতে ছবি প্রসেসিং কখনো "চিরকাল অপেক্ষা" অবস্থায়
+    // না থেকে অন্তত reject() হয় এবং ফর্ম ছবি ছাড়াই সেভ/বন্ধ হতে পারে।
+    let settled = false;
+    const safeResolve = (v) => { if (!settled) { settled = true; clearTimeout(timeoutId); resolve(v); } };
+    const safeReject = (e) => { if (!settled) { settled = true; clearTimeout(timeoutId); reject(e); } };
+    const timeoutId = setTimeout(() => {
+      safeReject(new Error('ছবি প্রসেস করতে সময় বেশি লাগছে (সম্ভবত অসমর্থিত ফরম্যাট, যেমন iPhone-এর HEIC) — ছবি ছাড়াই এগিয়ে যাওয়া হচ্ছে'));
+    }, 15000);
+
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('ফাইল পড়তে ব্যর্থ'));
+    reader.onerror = () => safeReject(new Error('ফাইল পড়তে ব্যর্থ'));
     reader.onload = e => {
       const img = new Image();
-      img.onerror = () => reject(new Error('ছবি লোড করতে ব্যর্থ'));
+      img.onerror = () => safeReject(new Error('ছবি লোড করতে ব্যর্থ (সম্ভবত অসমর্থিত ফরম্যাট)'));
       img.onload = () => {
         // ✅ বাগ-ফিক্স: এই কলব্যাকটা Promise executor-এর বাইরে (event handler হিসেবে)
         // async ভাবে চলে, তাই এখানে কোনো এরর থ্রো হলে আগে সেটা কখনো catch হতো না —
@@ -6105,14 +6123,14 @@ function compressImageFile(file, maxDim = 400, maxSizeKB = 50) {
           let quality = 0.85;
           const tryExport = () => {
             canvas.toBlob(blob => {
-              if (!blob) { reject(new Error('ছবি কম্প্রেস করতে ব্যর্থ')); return; }
-              if (blob.size / 1024 <= maxSizeKB || quality <= 0.3) resolve(blob);
+              if (!blob) { safeReject(new Error('ছবি কম্প্রেস করতে ব্যর্থ')); return; }
+              if (blob.size / 1024 <= maxSizeKB || quality <= 0.3) safeResolve(blob);
               else { quality -= 0.15; tryExport(); }
             }, 'image/jpeg', quality);
           };
           tryExport();
         } catch (err) {
-          reject(err);
+          safeReject(err);
         }
       };
       img.src = e.target.result;
