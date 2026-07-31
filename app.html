@@ -6000,15 +6000,22 @@ function renderStudents(list, opts) {
   const pageData = printAll ? data : data.slice(pageStart, pageStart + STUDENT_PAGE_SIZE);
 
   const tbody = document.getElementById('student-tbody');
+  // ✅ বাগ-ফিক্স: কোনো একটা ছাত্রের রেকর্ডে name ফিল্ড খালি/অনুপস্থিত থাকলে
+  // s.name.charAt(0) এ TypeError থ্রো হয়ে .map() পুরোপুরি ভেঙে যেত (কোনো এরর
+  // দেখা যেত না) — ফলে তালিকা পেজে গিয়েও টেবিল কখনো বসতো না, দেখতে মনে হতো
+  // পেজ "আটকে" গেছে। এখন প্রতিটা সারি try/catch দিয়ে সুরক্ষিত এবং name খালি
+  // হলেও ফলব্যাক ব্যবহার হয়, যাতে একটা খারাপ রেকর্ড পুরো তালিকা আটকে না দেয়।
   tbody.innerHTML = pageData.map((s,i)=>{
+    try {
     const idx = students.indexOf(s);
+    const safeName = (s.name || '').trim() || 'অজানা';
     const photoHtml = s.photo
-      ? `<img class="student-photo" src="${s.photo}" alt="${s.name}" loading="lazy">`
-      : `<div class="student-photo" style="background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700">${s.name.charAt(0)}</div>`;
+      ? `<img class="student-photo" src="${s.photo}" alt="${safeName}" loading="lazy">`
+      : `<div class="student-photo" style="background:var(--primary);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700">${safeName.charAt(0)}</div>`;
     return `<tr>
-      <td>${s.roll}</td>
-      <td><div style="display:flex;align-items:center;gap:10px">${photoHtml}<div><b>${s.name}</b><div style="font-size:11px;color:var(--text-muted)">${s.religion||''} ${s.blood?'• '+s.blood:''}</div></div></div></td>
-      <td>${s.cls}${s.section?' - '+s.section:''}</td>
+      <td>${s.roll||'—'}</td>
+      <td><div style="display:flex;align-items:center;gap:10px">${photoHtml}<div><b>${safeName}</b><div style="font-size:11px;color:var(--text-muted)">${s.religion||''} ${s.blood?'• '+s.blood:''}</div></div></div></td>
+      <td>${s.cls||'—'}${s.section?' - '+s.section:''}</td>
       <td>${s.guardian||'—'}</td><td>${s.phone||'—'}</td>
       <td><span class="badge ${feeClass(s.feeStatus)}">${s.feeStatus}</span></td>
       <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
@@ -6025,6 +6032,10 @@ function renderStudents(list, opts) {
         <button class="btn btn-danger" style="margin:2px" onclick="deleteStudent(${idx})">মুছুন</button>
       </td>
     </tr>`;
+    } catch(e) {
+      console.error('ছাত্র তালিকার একটা সারি রেন্ডার করতে ব্যর্থ (ডেটা সমস্যা):', e, s);
+      return '';
+    }
   }).join('');
   if(printAll){ const pgEl=document.getElementById('student-pagination'); if(pgEl) pgEl.innerHTML=''; }
   else { renderStudentPagination(data.length, totalPages); }
