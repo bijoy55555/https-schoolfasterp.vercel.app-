@@ -1061,7 +1061,7 @@
     <!-- ===== STUDENTS ===== -->
     <div class="page" id="page-students">
       <div class="page-actions">
-        <button class="btn btn-primary" onclick="openModal('student-modal')">+ নতুন ভর্তি</button>
+        <button class="btn btn-primary" onclick="openAddStudentModal()">+ নতুন ভর্তি</button>
         <input class="search-box" type="text" id="student-search" placeholder="🔍 ছাত্র খুঁজুন..." oninput="filterStudents()">
         <select class="form-select" id="student-class-filter" style="max-width:160px;padding:9px 12px" onchange="filterStudents()">
           <option value="">সব শ্রেণি</option>
@@ -4028,6 +4028,7 @@
     </div>
     <div class="profile-action-bar" id="profile-action-bar">
       <button class="btn btn-primary" id="profile-id-btn">🪪 ID কার্ড প্রিন্ট</button>
+      <button class="btn" style="background:#1e8449;color:#fff" id="profile-edit-btn">✏️ তথ্য/ছবি সম্পাদনা</button>
       <button class="btn btn-outline" onclick="closeProfileOverlay()">বন্ধ করুন</button>
     </div>
   </div>
@@ -4111,10 +4112,13 @@
 <!-- STUDENT MODAL -->
 <div class="modal-overlay" id="student-modal">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-header-title">নতুন ছাত্র ভর্তি</div><button class="modal-close" onclick="closeModal('student-modal')">×</button></div>
+    <div class="modal-header"><div class="modal-header-title" id="student-modal-title">নতুন ছাত্র ভর্তি</div><button class="modal-close" onclick="closeModal('student-modal')">×</button></div>
     <div class="modal-body">
+      <input type="hidden" id="s-edit-id">
       <div class="form-row">
-        <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-input" id="s-name" placeholder="ছাত্রের নাম"></div>
+        <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-input" id="s-name" placeholder="ছাত্রের নাম">
+          <div id="s-name-edit-warning" style="display:none;font-size:11px;color:#b8600a;margin-top:4px">⚠️ নাম বদলালে পুরনো কিছু ফি/হাজিরা/ফলাফল রেকর্ড (যেগুলো নাম দিয়ে মেলানো হয়) নতুন নামের সাথে নাও মিলতে পারে।</div>
+        </div>
         <div class="form-group"><label class="form-label">রোল নম্বর *</label><input class="form-input" id="s-roll" placeholder="যেমন: ০০৮"></div>
       </div>
       <div class="form-row">
@@ -4164,6 +4168,10 @@
       <div class="form-group"><label class="form-label">ঠিকানা</label><input class="form-input" id="s-address-full" placeholder="সম্পূর্ণ ঠিকানা"></div>
       <div class="form-group">
         <label class="form-label">ছবি</label>
+        <div id="s-photo-current-wrap" style="display:none;align-items:center;gap:10px;margin-bottom:8px">
+          <img id="s-photo-current-img" src="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--border)">
+          <span style="font-size:11px;color:var(--text-muted)">বর্তমান ছবি — নতুন ছবি বাছাই না করলে এটাই থেকে যাবে</span>
+        </div>
         <input class="form-input" id="s-photo" type="file" accept="image/*">
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">
           প্রস্তাবিত সাইজ: ৩০০×৩০০ পিক্সেল (বর্গাকার/passport-style), সর্বোচ্চ ২ MB — আপলোডের সময় ছবি
@@ -4174,7 +4182,7 @@
 <div class="form-error" id="s-error"></div>
       <div class="modal-footer">
         <button class="btn btn-outline" style="flex:1" onclick="closeModal('student-modal')">বাতিল</button>
-        <button class="btn btn-primary" style="flex:2" onclick="saveStudent()">✓ ভর্তি সম্পন্ন করুন</button>
+        <button class="btn btn-primary" style="flex:2" id="student-modal-submit-btn" onclick="saveStudent()">✓ ভর্তি সম্পন্ন করুন</button>
       </div>
     </div>
   </div>
@@ -6021,6 +6029,7 @@ function renderStudents(list, opts) {
       <td><span class="badge ${statusClass(s.status)}">${s.status}</span></td>
       <td class="no-print" style="white-space:nowrap">
         <button class="btn" style="background:#1e8449;color:#fff;font-size:11px;padding:4px 8px;margin:2px" onclick="openStudentProfile(${idx})" title="প্রোফাইল">👤 প্রোফাইল</button>
+        <button class="btn" style="background:#117864;color:#fff;font-size:11px;padding:4px 8px;margin:2px" onclick="openEditStudentModal(${idx})" title="তথ্য/ছবি সম্পাদনা">✏️ এডিট</button>
         <button class="btn" style="background:#8e44ad;color:#fff;font-size:11px;padding:4px 8px;margin:2px" onclick="openIDCard(${idx})" title="ID কার্ড">🪪 ID</button>
         <button class="btn" style="background:#d6eaf8;color:var(--primary-light);font-size:11px;padding:4px 8px;margin:2px" onclick="printAdmissionForm(${idx})" title="ভর্তি ফর্ম">📄 ভর্তি</button>
         <button class="btn" style="background:#fdebd0;color:var(--accent);font-size:11px;padding:4px 8px;margin:2px" onclick="openTCModal(${idx})" title="TC">📋 TC</button>
@@ -6187,8 +6196,81 @@ async function uploadTeacherPhoto(schoolId, teacherId, file) {
   }
 }
 
+// ✅ নতুন ফিচার: "নতুন ভর্তি" ফর্ম সবসময় খালি অবস্থায় খুলতে হবে — আগে সরাসরি
+// openModal('student-modal') কল হতো, তাই আগের কোনো এডিট/ভর্তির অসম্পূর্ণ তথ্য (বা এখন
+// এডিট-মোড চালু থাকলে সেটার তথ্য) ফর্মে রয়ে যেত। এই ফাংশনটা ফর্মকে "নতুন ভর্তি" মোডে
+// রিসেট করে (s-edit-id খালি করে) তারপর মডাল খোলে।
+function openAddStudentModal() {
+  if(!requirePerm('students','edit')) return;
+  document.getElementById('s-edit-id').value = '';
+  document.getElementById('student-modal-title').textContent = 'নতুন ছাত্র ভর্তি';
+  document.getElementById('student-modal-submit-btn').textContent = '✓ ভর্তি সম্পন্ন করুন';
+  document.getElementById('s-name-edit-warning').style.display = 'none';
+  ['s-name','s-roll','s-guardian','s-phone-no','s-address-full','s-monthly-fee','s-fee-start','s-dob'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('s-class').value='';
+  document.getElementById('s-section').value='ক';
+  document.getElementById('s-status').value='সক্রিয়';
+  document.getElementById('s-fee-status').value='পরিশোধিত';
+  document.getElementById('s-religion').value='ইসলাম';
+  document.getElementById('s-blood').value='A+';
+  document.getElementById('s-photo').value='';
+  document.getElementById('s-photo-current-wrap').style.display='none';
+  hideErr('s-error');
+  openModal('student-modal');
+}
+
+// ✅ নতুন ফিচার: এতদিন ছাত্রের তথ্য (নাম/ছবি/ফোন ইত্যাদি) ভর্তির পর আর বদলানোর কোনো
+// উপায় ছিল না — বিশেষ করে ভর্তির সময় ছবি আপলোড ব্যর্থ হলে (যেমন ১৫ সেকেন্ড টাইমআউট,
+// অসমর্থিত ফরম্যাট ইত্যাদি) সেই ছাত্রের ছবি চিরতরে ফাঁকা থেকে যেত। এই ফাংশনটা একই
+// "নতুন ভর্তি" মডালটাই এডিট-মোডে খোলে — বিদ্যমান তথ্য দিয়ে ফর্ম প্রি-ফিল করে দেয়,
+// এবং বর্তমান ছবি (থাকলে) প্রিভিউ হিসেবে দেখায় যাতে বোঝা যায় নতুন ছবি না দিলে কী থেকে যাবে।
+function openEditStudentModal(idx) {
+  if(!requirePerm('students','edit')) return;
+  const s = students[idx];
+  if(!s) { showToast('ছাত্র খুঁজে পাওয়া যায়নি', 'error'); return; }
+  document.getElementById('s-edit-id').value = s.id || `__idx_${idx}`; // পুরনো রেকর্ডে id না থাকলে ইনডেক্স-ভিত্তিক ফলব্যাক
+  document.getElementById('student-modal-title').textContent = `✏️ ছাত্রের তথ্য সম্পাদনা — ${s.name || ''}`;
+  document.getElementById('student-modal-submit-btn').textContent = '✓ পরিবর্তন সংরক্ষণ করুন';
+  document.getElementById('s-name-edit-warning').style.display = 'block';
+  document.getElementById('s-name').value = s.name || '';
+  document.getElementById('s-roll').value = s.roll || '';
+  document.getElementById('s-class').value = s.cls || '';
+  document.getElementById('s-section').value = s.section || 'ক';
+  document.getElementById('s-status').value = s.status || 'সক্রিয়';
+  document.getElementById('s-guardian').value = (s.guardian && s.guardian!=='—') ? s.guardian : '';
+  document.getElementById('s-phone-no').value = (s.phone && s.phone!=='—') ? s.phone : '';
+  document.getElementById('s-fee-status').value = s.feeStatus || 'পরিশোধিত';
+  document.getElementById('s-monthly-fee').value = s.monthlyFee || '';
+  document.getElementById('s-fee-start').value = s.feeStartDate || '';
+  document.getElementById('s-dob').value = (s.dob && s.dob!=='—') ? s.dob : '';
+  document.getElementById('s-religion').value = s.religion || 'ইসলাম';
+  document.getElementById('s-blood').value = s.blood || 'A+';
+  document.getElementById('s-address-full').value = (s.address && s.address!=='—') ? s.address : '';
+  document.getElementById('s-photo').value = '';
+  const curWrap = document.getElementById('s-photo-current-wrap');
+  if (s.photo) {
+    document.getElementById('s-photo-current-img').src = s.photo;
+    curWrap.style.display = 'flex';
+  } else {
+    curWrap.style.display = 'none';
+  }
+  hideErr('s-error');
+  openModal('student-modal');
+}
+
 async function saveStudent() {
   if(!requirePerm('students','edit')) return;
+  const editKey = document.getElementById('s-edit-id').value;
+  const isEdit = !!editKey;
+  // এডিট-মোডে আসল স্টুডেন্ট রেকর্ড/ইনডেক্স খুঁজে বের করা — id দিয়ে (নতুন রেকর্ড) অথবা
+  // "__idx_N" ফলব্যাক দিয়ে (id ছাড়া পুরনো রেকর্ড)
+  let editIdx = -1;
+  if (isEdit) {
+    editIdx = editKey.startsWith('__idx_') ? Number(editKey.slice(6)) : students.findIndex(s=>s.id===editKey);
+    if (editIdx < 0 || !students[editIdx]) { showErr('s-error','এডিট করার ছাত্রটি খুঁজে পাওয়া যায়নি — আবার চেষ্টা করুন'); return; }
+  }
+  const existing = isEdit ? students[editIdx] : null;
+
   const name = document.getElementById('s-name').value.trim();
   const roll = document.getElementById('s-roll').value.trim();
   const cls = document.getElementById('s-class').value;
@@ -6198,7 +6280,8 @@ async function saveStudent() {
   // 🔴 জরুরি ডেটা-ইন্টিগ্রিটি চেক: একই শ্রেণিতে একই রোল নম্বর দুইজন ছাত্রের থাকা কখনোই
   // উচিত না (roll+cls-ই ফলাফল/হাজিরার ফলব্যাক-ম্যাচিং-এর মূল ভিত্তি — studentId না থাকা
   // পুরনো রেকর্ডে)। তাই এটা আর কনফার্ম-বক্স দিয়ে এড়িয়ে যাওয়া যাবে না, সরাসরি আটকে দেওয়া হচ্ছে।
-  const rollTaken = students.some(s => s.roll===roll && s.cls===cls);
+  // এডিট-মোডে নিজের রেকর্ডকে (existing) বাদ দিয়ে চেক করা হয়, নাহলে সেভ করাই যেত না।
+  const rollTaken = students.some((s,i) => s.roll===roll && s.cls===cls && (!isEdit || i!==editIdx));
   if (rollTaken) {
     showErr('s-error', `⛔ "${cls}" শ্রেণিতে রোল নম্বর "${roll}" ইতিমধ্যে অন্য একজন ছাত্র/ছাত্রীর নামে ব্যবহৃত আছে। একই শ্রেণিতে দুইজনের রোল এক হতে পারবে না — অনুগ্রহ করে ভিন্ন রোল দিন।`);
     return;
@@ -6207,18 +6290,55 @@ async function saveStudent() {
   // নাম দিয়ে মেলায়। একই শ্রেণিতে হুবহু একই নামের দুইজন ছাত্র থাকলে (ভিন্ন রোল হলেও)
   // রেকর্ড মিশে যাওয়ার ঝুঁকি থাকে — নাম বৈধভাবে পুনরাবৃত্তি হতে পারে বলে এটা শুধু সতর্কতা,
   // আটকানো হয় না।
-  const dupInSameClass = students.some(s => s.name===name && s.cls===cls);
+  const dupInSameClass = students.some((s,i) => s.name===name && s.cls===cls && (!isEdit || i!==editIdx));
   if (dupInSameClass) {
     const proceed = confirm(`⚠️ "${cls}" শ্রেণিতে ইতিমধ্যে "${name}" নামে আরেকজন ছাত্র/ছাত্রী আছে। একই নাম থাকলে হাজিরা, ফি ও বায়োমেট্রিক রেকর্ড দুইজনের একসাথে মিশে যেতে পারে।\n\nতারপরও এগিয়ে যেতে OK চাপুন — তবে সুপারিশ থাকবে নামের সাথে কিছু যোগ করে আলাদা করার (যেমন "${name} (রোল ${roll})")।\n\nঠিক করতে Cancel চাপুন।`);
     if (!proceed) return;
   }
   hideErr('s-error');
   const photoFile = document.getElementById('s-photo').files[0];
-  const studentId = genRecordId('stu'); // ছবির Storage পাথ ও Firestore ডকুমেন্ট আইডি একই রাখতে আগেই তৈরি
-  const photo = await uploadStudentPhoto(window.currentSchoolId, studentId, photoFile);
   const section = document.getElementById('s-section').value;
   const feeStartInput = document.getElementById('s-fee-start').value; // yyyy-mm-dd বা খালি
   const todayISO = new Date().toISOString().split('T')[0];
+
+  if (isEdit) {
+    // ✅ এডিট-মোড: ছবির Storage পাথ/আইডি হিসেবে বিদ্যমান id (বা না থাকলে নতুন id) ব্যবহার হয়।
+    // নতুন ছবি বাছাই না করলে বিদ্যমান ছবিই (existing.photo) অক্ষত থাকে — মুছে যায় না।
+    if (!existing.id) existing.id = genRecordId('stu'); // পুরনো id-বিহীন রেকর্ডকে id দেওয়া হলো যাতে ক্লাউড কালেকশনে ঠিকমতো সেভ হয়
+    let photo = existing.photo || '';
+    if (photoFile) {
+      const uploaded = await uploadStudentPhoto(window.currentSchoolId, existing.id, photoFile);
+      if (uploaded) photo = uploaded; // আপলোড ব্যর্থ হলে বিদ্যমান ছবিই থেকে যাবে, খালি হয়ে যাবে না
+    }
+    Object.assign(existing, {
+      roll, name, cls, section,
+      guardian: document.getElementById('s-guardian').value.trim()||'—',
+      phone: document.getElementById('s-phone-no').value.trim()||'—',
+      feeStatus: document.getElementById('s-fee-status').value,
+      status: document.getElementById('s-status').value,
+      dob: document.getElementById('s-dob').value||'—',
+      religion: document.getElementById('s-religion').value,
+      blood: document.getElementById('s-blood').value,
+      address: document.getElementById('s-address-full').value.trim()||'—',
+      photo,
+      monthlyFee: Number(document.getElementById('s-monthly-fee').value)||0,
+      feeStartDate: feeStartInput || existing.feeStartDate || todayISO,
+    });
+    document.getElementById('s-photo').value='';
+    closeModal('student-modal');
+    generateAutoFees();
+    renderStudents(); renderDashboard();
+    showToast('ছাত্রের তথ্য আপডেট হয়েছে! ক্লাউডে সেভ হচ্ছে...');
+    if(typeof saveTenantData==='function') {
+      saveTenantData()
+        .then(()=> showToast('✅ পরিবর্তন ক্লাউডে সফলভাবে সেভ হয়েছে'))
+        .catch(()=> showToast('⚠️ পরিবর্তন লোকালি হয়েছে কিন্তু ক্লাউডে সেভ করতে সমস্যা হয়েছে — ইন্টারনেট চেক করুন', 'error'));
+    }
+    return;
+  }
+
+  const studentId = genRecordId('stu'); // ছবির Storage পাথ ও Firestore ডকুমেন্ট আইডি একই রাখতে আগেই তৈরি
+  const photo = await uploadStudentPhoto(window.currentSchoolId, studentId, photoFile);
   students.push({
     id: studentId,
     roll, name, cls, section,
@@ -14717,6 +14837,7 @@ function openStudentProfile(idx) {
   }
 
   document.getElementById('profile-id-btn').onclick = ()=>{ closeProfileOverlay(); openIDCard(idx); };
+  document.getElementById('profile-edit-btn').onclick = ()=>{ closeProfileOverlay(); openEditStudentModal(idx); };
   renderQRCode('profile-qr-canvas', s, 90);
   overlay.classList.add('open');
   overlay.scrollTop = 0;
