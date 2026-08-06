@@ -15657,24 +15657,46 @@ function saveEvent() {
 }
 
 // ============ FINANCE REPORT ============
-const finIncomeSources = [
-  {label:'মাসিক বেতন', months:[38000,42000,35000,48000,44000,40000,0,0,0,0,0,0]},
-  {label:'পরীক্ষা ফি', months:[8000,0,0,12000,0,0,0,0,0,0,0,0]},
-  {label:'ভর্তি ফি', months:[45000,0,0,0,0,0,0,0,0,0,0,0]},
-  {label:'বার্ষিক ফি', months:[0,0,0,0,0,18000,0,0,0,0,0,0]},
-  {label:'অনুদান', months:[0,0,15000,0,0,0,0,0,0,0,0,0]},
-];
-const finExpenseSources = [
-  {label:'শিক্ষক বেতন', months:[57000,57000,57000,57000,57000,57000,0,0,0,0,0,0]},
-  {label:'বিদ্যুৎ বিল', months:[3200,3100,2800,3500,4000,3800,0,0,0,0,0,0]},
-  {label:'মেরামত', months:[0,5000,0,2000,0,1500,0,0,0,0,0,0]},
-  {label:'শিক্ষা উপকরণ', months:[8000,0,0,6000,0,0,0,0,0,0,0,0]},
-  {label:'অন্যান্য', months:[2000,1500,2200,1800,2500,2000,0,0,0,0,0,0]},
-];
+// ✅ বাগ-ফিক্স: আগে এখানে ডেমো সংখ্যা সরাসরি কোডে বসানো (হার্ডকোড) ছিল, তাই "ডেটা
+// ক্লিনআপ" চাপলেও এই পেজের আয়-ব্যয় মুছত না। এখন real fees/expenses/vouchers থেকেই
+// প্রতি মাসের হিসাব বের করা হয় — ফলে ডেটা ক্লিনআপে এটাও খালি হয়ে যাবে এবং স্কুল নিজে
+// ডাটা বসালে এখানে সত্যিকার হিসাব দেখাবে।
+function computeFinanceSources() {
+  const mk = () => Array(12).fill(0);
+  const incomeMap = {}, expenseMap = {};
+
+  fees.filter(f=>f.status==='পরিশোধিত').forEach(f=>{
+    const m = (typeof f.month==='number' && f.month>=0 && f.month<=11) ? f.month : 0;
+    if(!incomeMap[f.type]) incomeMap[f.type] = mk();
+    incomeMap[f.type][m] += Number(f.amount)||0;
+  });
+  vouchers.filter(v=>v.type==='প্রাপ্তি').forEach(v=>{
+    const m = v.date ? (new Date(v.date).getMonth()||0) : 0;
+    if(!incomeMap['ভাউচার আয়']) incomeMap['ভাউচার আয়'] = mk();
+    incomeMap['ভাউচার আয়'][m] += Number(v.amount)||0;
+  });
+
+  expenses.forEach(e=>{
+    const m = (typeof e.month==='number' && e.month>=0 && e.month<=11) ? e.month : 0;
+    if(!expenseMap[e.cat]) expenseMap[e.cat] = mk();
+    expenseMap[e.cat][m] += Number(e.amount)||0;
+  });
+  vouchers.filter(v=>v.type==='প্রদান').forEach(v=>{
+    const m = v.date ? (new Date(v.date).getMonth()||0) : 0;
+    if(!expenseMap['ভাউচার ব্যয়']) expenseMap['ভাউচার ব্যয়'] = mk();
+    expenseMap['ভাউচার ব্যয়'][m] += Number(v.amount)||0;
+  });
+
+  return {
+    finIncomeSources: Object.entries(incomeMap).map(([label,months])=>({label,months})),
+    finExpenseSources: Object.entries(expenseMap).map(([label,months])=>({label,months})),
+  };
+}
 
 function renderFinanceReport() {
   const yr = parseInt(document.getElementById('fin-year-sel').value)||2025;
   const monthLabels = ['জানু','ফেব্রু','মার্চ','এপ্রিল','মে','জুন','জুলাই','আগস্ট','সেপ','অক্টো','নভে','ডিসে'];
+  const {finIncomeSources, finExpenseSources} = computeFinanceSources();
 
   // Compute totals per month
   const incomeByMonth = Array(12).fill(0);
@@ -15693,8 +15715,8 @@ function renderFinanceReport() {
   balEl.style.color = balance>=0?'#1a5276':'#c0392b';
 
   // Income breakdown bars
-  const maxIncome = Math.max(...finIncomeSources.map(s=>s.months.reduce((a,b)=>a+b,0)));
-  document.getElementById('fin-income-breakdown').innerHTML = finIncomeSources.map(s=>{
+  const maxIncome = finIncomeSources.length ? Math.max(...finIncomeSources.map(s=>s.months.reduce((a,b)=>a+b,0))) : 0;
+  document.getElementById('fin-income-breakdown').innerHTML = finIncomeSources.length ? finIncomeSources.map(s=>{
     const total = s.months.reduce((a,b)=>a+b,0);
     const pct = maxIncome>0?Math.round((total/maxIncome)*100):0;
     return `<div class="fin-bar-row">
@@ -15702,11 +15724,11 @@ function renderFinanceReport() {
       <div class="fin-bar-wrap"><div class="fin-bar-fill" style="width:${pct}%;background:#1e8449"></div></div>
       <div class="fin-bar-val" style="color:#1e8449">৳${toBnNum(total.toLocaleString())}</div>
     </div>`;
-  }).join('');
+  }).join('') : '<div style="text-align:center;color:var(--text-muted);padding:12px">কোনো আয় নেই</div>';
 
   // Expense breakdown bars
-  const maxExp = Math.max(...finExpenseSources.map(s=>s.months.reduce((a,b)=>a+b,0)));
-  document.getElementById('fin-expense-breakdown').innerHTML = finExpenseSources.map(s=>{
+  const maxExp = finExpenseSources.length ? Math.max(...finExpenseSources.map(s=>s.months.reduce((a,b)=>a+b,0))) : 0;
+  document.getElementById('fin-expense-breakdown').innerHTML = finExpenseSources.length ? finExpenseSources.map(s=>{
     const total = s.months.reduce((a,b)=>a+b,0);
     const pct = maxExp>0?Math.round((total/maxExp)*100):0;
     return `<div class="fin-bar-row">
@@ -15714,7 +15736,7 @@ function renderFinanceReport() {
       <div class="fin-bar-wrap"><div class="fin-bar-fill" style="width:${pct}%;background:#c0392b"></div></div>
       <div class="fin-bar-val" style="color:#c0392b">৳${toBnNum(total.toLocaleString())}</div>
     </div>`;
-  }).join('');
+  }).join('') : '<div style="text-align:center;color:var(--text-muted);padding:12px">কোনো ব্যয় নেই</div>';
 
   // Transaction log
   let txList = [];
@@ -15783,6 +15805,7 @@ function printAnnualReport() {
   if(!w){ showToast('পপআপ ব্লক হয়েছে।','error'); return; }
   const school = document.getElementById('s-school-name')?.value||'আদর্শ উচ্চ বিদ্যালয়';
   const addr = document.getElementById('s-address')?.value||'ঢাকা, বাংলাদেশ';
+  const {finIncomeSources, finExpenseSources} = computeFinanceSources();
   const incomeByMonth = Array(12).fill(0);
   const expByMonth = Array(12).fill(0);
   finIncomeSources.forEach(s=>s.months.forEach((v,i)=>incomeByMonth[i]+=v));
