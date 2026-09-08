@@ -14,6 +14,7 @@
     --border: #d5e8f5; --sidebar-width: 240px;
   }
   * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { overflow-x:hidden; max-width:100%; }
   body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; min-height:100dvh; }
   .sidebar { width:var(--sidebar-width); background:var(--sidebar-bg); color:#fff; display:flex; flex-direction:column; position:fixed; height:100vh; height:100dvh; overflow-y:auto; z-index:200; transition:transform 0.28s cubic-bezier(.4,0,.2,1); }
   .sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:199; }
@@ -41,6 +42,16 @@
   .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; }
   .hamburger { display:block; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
   @media(max-width:1024px) { .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
+  @media(max-width:600px) {
+    .topbar-right { gap:8px; }
+    #subscription-badge { font-size:10px!important; padding:4px 8px!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px; }
+    .user-chip #user-name-label { display:none; }
+    .user-chip { padding:6px; }
+    .topbar-right .btn-outline { padding:6px 8px; font-size:0; }
+    .topbar-right .btn-outline::before { content:'🔓'; font-size:16px; }
+    .topbar-title { font-size:15px; }
+    [data-lang-toggle-slot] { transform:scale(0.85); transform-origin:left center; }
+  }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
   .topbar-right { display:flex; align-items:center; gap:16px; }
   /* ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন (শুধু অ্যাডমিন/প্রধান শিক্ষক দেখবে) ===== */
@@ -128,7 +139,8 @@
   .att-cell:hover { transform:scale(1.08); }
   .att-present{background:#d5f5e3;color:var(--success)} .att-absent{background:#fadbd8;color:var(--danger)}
   .att-holiday{background:#f0f4f8;color:var(--text-muted)} .att-empty{background:transparent}
-  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(2,1fr)} .two-col,.three-col{grid-template-columns:1fr} .fee-summary{grid-template-columns:1fr} }
+  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(2,1fr)!important} .two-col,.three-col{grid-template-columns:1fr} .fee-summary{grid-template-columns:1fr} }
+  @media(max-width:420px) { .stats-grid{grid-template-columns:1fr!important} }
 
   /* ===== FEE TABS ===== */
   .fee-tab-bar { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
@@ -910,7 +922,7 @@
             <div class="card-title">সাম্প্রতিক ভর্তি</div>
             <span class="card-link" onclick="showPage('students',document.querySelector('[onclick*=students]'))">সব দেখুন →</span>
           </div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>রোল</th><th>অবস্থা</th></tr></thead>
             <tbody id="dash-recent-students"></tbody></table>
           </div>
@@ -1030,11 +1042,11 @@
       <div class="two-col">
         <div class="card">
           <div class="card-header"><div class="card-title">⚠️ সর্বোচ্চ Fee Defaulter শ্রেণি</div></div>
-          <div class="card-body" style="padding:0"><table><thead><tr><th>শ্রেণি</th><th>বকেয়া সংখ্যা</th><th>মোট বকেয়া</th></tr></thead><tbody id="dash-fee-defaulters"></tbody></table></div>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শ্রেণি</th><th>বকেয়া সংখ্যা</th><th>মোট বকেয়া</th></tr></thead><tbody id="dash-fee-defaulters"></tbody></table></div>
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">🏆 Top Performing Students</div></div>
-          <div class="card-body" style="padding:0"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>গড় নম্বর</th></tr></thead><tbody id="dash-top-students"></tbody></table></div>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>গড় নম্বর</th></tr></thead><tbody id="dash-top-students"></tbody></table></div>
         </div>
       </div>
 
@@ -1042,11 +1054,11 @@
       <div class="two-col">
         <div class="card">
           <div class="card-header"><div class="card-title">📉 Low Attendance Students (&lt;৭৫%)</div></div>
-          <div class="card-body" style="padding:0"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>উপস্থিতি</th></tr></thead><tbody id="dash-low-attendance"></tbody></table></div>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>উপস্থিতি</th></tr></thead><tbody id="dash-low-attendance"></tbody></table></div>
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">👨‍🏫 Teacher Attendance Ranking</div></div>
-          <div class="card-body" style="padding:0"><table><thead><tr><th>শিক্ষক</th><th>উপস্থিতি</th><th>মোট দিন</th></tr></thead><tbody id="dash-teacher-ranking"></tbody></table></div>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শিক্ষক</th><th>উপস্থিতি</th><th>মোট দিন</th></tr></thead><tbody id="dash-teacher-ranking"></tbody></table></div>
         </div>
       </div>
 
@@ -1076,7 +1088,7 @@
             <span class="badge badge-orange" id="student-pending-count"></span>
           </div>
         </div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table id="student-table"><thead><tr><th>রোল</th><th>নাম / প্রোফাইল</th><th>শ্রেণি - সেকশন</th><th>অভিভাবক</th><th>ফোন</th><th>ফি অবস্থা</th><th>অবস্থা</th><th class="no-print">অ্যাকশন</th></tr></thead>
           <tbody id="student-tbody"></tbody></table>
           <div id="student-pagination" class="no-print"></div>
@@ -1119,7 +1131,7 @@
           <div class="card-title" id="att-table-title">উপস্থিতি তালিকা</div>
           <span style="font-size:12px;color:var(--text-muted)" id="att-date-label"></span>
         </div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>রোল</th><th>নাম</th><th>উপস্থিতি</th></tr></thead>
           <tbody id="att-tbody"></tbody></table>
         </div>
@@ -1166,7 +1178,7 @@
               <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openModal('fee-modal')">+ পেমেন্ট নিন</button>
             </div>
           </div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>ছাত্র</th><th>শ্রেণি</th><th>ফি ধরন</th><th>পরিমাণ</th><th>তারিখ</th><th>পদ্ধতি</th><th>অবস্থা</th><th class="no-print">রসিদ / অ্যাকশন</th></tr></thead>
             <tbody id="fee-tbody"></tbody></table>
           </div>
@@ -1194,7 +1206,7 @@
               <div class="card-title" style="color:var(--success)">💚 আয় (Income)</div>
               <span class="badge badge-green" id="ledger-income-total">০৳</span>
             </div>
-            <div class="card-body" style="padding:0">
+            <div class="card-body" style="padding:0;overflow-x:auto">
               <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>পরিমাণ</th></tr></thead>
               <tbody id="ledger-income-tbody"></tbody></table>
             </div>
@@ -1205,7 +1217,7 @@
               <div class="card-title" style="color:var(--danger)">❤️ ব্যয় (Expense)</div>
               <span class="badge badge-red" id="ledger-expense-total">০৳</span>
             </div>
-            <div class="card-body" style="padding:0">
+            <div class="card-body" style="padding:0;overflow-x:auto">
               <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>পরিমাণ</th><th></th></tr></thead>
               <tbody id="ledger-expense-tbody"></tbody></table>
             </div>
@@ -1230,7 +1242,7 @@
                   <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="selectAllDue()">সব নির্বাচন</button>
                 </div>
               </div>
-              <div class="card-body" style="padding:0">
+              <div class="card-body" style="padding:0;overflow-x:auto">
                 <table><thead><tr><th><input type="checkbox" id="due-select-all" onchange="toggleAllDue(this)"></th><th>ছাত্র</th><th>শ্রেণি</th><th>বকেয়া</th><th>মোবাইল</th></tr></thead>
                 <tbody id="due-students-tbody"></tbody></table>
               </div>
@@ -1308,7 +1320,7 @@
                   <option value="">সব শ্রেণি</option>
                 </select>
               </div>
-              <div class="card-body" style="padding:0">
+              <div class="card-body" style="padding:0;overflow-x:auto">
                 <table><thead><tr><th><input type="checkbox" id="special-fee-select-all" onchange="toggleAllSpecialFee(this)"></th><th>ছাত্র</th><th>শ্রেণি</th><th>মোবাইল</th></tr></thead>
                 <tbody id="special-fee-students-tbody"></tbody></table>
               </div>
@@ -1425,7 +1437,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="teacher-count-title">শিক্ষক তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>#</th><th>নাম / পদবি</th><th>বিষয়</th><th>শ্রেণি</th><th>ফোন</th><th>নেট বেতন</th><th>অবস্থা</th><th class="no-print">অ্যাকশন</th></tr></thead>
           <tbody id="teacher-tbody"></tbody></table>
         </div>
@@ -1451,7 +1463,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="routine-title">ক্লাস রুটিন</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>সময়</th><th>রবি</th><th>সোম</th><th>মঙ্গল</th><th>বুধ</th><th>বৃহ</th><th>শুক্র</th><th class="no-print"></th></tr></thead>
           <tbody id="routine-tbody"></tbody></table>
         </div>
@@ -1487,7 +1499,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">পরীক্ষার সময়সূচি</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>তারিখ</th><th>সময়</th><th>বিষয়</th><th>শ্রেণি</th><th>পরীক্ষার ধরন</th><th>হল</th><th class="no-print"></th></tr></thead>
           <tbody id="exam-tbody"></tbody></table>
         </div>
@@ -1501,7 +1513,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">শিক্ষাবর্ষ / সেশন তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>সেশনের নাম</th><th>শুরুর তারিখ</th><th>শেষের তারিখ</th><th>স্ট্যাটাস</th><th></th></tr></thead>
           <tbody id="session-tbody"></tbody></table>
         </div>
@@ -1519,7 +1531,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="md-title">শ্রেণি তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead id="md-thead"></thead><tbody id="md-tbody"></tbody></table>
         </div>
       </div>
@@ -1535,7 +1547,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">লেসন প্ল্যান তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>শ্রেণি</th><th>বিষয়</th><th>টপিক</th><th>তারিখ</th><th>শিক্ষক</th><th>স্ট্যাটাস</th><th></th></tr></thead>
           <tbody id="lp-tbody"></tbody></table>
         </div>
@@ -1568,7 +1580,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">অনলাইন ক্লাস তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>শ্রেণি</th><th>বিষয়</th><th>শিক্ষক</th><th>প্লাটফর্ম</th><th>তারিখ ও সময়</th><th>লিংক</th><th>স্ট্যাটাস</th><th></th></tr></thead>
           <tbody id="oc-tbody"></tbody></table>
         </div>
@@ -1583,7 +1595,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">একাডেমিক ক্যালেন্ডার — শিক্ষাবর্ষ পরিকল্পনা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>ইভেন্টের নাম</th><th>ধরন</th><th>শুরু তারিখ</th><th>শেষ তারিখ</th><th>বিবরণ</th><th class="no-print"></th></tr></thead>
           <tbody id="ac-cal-tbody"></tbody></table>
         </div>
@@ -1606,7 +1618,7 @@
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">সংরক্ষিত প্রশ্নপত্র সমূহ</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>পরীক্ষার নাম</th><th>শ্রেণি</th><th>বিষয়</th><th>পূর্ণমান</th><th>সময়</th><th>তৈরির তারিখ</th><th class="no-print">অ্যাকশন</th></tr></thead>
             <tbody id="qp-tbody"></tbody></table>
           </div>
@@ -1715,7 +1727,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">সংরক্ষিত প্রশ্ন সমূহ (এখানে যা যোগ করবেন তা প্রতি বছর/পরীক্ষায় পুনরায় ব্যবহার করা যাবে)</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>শ্রেণি</th><th>বিষয়</th><th>ধরন</th><th>প্রশ্ন</th><th>মান</th><th class="no-print">অ্যাকশন</th></tr></thead>
           <tbody id="qb-tbody"></tbody></table>
         </div>
@@ -1749,7 +1761,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="sp-title">সিট প্ল্যান</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>সিট নং</th><th>রোল</th><th>নাম</th><th>শ্রেণি</th><th>হল</th></tr></thead>
           <tbody id="sp-tbody"></tbody></table>
         </div>
@@ -1787,7 +1799,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">সাধারণ খতিয়ান (General Ledger)</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>রেফারেন্স</th><th>হিসাব</th><th>ডেবিট (+)</th><th>ক্রেডিট (−)</th><th>ব্যালেন্স</th></tr></thead>
           <tbody id="lg-tbody"></tbody></table>
         </div>
@@ -1804,7 +1816,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">💵 ক্যাশ বুক — নগদ লেনদেন</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>প্রাপ্তি (Dr)</th><th>প্রদান (Cr)</th><th>ব্যালেন্স</th></tr></thead>
           <tbody id="cb-tbody"></tbody></table>
         </div>
@@ -1821,7 +1833,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">🏦 ব্যাংক বুক — ব্যাংক/মোবাইল ব্যাংকিং লেনদেন</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>মাধ্যম</th><th>জমা (Dr)</th><th>উত্তোলন (Cr)</th><th>ব্যালেন্স</th></tr></thead>
           <tbody id="bb-tbody"></tbody></table>
         </div>
@@ -1837,7 +1849,7 @@
       <div class="result-header" id="dr-summary" style="margin-bottom:18px"></div>
       <div class="card">
         <div class="card-header"><div class="card-title" id="dr-title">দৈনিক রিপোর্ট</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>সময়</th><th>বিবরণ</th><th>ধরন</th><th>হিসাব</th><th>পরিমাণ</th></tr></thead>
           <tbody id="dr-tbody"></tbody></table>
         </div>
@@ -1859,14 +1871,14 @@
       <div class="two-col">
         <div class="card">
           <div class="card-header"><div class="card-title" style="color:var(--success)">📥 আয় (খাত অনুযায়ী)</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>আয়ের খাত</th><th>পরিমাণ</th></tr></thead><tbody id="pl-income-tbody"></tbody>
             <tfoot><tr style="font-weight:700;background:#f7fafd"><td>সর্বমোট আয়</td><td id="pl-total-income" style="color:var(--success)">৳০</td></tr></tfoot></table>
           </div>
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title" style="color:var(--danger)">📤 ব্যয় (খাত অনুযায়ী)</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>ব্যয়ের খাত</th><th>পরিমাণ</th></tr></thead><tbody id="pl-expense-tbody"></tbody>
             <tfoot><tr style="font-weight:700;background:#f7fafd"><td>সর্বমোট ব্যয়</td><td id="pl-total-expense" style="color:var(--danger)">৳০</td></tr></tfoot></table>
           </div>
@@ -1884,7 +1896,7 @@
       </div>
       <div class="card">
         <div class="card-header"><div class="card-title">ভাউচার তালিকা</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>ভাউচার নং</th><th>তারিখ</th><th>ধরন</th><th>হিসাব</th><th>বিবরণ</th><th>পরিমাণ</th><th class="no-print"></th></tr></thead>
           <tbody id="vo-tbody"></tbody></table>
         </div>
@@ -1902,7 +1914,7 @@
       <div class="result-header" id="dre-summary" style="margin-bottom:18px"></div>
       <div class="card">
         <div class="card-header"><div class="card-title">বকেয়া ফি রিপোর্ট</div></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>ছাত্র/ছাত্রী</th><th>শ্রেণি</th><th>ফি এর ধরন</th><th>বকেয়ার পরিমাণ</th><th>স্ট্যাটাস</th><th>অভিভাবকের নম্বর</th></tr></thead>
           <tbody id="dre-tbody"></tbody></table>
         </div>
@@ -1965,7 +1977,7 @@
             <div class="card-header"><div class="card-title">💚 চাঁদা / আয় এন্ট্রি</div>
               <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="evbOpenIncomeModal()">+ নতুন এন্ট্রি</button>
             </div>
-            <div class="card-body" style="padding:0">
+            <div class="card-body" style="padding:0;overflow-x:auto">
               <table><thead><tr><th>নাম/উৎস</th><th>তারিখ</th><th>পরিমাণ</th><th class="no-print"></th></tr></thead>
               <tbody id="evb-income-tbody"></tbody></table>
             </div>
@@ -1974,7 +1986,7 @@
 
         <div class="card" style="margin-top:20px">
           <div class="card-header"><div class="card-title">📋 সব খরচের বিবরণ</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>খাত</th><th>বিবরণ</th><th>তারিখ</th><th>পরিমাণ</th><th class="no-print"></th></tr></thead>
             <tbody id="evb-expense-tbody"></tbody></table>
           </div>
@@ -2013,7 +2025,7 @@
 
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">📅 বার্ষিক উপস্থিতি বিবরণ (মাস-ওয়াইজ)</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>মাস</th><th>উপস্থিত</th><th>অনুপস্থিত</th><th>দেরি/ছুটি</th><th>উপস্থিতির হার</th></tr></thead>
             <tbody id="sar-att-tbody"></tbody></table>
           </div>
@@ -2021,7 +2033,7 @@
 
         <div class="card" style="margin-bottom:18px">
           <div class="card-header"><div class="card-title">📝 পরীক্ষার ফলাফল হিস্ট্রি</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>পরীক্ষার নাম</th><th>মোট বিষয়</th><th>গড় নম্বর</th><th>গ্রেড</th></tr></thead>
             <tbody id="sar-result-tbody"></tbody></table>
           </div>
@@ -2029,7 +2041,7 @@
 
         <div class="card">
           <div class="card-header"><div class="card-title">💰 মাস-ওয়াইজ ফি / পেমেন্ট হিস্ট্রি</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>মাস</th><th>ধরন</th><th>পরিমাণ</th><th>পরিশোধের তারিখ</th><th>পদ্ধতি</th><th>অবস্থা</th></tr></thead>
             <tbody id="sar-fee-tbody"></tbody></table>
           </div>
@@ -2086,7 +2098,7 @@
           <div class="card-title">শিক্ষক উপস্থিতি</div>
           <span style="font-size:12px;color:var(--text-muted)" id="tatt-date"></span>
         </div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>#</th><th>নাম</th><th>বিষয়</th><th>উপস্থিতি</th></tr></thead>
           <tbody id="tatt-tbody"></tbody></table>
         </div>
@@ -2724,7 +2736,7 @@
             <div class="card-title">👥 সকল ইউজার অ্যাকাউন্ট</div>
             <button class="btn btn-primary" style="font-size:12px;padding:6px 14px" onclick="openAddUserModal()">+ নতুন ইউজার</button>
           </div>
-          <div class="card-body" style="padding:0" id="user-list-body"></div>
+          <div class="card-body" style="padding:0;overflow-x:auto" id="user-list-body"></div>
         </div>
 
         <div class="card">
@@ -3069,7 +3081,7 @@
             <div class="card-title">💰 ফি বিবরণ</div>
             <button class="btn btn-success" style="font-size:12px;padding:6px 14px" onclick="openPaymentModal()">📱 অনলাইনে পরিশোধ</button>
           </div>
-          <div class="card-body" style="padding:0"><table><thead><tr><th>ফি ধরন</th><th>পরিমাণ</th><th>অবস্থা</th></tr></thead>
+          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>ফি ধরন</th><th>পরিমাণ</th><th>অবস্থা</th></tr></thead>
           <tbody id="pp-fee-tbody"></tbody></table></div>
         </div>
       </div>
@@ -3077,7 +3089,7 @@
       <!-- Academic Calendar (read-only for parents/students) -->
       <div class="card" style="margin-bottom:20px">
         <div class="card-header"><div class="card-title">📆 একাডেমিক ক্যালেন্ডার</div></div>
-        <div class="card-body" style="padding:0" id="pp-academic-cal"></div>
+        <div class="card-body" style="padding:0;overflow-x:auto" id="pp-academic-cal"></div>
       </div>
     </div>
 
@@ -3115,7 +3127,7 @@
           <div class="card-title">🗨️ শিক্ষকের সাথে বার্তা</div>
           <span class="badge badge-blue" id="sp-msg-badge"></span>
         </div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <div id="sp-msg-thread" style="max-height:320px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f7fafd"></div>
           <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
             <input class="form-input" id="sp-msg-input" placeholder="শিক্ষক/বিদ্যালয়কে বার্তা লিখুন..." style="flex:1" onkeydown="if(event.key==='Enter'){sendStudentMessage();}">
@@ -3570,7 +3582,7 @@
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">📚 বই তালিকা</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>বারকোড</th><th>বইয়ের নাম</th><th>লেখক</th><th>প্রকাশক</th><th>ক্যাটাগরি</th><th>মোট কপি</th><th>উপলব্ধ</th><th></th></tr></thead>
             <tbody id="books-tbody"></tbody></table>
           </div>
@@ -3583,7 +3595,7 @@
         </div>
         <div class="card">
           <div class="card-header"><div class="card-title">🔄 ইস্যু/রিটার্ন তালিকা</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>বারকোড</th><th>বইয়ের নাম</th><th>ছাত্র</th><th>শ্রেণি</th><th>ইস্যু তারিখ</th><th>ফেরতের তারিখ</th><th>স্ট্যাটাস</th><th>ফাইন</th><th></th></tr></thead>
             <tbody id="issues-tbody"></tbody></table>
           </div>
@@ -3593,7 +3605,7 @@
       <div id="lib-lost-view" style="display:none">
         <div class="card">
           <div class="card-header"><div class="card-title">⚠️ হারানো বইয়ের তালিকা</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>বারকোড</th><th>বইয়ের নাম</th><th>ছাত্র</th><th>শ্রেণি</th><th>ইস্যু তারিখ</th><th>জরিমানা</th></tr></thead>
             <tbody id="lost-tbody"></tbody></table>
           </div>
@@ -3667,7 +3679,7 @@
       <div id="tr-vehicle-view">
         <div class="card">
           <div class="card-header"><div class="card-title">🚌 গাড়ি ও ড্রাইভার তালিকা</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>গাড়ি নং</th><th>ধরন</th><th>আসন সংখ্যা</th><th>ড্রাইভারের নাম</th><th>ড্রাইভার ফোন</th><th>লাইসেন্স নং</th><th></th></tr></thead>
             <tbody id="vehicles-tbody"></tbody></table>
           </div>
@@ -3677,7 +3689,7 @@
       <div id="tr-route-view" style="display:none">
         <div class="card">
           <div class="card-header"><div class="card-title">🗺️ রুট ও পিকআপ পয়েন্ট তালিকা</div></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <table><thead><tr><th>রুটের নাম</th><th>গাড়ি</th><th>পিকআপ পয়েন্ট</th><th>সময়সূচি</th><th>মাসিক ফি (৳)</th><th></th></tr></thead>
             <tbody id="routes-tbody"></tbody></table>
           </div>
@@ -3819,7 +3831,7 @@
       <div id="ai-chat-view" style="display:none">
         <div class="card">
           <div class="card-header"><div class="card-title">💬 AI চ্যাট অ্যাসিস্ট্যান্ট</div><button class="btn btn-outline" style="padding:5px 10px;font-size:11px" onclick="clearAiChat()">নতুন চ্যাট</button></div>
-          <div class="card-body" style="padding:0">
+          <div class="card-body" style="padding:0;overflow-x:auto">
             <div id="ai-chat-messages" style="height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
             <div style="display:flex;gap:8px;padding:14px;border-top:1px solid var(--border)">
               <input class="form-input" id="ai-chat-input" placeholder="স্কুল ব্যবস্থাপনা সংক্রান্ত যেকোনো প্রশ্ন করুন..." onkeydown="if(event.key==='Enter')sendAiChat()">
@@ -3907,7 +3919,7 @@
       <!-- Transaction log -->
       <div class="card">
         <div class="card-header"><div class="card-title">📋 লেনদেনের বিবরণ</div><span class="badge badge-blue" id="fin-tx-count"></span></div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr><th>তারিখ</th><th>বিবরণ</th><th>ধরন</th><th>পরিমাণ</th><th>ব্যালেন্স</th></tr></thead>
           <tbody id="fin-tx-tbody"></tbody></table>
         </div>
@@ -3984,7 +3996,7 @@
         <div class="card-header">
           <div class="card-title" id="payroll-table-title">বেতন তালিকা</div>
         </div>
-        <div class="card-body" style="padding:0">
+        <div class="card-body" style="padding:0;overflow-x:auto">
           <table><thead><tr>
             <th>#</th><th>নাম</th><th>পদবি</th><th>মূল বেতন</th><th>ভাতা</th><th>কর্তন</th><th>নেট বেতন</th><th>অবস্থা</th><th class="no-print">অ্যাকশন</th>
           </tr></thead>
@@ -8715,7 +8727,7 @@ function renderSyllabus() {
           <div class="progress-bar" style="width:80px"><div class="progress-fill" style="width:${avgProg}%;background:${color}"></div></div>
         </div>
       </div>
-      <div class="card-body" style="padding:0">
+      <div class="card-body" style="padding:0;overflow-x:auto">
         <table><thead><tr><th>টপিক</th><th>অগ্রগতি</th><th>অবস্থা</th><th class="no-print"></th></tr></thead>
         <tbody>${items.map(it=>{
           const badgeCls = it.status==='সম্পন্ন'?'badge-green':it.status==='চলমান'?'badge-orange':'badge-red';
@@ -11912,7 +11924,7 @@ function renderMerit() {
   if(data.length===0){container.innerHTML='<div class="card"><div class="card-body" style="text-align:center;padding:40px;color:var(--text-muted)">কোনো ফলাফল নেই</div></div>';return;}
   const subjectNames = allSubjectLabels; // ✅ কেন্দ্রীয় বিষয়-লেবেল ম্যাপ (ক্লাস/গ্রুপ অনুযায়ী সব বিষয় কভার করে)
   container.innerHTML = `<div class="card"><div class="card-header"><div class="card-title">🏆 মেরিট লিস্ট ${cls?'— '+cls:''} ${exam?'('+exam+')':''}</div><button class="btn btn-outline no-print" style="font-size:12px;padding:5px 12px" onclick="window.print()">🖨️ প্রিন্ট</button></div>
-  <div class="card-body" style="padding:0"><table>
+  <div class="card-body" style="padding:0;overflow-x:auto"><table>
   <thead><tr><th>স্থান</th><th>নাম</th><th>রোল</th><th>শ্রেণি</th><th>মোট নম্বর</th><th>GPA</th><th>গ্রেড</th><th>ফলাফল</th></tr></thead>
   <tbody>${data.map((r,i)=>{
     const total=Object.values(r.subjects).reduce((a,b)=>a+b,0);
