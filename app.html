@@ -38,13 +38,15 @@
   .nav-item:hover { background:rgba(255,255,255,0.06); color:#fff; }
   .nav-item.active { background:rgba(46,134,193,0.18); color:#fff; border-left-color:var(--accent); font-weight:600; }
   .nav-item .icon { font-size:16px; width:20px; text-align:center; }
-  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; }
-  .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; }
+  .main { margin-left:var(--sidebar-width); flex:1; display:flex; flex-direction:column; min-height:100vh; min-height:100dvh; min-width:0; }
+  .topbar { background:var(--card-bg); padding:14px 28px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:210; min-width:0; }
+  .topbar > div { min-width:0; }
   .hamburger { display:block; background:none; border:none; font-size:24px; cursor:pointer; color:var(--primary); padding:0 10px 0 0; line-height:1; }
   @media(max-width:1024px) { .topbar{padding:12px 16px} .content{padding:16px!important} .topbar-date{display:none} }
   @media(max-width:600px) {
-    .topbar-right { gap:8px; }
-    #subscription-badge { font-size:10px!important; padding:4px 8px!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px; }
+    .topbar { flex-wrap:wrap; row-gap:8px; padding:10px 14px; }
+    .topbar-right { gap:8px; flex-wrap:wrap; justify-content:flex-end; flex-basis:100%; }
+    #subscription-badge { font-size:10px!important; padding:4px 8px!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
     .user-chip #user-name-label { display:none; }
     .user-chip { padding:6px; }
     .topbar-right .btn-outline { padding:6px 8px; font-size:0; }
@@ -53,7 +55,7 @@
     [data-lang-toggle-slot] { transform:scale(0.85); transform-origin:left center; }
   }
   .topbar-title { font-size:18px; font-weight:700; color:var(--primary); }
-  .topbar-right { display:flex; align-items:center; gap:16px; }
+  .topbar-right { display:flex; align-items:center; gap:16px; min-width:0; flex-shrink:1; }
   /* ===== সুপার-অ্যাডমিন বেল নোটিফিকেশন (শুধু অ্যাডমিন/প্রধান শিক্ষক দেখবে) ===== */
   .notice-bell-wrap { position:relative; display:none; align-items:center; margin-left:10px; }
   .notice-bell-btn { background:none; border:none; font-size:20px; cursor:pointer; position:relative; padding:4px 6px; line-height:1; color:var(--primary); }
