@@ -79,6 +79,13 @@
   .page.active { display:block; }
   .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
   .stat-card { background:var(--card-bg); border-radius:14px; padding:20px 22px 20px 19px; border:1px solid var(--border); border-left:3px solid var(--primary); display:flex; align-items:center; gap:16px; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 1px 2px rgba(36,27,29,.04), 0 8px 22px -16px rgba(36,27,29,.18); }
+  .dash-tabbar { position:relative; display:flex; gap:22px; margin:4px 0 18px; border-bottom:1px solid var(--border); overflow-x:auto; }
+  .dash-tab { position:relative; padding:10px 2px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; }
+  .dash-tab.active { color:var(--primary); }
+  .dash-tab-indicator { position:absolute; bottom:-1px; height:2.5px; background:var(--primary); border-radius:2px; transition:transform .28s cubic-bezier(.4,0,.2,1), width .28s cubic-bezier(.4,0,.2,1); }
+  .dash-view { display:none; }
+  .dash-view.active { display:block; animation:dashFade .25s ease; }
+  @keyframes dashFade { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
   .stat-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(36,27,29,0.1); }
   .stat-icon { width:50px; height:50px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
   .stat-icon.blue{background:#d6eaf8} .stat-icon.green{background:#d5f5e3} .stat-icon.orange{background:#fdebd0} .stat-icon.purple{background:#e8daef}
@@ -922,159 +929,202 @@
         <div class="stat-card"><div class="stat-icon orange">✅</div><div><div class="stat-value" id="dash-att">—</div><div class="stat-label">আজকের উপস্থিতি</div><div class="stat-change" id="dash-att-sub"></div></div></div>
         <div class="stat-card" id="dash-fee-card"><div class="stat-icon purple">💰</div><div><div class="stat-value" id="dash-fee">—</div><div class="stat-label">মোট ফি সংগ্রহ</div><div class="stat-change" id="dash-fee-sub"></div></div></div>
       </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">সাম্প্রতিক ভর্তি</div>
-            <span class="card-link" onclick="showPage('students',document.querySelector('[onclick*=students]'))">সব দেখুন →</span>
-          </div>
-          <div class="card-body" style="padding:0;overflow-x:auto">
-            <table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>রোল</th><th>অবস্থা</th></tr></thead>
-            <tbody id="dash-recent-students"></tbody></table>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">শ্রেণিভিত্তিক উপস্থিতি</div><span class="card-link">আজকের</span></div>
-          <div class="card-body" id="dash-class-att"></div>
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">আজকের ক্লাস রুটিন</div><span class="card-link" id="dash-today-routine-label"></span></div>
-          <div class="card-body" id="dash-today-routine"></div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">সাম্প্রতিক নোটিশ</div>
-            <span class="card-link" onclick="showPage('notice',document.querySelector('[onclick*=notice]'))">সব দেখুন →</span>
-          </div>
-          <div class="card-body" id="dash-notices"></div>
-        </div>
+      <div class="dash-tabbar" id="dash-tabbar">
+        <div class="dash-tab active" data-dash-tab="overview">সারসংক্ষেপ</div>
+        <div class="dash-tab" data-dash-tab="academic">একাডেমিক</div>
+        <div class="dash-tab" data-dash-tab="finance">আর্থিক</div>
+        <div class="dash-tab-indicator" id="dash-tab-indicator"></div>
       </div>
 
-      <!-- ===== ADVANCED DASHBOARD & ANALYTICS (শুধু এডমিন/প্রধান শিক্ষকের জন্য — আর্থিক ও স্কুল-ওয়াইড তথ্য থাকায় renderDashboard() এ role-check দিয়ে হাইড করা হয়) ===== -->
-      <div id="dash-advanced-section">
-      <div style="display:flex;align-items:center;gap:8px;margin:6px 0 14px">
-        <div style="font-size:15px;font-weight:700;color:var(--primary)">📊 অ্যাডভান্সড অ্যানালিটিক্স</div>
-        <div style="flex:1;height:1px;background:var(--border)"></div>
-      </div>
-
-      <!-- KPI Row 2: Finance & Ops -->
-      <div class="stats-grid" style="margin-bottom:20px">
-        <div class="stat-card"><div class="stat-icon green">📈</div><div><div class="stat-value" id="dash-income">০৳</div><div class="stat-label">চলতি মাসের আয়</div><div class="stat-change" id="dash-income-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon orange">📉</div><div><div class="stat-value" id="dash-expense">০৳</div><div class="stat-label">চলতি মাসের ব্যয়</div><div class="stat-change" id="dash-expense-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon purple">⚖️</div><div><div class="stat-value" id="dash-balance">০৳</div><div class="stat-label">নীট ব্যালেন্স</div><div class="stat-change" id="dash-balance-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon blue">📌</div><div><div class="stat-value" id="dash-due-total">০৳</div><div class="stat-label">মোট বকেয়া ফি</div><div class="stat-change" id="dash-due-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon orange">🚫</div><div><div class="stat-value" id="dash-absent">০</div><div class="stat-label">আজকের অনুপস্থিতি</div><div class="stat-change" id="dash-absent-sub"></div></div></div>
-        <div class="stat-card"><div class="stat-icon purple">🕓</div><div><div class="stat-value" id="dash-pending-adm">০</div><div class="stat-label">মুলতবি ভর্তি</div><div class="stat-change" id="dash-pending-adm-sub"></div></div></div>
-      </div>
-
-      <!-- Smart Alerts + Quick Summary -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">🔔 স্মার্ট এলার্ট</div><span class="badge badge-red" id="dash-alert-count">০</span></div>
-          <div class="card-body" id="dash-alerts" style="padding:0"></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">📅 আজকের কুইক সামারি</div></div>
-          <div class="card-body" id="dash-summary"></div>
-        </div>
-      </div>
-
-      <!-- Charts Row 1: Fee trend + Income vs Expense -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">📈 মাসভিত্তিক ফি সংগ্রহ</div></div>
-          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-fee-trend"></canvas></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">📊 আয় বনাম ব্যয় (মাসভিত্তিক)</div></div>
-          <div class="card-body">
-            <div style="display:flex;gap:14px;font-size:11px;margin-bottom:6px">
-              <span><span style="display:inline-block;width:9px;height:9px;background:#166B45;border-radius:50%;margin-right:4px"></span>আয়</span>
-              <span><span style="display:inline-block;width:9px;height:9px;background:#A93A26;border-radius:50%;margin-right:4px"></span>ব্যয়</span>
+      <!-- ===== ওভারভিউ ট্যাব ===== -->
+      <div class="dash-view active" id="dash-view-overview">
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">সাম্প্রতিক ভর্তি</div>
+              <span class="card-link" onclick="showPage('students',document.querySelector('[onclick*=students]'))">সব দেখুন →</span>
             </div>
-            <div class="chart-container" style="height:190px"><canvas id="dash-chart-income-expense"></canvas></div>
+            <div class="card-body" style="padding:0;overflow-x:auto">
+              <table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>রোল</th><th>অবস্থা</th></tr></thead>
+              <tbody id="dash-recent-students"></tbody></table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">শ্রেণিভিত্তিক উপস্থিতি</div><span class="card-link">আজকের</span></div>
+            <div class="card-body" id="dash-class-att"></div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-header"><div class="card-title">আজকের ক্লাস রুটিন</div><span class="card-link" id="dash-today-routine-label"></span></div>
+            <div class="card-body" id="dash-today-routine"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">সাম্প্রতিক নোটিশ</div>
+              <span class="card-link" onclick="showPage('notice',document.querySelector('[onclick*=notice]'))">সব দেখুন →</span>
+            </div>
+            <div class="card-body" id="dash-notices"></div>
+          </div>
+        </div>
+
+        <!-- ===== অ্যাডভান্সড অ্যানালিটিক্স (শুধু এডমিন/প্রধান শিক্ষকের জন্য — আর্থিক ও স্কুল-ওয়াইড তথ্য থাকায় renderDashboard() এ role-check দিয়ে হাইড করা হয়) ===== -->
+        <div id="dash-advanced-section">
+          <div style="display:flex;align-items:center;gap:8px;margin:6px 0 14px">
+            <div style="font-size:15px;font-weight:700;color:var(--primary)">📊 অ্যাডভান্সড অ্যানালিটিক্স</div>
+            <div style="flex:1;height:1px;background:var(--border)"></div>
+          </div>
+
+          <!-- KPI Row 2: Finance & Ops -->
+          <div class="stats-grid" style="margin-bottom:20px">
+            <div class="stat-card"><div class="stat-icon green">📈</div><div><div class="stat-value" id="dash-income">০৳</div><div class="stat-label">চলতি মাসের আয়</div><div class="stat-change" id="dash-income-sub"></div></div></div>
+            <div class="stat-card"><div class="stat-icon orange">📉</div><div><div class="stat-value" id="dash-expense">০৳</div><div class="stat-label">চলতি মাসের ব্যয়</div><div class="stat-change" id="dash-expense-sub"></div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">⚖️</div><div><div class="stat-value" id="dash-balance">০৳</div><div class="stat-label">নীট ব্যালেন্স</div><div class="stat-change" id="dash-balance-sub"></div></div></div>
+            <div class="stat-card"><div class="stat-icon blue">📌</div><div><div class="stat-value" id="dash-due-total">০৳</div><div class="stat-label">মোট বকেয়া ফি</div><div class="stat-change" id="dash-due-sub"></div></div></div>
+            <div class="stat-card"><div class="stat-icon orange">🚫</div><div><div class="stat-value" id="dash-absent">০</div><div class="stat-label">আজকের অনুপস্থিতি</div><div class="stat-change" id="dash-absent-sub"></div></div></div>
+            <div class="stat-card"><div class="stat-icon purple">🕓</div><div><div class="stat-value" id="dash-pending-adm">০</div><div class="stat-label">মুলতবি ভর্তি</div><div class="stat-change" id="dash-pending-adm-sub"></div></div></div>
+          </div>
+
+          <!-- Smart Alerts + Quick Summary -->
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🔔 স্মার্ট এলার্ট</div><span class="badge badge-red" id="dash-alert-count">০</span></div>
+              <div class="card-body" id="dash-alerts" style="padding:0"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📅 আজকের কুইক সামারি</div></div>
+              <div class="card-body" id="dash-summary"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Charts Row 2: Attendance trend + Admissions -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">📉 উপস্থিতির প্রবণতা (গত ৭ দিন)</div></div>
-          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-att-trend"></canvas></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">👨‍🎓 নতুন ভর্তি (মাসভিত্তিক)</div></div>
-          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-admissions"></canvas></div></div>
-        </div>
-      </div>
+      <!-- ===== একাডেমিক ট্যাব ===== -->
+      <div class="dash-view" id="dash-view-academic">
+        <div id="dash-advanced-section-academic">
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📉 উপস্থিতির প্রবণতা (গত ৭ দিন)</div></div>
+              <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-att-trend"></canvas></div></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">👨‍🎓 নতুন ভর্তি (মাসভিত্তিক)</div></div>
+              <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-admissions"></canvas></div></div>
+            </div>
+          </div>
 
-      <!-- Charts Row 3: Result analysis + Income source -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">📝 পরীক্ষার ফলাফল বিশ্লেষণ (বিষয়ভিত্তিক গড়)</div></div>
-          <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-results"></canvas></div></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">💰 আয়ের উৎস বিশ্লেষণ</div></div>
-          <div class="card-body">
-            <div class="chart-container"><canvas id="dash-chart-income-source"></canvas></div>
-            <div class="chart-legend" id="dash-income-source-legend"></div>
+          <div class="card" style="margin-bottom:20px">
+            <div class="card-header"><div class="card-title">📝 পরীক্ষার ফলাফল বিশ্লেষণ (বিষয়ভিত্তিক গড়)</div></div>
+            <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-results"></canvas></div></div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">🏆 Top Performing Students</div></div>
+              <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>গড় নম্বর</th></tr></thead><tbody id="dash-top-students"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📉 Low Attendance Students (&lt;৭৫%)</div></div>
+              <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>উপস্থিতি</th></tr></thead><tbody id="dash-low-attendance"></tbody></table></div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">👨‍🏫 Teacher Attendance Ranking</div></div>
+              <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শিক্ষক</th><th>উপস্থিতি</th><th>মোট দিন</th></tr></thead><tbody id="dash-teacher-ranking"></tbody></table></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">🎯 শ্রেণিভিত্তিক পাস রেট</div></div>
+              <div class="card-body" id="dash-pass-rate"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Charts Row 4: Expense breakdown + Fee status -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">📉 ব্যয়ের খাত বিশ্লেষণ</div></div>
-          <div class="card-body">
-            <div class="chart-container"><canvas id="dash-chart-expense-cat"></canvas></div>
-            <div class="chart-legend" id="dash-expense-cat-legend"></div>
+      <!-- ===== আর্থিক ট্যাব ===== -->
+      <div class="dash-view" id="dash-view-finance">
+        <div id="dash-advanced-section-finance">
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📈 মাসভিত্তিক ফি সংগ্রহ</div></div>
+              <div class="card-body"><div class="chart-container" style="height:200px"><canvas id="dash-chart-fee-trend"></canvas></div></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">📊 আয় বনাম ব্যয় (মাসভিত্তিক)</div></div>
+              <div class="card-body">
+                <div style="display:flex;gap:14px;font-size:11px;margin-bottom:6px">
+                  <span><span style="display:inline-block;width:9px;height:9px;background:#166B45;border-radius:50%;margin-right:4px"></span>আয়</span>
+                  <span><span style="display:inline-block;width:9px;height:9px;background:#A93A26;border-radius:50%;margin-right:4px"></span>ব্যয়</span>
+                </div>
+                <div class="chart-container" style="height:190px"><canvas id="dash-chart-income-expense"></canvas></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">💰 আয়ের উৎস বিশ্লেষণ</div></div>
+              <div class="card-body">
+                <div class="chart-container"><canvas id="dash-chart-income-source"></canvas></div>
+                <div class="chart-legend" id="dash-income-source-legend"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">⚠️ সর্বোচ্চ Fee Defaulter শ্রেণি</div></div>
+              <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শ্রেণি</th><th>বকেয়া সংখ্যা</th><th>মোট বকেয়া</th></tr></thead><tbody id="dash-fee-defaulters"></tbody></table></div>
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header"><div class="card-title">📉 ব্যয়ের খাত বিশ্লেষণ</div></div>
+              <div class="card-body">
+                <div class="chart-container"><canvas id="dash-chart-expense-cat"></canvas></div>
+                <div class="chart-legend" id="dash-expense-cat-legend"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">💳 ফি পরিশোধের অবস্থা</div></div>
+              <div class="card-body">
+                <div class="chart-container"><canvas id="dash-chart-fee-status"></canvas></div>
+                <div class="chart-legend" id="dash-fee-status-legend"></div>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">💳 ফি পরিশোধের অবস্থা</div></div>
-          <div class="card-body">
-            <div class="chart-container"><canvas id="dash-chart-fee-status"></canvas></div>
-            <div class="chart-legend" id="dash-fee-status-legend"></div>
-          </div>
-        </div>
       </div>
-
-      <!-- Analytics Tables Row 1 -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">⚠️ সর্বোচ্চ Fee Defaulter শ্রেণি</div></div>
-          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শ্রেণি</th><th>বকেয়া সংখ্যা</th><th>মোট বকেয়া</th></tr></thead><tbody id="dash-fee-defaulters"></tbody></table></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">🏆 Top Performing Students</div></div>
-          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>গড় নম্বর</th></tr></thead><tbody id="dash-top-students"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- Analytics Tables Row 2 -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header"><div class="card-title">📉 Low Attendance Students (&lt;৭৫%)</div></div>
-          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>নাম</th><th>শ্রেণি</th><th>উপস্থিতি</th></tr></thead><tbody id="dash-low-attendance"></tbody></table></div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">👨‍🏫 Teacher Attendance Ranking</div></div>
-          <div class="card-body" style="padding:0;overflow-x:auto"><table><thead><tr><th>শিক্ষক</th><th>উপস্থিতি</th><th>মোট দিন</th></tr></thead><tbody id="dash-teacher-ranking"></tbody></table></div>
-        </div>
-      </div>
-
-      <!-- Class-wise Pass Rate -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-header"><div class="card-title">🎯 শ্রেণিভিত্তিক পাস রেট</div></div>
-        <div class="card-body" id="dash-pass-rate"></div>
-      </div>
-      </div><!-- /dash-advanced-section -->
     </div>
+
+    <script>
+      (function(){
+        function initDashTabs(){
+          var bar = document.getElementById('dash-tabbar');
+          if(!bar || bar.dataset.bound) return;
+          bar.dataset.bound = '1';
+          var tabs = bar.querySelectorAll('.dash-tab');
+          var indicator = document.getElementById('dash-tab-indicator');
+          function place(tab){
+            indicator.style.width = tab.offsetWidth + 'px';
+            indicator.style.transform = 'translateX(' + tab.offsetLeft + 'px)';
+          }
+          tabs.forEach(function(tab){
+            tab.addEventListener('click', function(){
+              tabs.forEach(function(t){ t.classList.remove('active'); });
+              document.querySelectorAll('.dash-view').forEach(function(v){ v.classList.remove('active'); });
+              tab.classList.add('active');
+              place(tab);
+              var view = document.getElementById('dash-view-' + tab.dataset.dashTab);
+              if(view) view.classList.add('active');
+            });
+          });
+          setTimeout(function(){ var a = bar.querySelector('.dash-tab.active'); if(a) place(a); }, 50);
+          window.addEventListener('resize', function(){ var a = bar.querySelector('.dash-tab.active'); if(a) place(a); });
+        }
+        if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', initDashTabs); } else { initDashTabs(); }
+        window.initDashTabs = initDashTabs;
+      })();
+    </script>
 
     <!-- ===== STUDENTS ===== -->
     <div class="page" id="page-students">
