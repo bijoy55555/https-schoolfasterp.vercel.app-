@@ -77,8 +77,8 @@
   .content { padding:26px 28px; flex:1; }
   .page { display:none; }
   .page.active { display:block; }
-  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px; }
-  .stat-card { background:var(--card-bg); border-radius:14px; padding:20px 22px 20px 19px; border:1px solid var(--border); border-left:3px solid var(--primary); display:flex; align-items:center; gap:16px; transition:transform 0.15s,box-shadow 0.15s; box-shadow:0 1px 2px rgba(36,27,29,.04), 0 8px 22px -16px rgba(36,27,29,.18); }
+  .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:24px; }
+  .stat-card { background:var(--card-bg); border-radius:20px; padding:22px 14px 18px; border:1px solid var(--border); display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px; transition:transform 0.18s ease,box-shadow 0.18s ease; box-shadow:0 2px 6px rgba(36,27,29,.05), 0 10px 24px -18px rgba(36,27,29,.22); }
   .dash-tabbar { position:relative; display:flex; gap:22px; margin:4px 0 18px; border-bottom:1px solid var(--border); overflow-x:auto; }
   .dash-tab { position:relative; padding:10px 2px; font-size:14px; font-weight:600; color:var(--text-muted); cursor:pointer; white-space:nowrap; }
   .dash-tab.active { color:var(--primary); }
@@ -86,12 +86,12 @@
   .dash-view { display:none; }
   .dash-view.active { display:block; animation:dashFade .25s ease; }
   @keyframes dashFade { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)} }
-  .stat-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(36,27,29,0.1); }
-  .stat-icon { width:50px; height:50px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
-  .stat-icon.blue{background:#d6eaf8} .stat-icon.green{background:#d5f5e3} .stat-icon.orange{background:#fdebd0} .stat-icon.purple{background:#e8daef}
-  .stat-value { font-size:26px; font-weight:700; color:var(--text); line-height:1; }
-  .stat-label { font-size:12px; color:var(--text-muted); margin-top:4px; }
-  .stat-change { font-size:11px; color:var(--success); margin-top:4px; font-weight:600; }
+  .stat-card:hover { transform:translateY(-3px) scale(1.015); box-shadow:0 12px 26px -10px rgba(36,27,29,.22); }
+  .stat-icon { width:60px; height:60px; border-radius:18px; display:flex; align-items:center; justify-content:center; font-size:28px; flex-shrink:0; box-shadow:0 4px 10px -4px rgba(36,27,29,.15); }
+  .stat-icon.blue{background:linear-gradient(155deg,#eaf4fd,#c9e6fb)} .stat-icon.green{background:linear-gradient(155deg,#e9faef,#c3f0d6)} .stat-icon.orange{background:linear-gradient(155deg,#fef3e3,#fbdba8)} .stat-icon.purple{background:linear-gradient(155deg,#f3eafc,#e0c9f5)}
+  .stat-value { font-size:22px; font-weight:800; color:var(--text); line-height:1.15; }
+  .stat-label { font-size:12.5px; color:var(--text-muted); font-weight:600; }
+  .stat-change { font-size:11px; color:var(--success); font-weight:600; }
   .two-col { display:grid; grid-template-columns:1.4fr 1fr; gap:20px; margin-bottom:20px; }
   .three-col { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:20px; }
   .card { background:var(--card-bg); border-radius:14px; border:1px solid var(--border); overflow:hidden; box-shadow:0 1px 2px rgba(36,27,29,.03), 0 8px 22px -18px rgba(36,27,29,.16); }
@@ -151,8 +151,8 @@
   .att-cell:hover { transform:scale(1.08); }
   .att-present{background:#d5f5e3;color:var(--success)} .att-absent{background:#fadbd8;color:var(--danger)}
   .att-holiday{background:#f0f4f8;color:var(--text-muted)} .att-empty{background:transparent}
-  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(2,1fr)!important} .two-col,.three-col{grid-template-columns:1fr} .fee-summary{grid-template-columns:1fr} }
-  @media(max-width:420px) { .stats-grid{grid-template-columns:1fr!important} }
+  @media(max-width:900px) { .stats-grid{grid-template-columns:repeat(3,1fr)!important} .two-col,.three-col{grid-template-columns:1fr} .fee-summary{grid-template-columns:1fr} }
+  @media(max-width:420px) { .stats-grid{grid-template-columns:repeat(2,1fr)!important; gap:10px} .stat-card{padding:16px 8px 14px; border-radius:16px} .stat-icon{width:50px; height:50px; border-radius:15px; font-size:23px} .stat-value{font-size:18px} .stat-label{font-size:11px} }
 
   /* ===== FEE TABS ===== */
   .fee-tab-bar { display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap; }
