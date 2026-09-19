@@ -198,6 +198,81 @@
   [data-reveal]{opacity:0; transform:translateY(16px); transition:opacity .5s ease, transform .5s ease;}
   [data-reveal].in{opacity:1; transform:translateY(0);}
   @media (prefers-reduced-motion: reduce){ [data-reveal]{opacity:1; transform:none; transition:none;} }
+
+  /* =====================================================================
+     NEUMORPHIC THEME (override layer) — নিওমর্ফিক থিম
+     এই ব্লকটা মুছে দিলেই আগের ডিজাইন ফিরে আসবে।
+     ===================================================================== */
+  :root{
+    --nm-bg:#e3e7f1; --nm-light:#ffffff; --nm-dark:#b9bfd0;
+    --nm-raise:8px 8px 18px var(--nm-dark), -8px -8px 18px var(--nm-light);
+    --nm-raise-sm:4px 4px 9px var(--nm-dark), -4px -4px 9px var(--nm-light);
+    --nm-inset:inset 4px 4px 8px var(--nm-dark), inset -4px -4px 8px var(--nm-light);
+    --paper:var(--nm-bg); --ink:#3d4466; --muted:#7c84a6; --line:rgba(124,132,166,.22);
+    --shadow:var(--nm-raise);
+  }
+  body{background:var(--nm-bg); color:var(--ink);}
+  .nav{background:var(--nm-bg); backdrop-filter:none; border-bottom:0; box-shadow:0 8px 16px -10px var(--nm-dark);}
+  .brand{color:var(--ink);}
+  .brand-badge{box-shadow:var(--nm-raise-sm);}
+  .nav-links a{color:var(--muted);}
+  .nav-links a:hover{color:var(--ink);}
+  .btn{border-radius:14px;}
+  .btn-ghost{background:var(--nm-bg); color:var(--ink); border:0; box-shadow:var(--nm-raise-sm);}
+  .btn-ghost:hover{background:var(--nm-bg); color:var(--green-dark);}
+  .btn-primary{box-shadow:var(--nm-raise-sm);}
+  .btn-google{background:var(--nm-bg); color:var(--ink); border:0; box-shadow:var(--nm-raise-sm);}
+  .btn-google:hover{background:var(--nm-bg);}
+  .btn:active{box-shadow:var(--nm-inset); transform:none;}
+
+  .hero{background:var(--nm-bg); color:var(--ink);}
+  .hero h1 span{color:var(--green-dark);}
+  .hero-sub{color:var(--muted);}
+  .hero-note{color:var(--muted);}
+  .hero-note b{color:var(--ink);}
+  .eyebrow{background:var(--nm-bg); border:0; color:var(--green-dark); box-shadow:var(--nm-inset);}
+  .register-card{background:var(--nm-bg); box-shadow:var(--nm-raise); transform:none;}
+  .register-card::before{display:none;}
+  .register-head{border-bottom:1px solid var(--line);}
+  .reg-foot{border-top:1px solid var(--line);}
+  .reg-row{border-bottom:1px solid var(--line);}
+  .reg-stamp{background:var(--nm-bg); box-shadow:var(--nm-raise-sm);}
+
+  .trust{background:transparent; border-bottom:0;}
+  .section-eyebrow{color:var(--green-dark);}
+  .feat-card,.app-card,.step-card{background:var(--nm-bg); border:0; border-radius:24px; box-shadow:var(--nm-raise);}
+  .feat-card:hover,.app-card:hover{transform:translateY(-2px); box-shadow:var(--nm-raise);}
+  .app-card.live{border:0; box-shadow:var(--nm-raise);}
+  .feat-icon,.app-icon,.app-card.soon .app-icon{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .feat-tags span,.app-badge.live,.app-badge.soon,.step-num{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .app-badge.soon{color:#8a6a12;}
+
+  .spotlight{background:var(--nm-bg); color:var(--ink); box-shadow:var(--nm-raise);}
+  .spotlight p{color:var(--muted);}
+  .spot-list li{color:var(--ink);}
+  .spot-list li b{color:var(--ink);}
+  .spot-check{background:var(--nm-bg); box-shadow:var(--nm-inset); color:var(--green-dark);}
+  .device-mock{background:var(--nm-bg); border:0; box-shadow:var(--nm-inset);}
+  .device-row{border-bottom-color:var(--line);}
+  .status.on{background:var(--nm-bg); color:var(--green-dark); box-shadow:var(--nm-raise-sm);}
+  .status.late{background:var(--nm-bg); color:#8a6a06; box-shadow:var(--nm-raise-sm);}
+
+  .trial-band{background:var(--nm-bg); color:var(--ink); box-shadow:var(--nm-raise);}
+  .trial-band p{color:var(--muted);}
+  .trial-card{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .trial-divider::before,.trial-divider::after{background:var(--line);}
+
+  .gate-overlay{background:rgba(61,68,102,.35);}
+  .gate-box{background:var(--nm-bg); box-shadow:var(--nm-raise);}
+  .gate-input{background:var(--nm-bg); border:0; box-shadow:var(--nm-inset); color:var(--ink);}
+  .gate-input:focus{box-shadow:var(--nm-inset), 0 0 0 2px var(--green);}
+  .gate-wa{background:var(--nm-bg); box-shadow:var(--nm-raise-sm);}
+  .gate-wa:hover{background:var(--nm-bg);}
+
+  footer{background:var(--nm-bg); color:var(--muted); box-shadow:0 -8px 16px -10px var(--nm-dark);}
+  footer a{color:var(--ink);}
+  .foot-brand{color:var(--ink);}
+  .foot-row{border-top:1px solid var(--line);}
 </style>
 <script src="translations-data.js"></script>
 <script src="lang-toggle.js"></script>
