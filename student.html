@@ -628,6 +628,99 @@
     .app-bottom-nav button.active{ color:var(--primary); }
   }
 
+
+  /* =====================================================================
+     NEUMORPHIC THEME (override layer) — নিওমর্ফিক থিম
+     এই ব্লকটা মুছে দিলেই আগের ডিজাইন ফিরে আসবে।
+     ===================================================================== */
+  :root {
+    --nm-bg:#e3e7f1; --nm-light:#ffffff; --nm-dark:#b9bfd0;
+    --nm-raise:6px 6px 14px var(--nm-dark), -6px -6px 14px var(--nm-light);
+    --nm-raise-sm:4px 4px 9px var(--nm-dark), -4px -4px 9px var(--nm-light);
+    --nm-inset:inset 4px 4px 8px var(--nm-dark), inset -4px -4px 8px var(--nm-light);
+    --bg:var(--nm-bg); --card-bg:var(--nm-bg); --sidebar-bg:var(--nm-bg);
+    --text:#3d4466; --text-muted:#7c84a6; --border:rgba(124,132,166,.18);
+  }
+  body { background:var(--nm-bg); color:var(--text); }
+
+  /* Sidebar */
+  .sidebar { background:var(--nm-bg); color:var(--text); box-shadow:8px 0 18px -6px var(--nm-dark); }
+  .sidebar-logo { border-bottom:0; }
+  .sidebar-logo .school-name { color:var(--text); }
+  .sidebar-logo .school-sub { color:var(--text-muted); }
+  .sidebar-close { color:var(--text-muted); }
+  .sidebar-close:hover { color:var(--primary); }
+  .logo-badge { box-shadow:var(--nm-raise-sm); }
+  .nav-label { color:var(--text-muted); opacity:.8; }
+  .nav-item { color:var(--text-muted); border-left:0; margin:4px 14px; padding:10px 14px; border-radius:14px; }
+  .nav-item:hover { background:transparent; color:var(--text); box-shadow:var(--nm-raise-sm); }
+  .nav-item.active { background:var(--nm-bg); color:var(--primary); font-weight:700; box-shadow:var(--nm-inset); }
+
+  /* Topbar */
+  .topbar { background:var(--nm-bg); border-bottom:0; box-shadow:0 8px 16px -10px var(--nm-dark); }
+  .user-chip { background:var(--nm-bg); box-shadow:var(--nm-inset); }
+  .hamburger { color:var(--text); }
+
+  /* Cards */
+  .card { background:var(--nm-bg); border:0; border-radius:22px; box-shadow:var(--nm-raise); overflow:hidden; }
+  .card-header { border-bottom:0; padding-bottom:6px; }
+  .stat-card { background:var(--nm-bg); border:0; border-radius:22px; box-shadow:var(--nm-raise); }
+  .stat-card:hover { transform:translateY(-2px); box-shadow:8px 8px 18px var(--nm-dark), -8px -8px 18px var(--nm-light); }
+  .stat-icon { box-shadow:var(--nm-inset) !important; background:var(--nm-bg) !important; }
+
+  /* Tables */
+  thead th { background:transparent; border-bottom:1px solid var(--border); }
+  tbody tr { border-bottom:1px solid var(--border); }
+  tbody tr:hover { background:rgba(255,255,255,.35); }
+  .schedule-item, .notice-item { border-bottom-color:var(--border); }
+  .att-bar { background:var(--nm-bg); box-shadow:var(--nm-inset); height:10px; }
+
+  /* Buttons */
+  .btn { border-radius:14px; }
+  .btn-primary { background:var(--primary); box-shadow:var(--nm-raise-sm); }
+  .btn-primary:hover { background:var(--primary-light); }
+  .btn-success { box-shadow:var(--nm-raise-sm); }
+  .btn-danger { box-shadow:var(--nm-raise-sm); }
+  .btn-outline { background:var(--nm-bg); border:0; color:var(--text); box-shadow:var(--nm-raise-sm); }
+  .btn-outline:hover { color:var(--primary); }
+  .btn:active { box-shadow:var(--nm-inset); }
+
+  /* Tabs */
+  .dash-tabbar { border-bottom:0; }
+  .dash-tab.active { color:var(--primary); }
+  .fee-tab { background:var(--nm-bg); border:0; border-radius:14px; color:var(--text-muted); box-shadow:var(--nm-raise-sm); }
+  .fee-tab:hover { color:var(--text); }
+  .fee-tab.active { background:var(--nm-bg); color:var(--primary); box-shadow:var(--nm-inset); }
+
+  /* Forms */
+  .form-input, .form-select, .result-search-box input, .result-search-box select {
+    background:var(--nm-bg); border:0; border-radius:14px; box-shadow:var(--nm-inset); color:var(--text); }
+  .form-input:focus, .form-select:focus, .result-search-box input:focus, .result-search-box select:focus {
+    box-shadow:var(--nm-inset), 0 0 0 2px var(--primary-light); }
+  .form-label { color:var(--text-muted); }
+
+  /* Modal */
+  .modal-overlay { background:rgba(61,68,102,.35); backdrop-filter:blur(3px); }
+  .modal-box { background:var(--nm-bg); border-radius:24px; box-shadow:10px 10px 24px var(--nm-dark), -10px -10px 24px var(--nm-light); }
+  .modal-header { background:var(--nm-bg); color:var(--text); }
+  .modal-close { color:var(--text-muted); }
+
+  /* Misc */
+  .toggle-slider { box-shadow:var(--nm-inset); }
+  .notice-bell-dropdown { background:var(--nm-bg); border:0; box-shadow:var(--nm-raise); }
+  .toast { box-shadow:var(--nm-raise-sm); }
+  .topbar-title, .card-title { color:var(--text); }
+  @media (prefers-reduced-motion: reduce) { .stat-card:hover { transform:none; } }
+
+  /* Login screen */
+  .login-screen { background:var(--nm-bg); }
+  .login-box { background:var(--nm-bg); border-radius:28px; box-shadow:10px 10px 24px var(--nm-dark), -10px -10px 24px var(--nm-light); }
+  .login-logo-icon { box-shadow:var(--nm-raise-sm); }
+  .login-school { color:var(--text); }
+  .login-hint { background:var(--nm-bg); box-shadow:var(--nm-inset); }
+  .login-btn { border-radius:14px; box-shadow:var(--nm-raise-sm); }
+  .login-btn:hover { opacity:1; transform:none; }
+  .login-btn:active { box-shadow:var(--nm-inset); }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js';"></script>
 

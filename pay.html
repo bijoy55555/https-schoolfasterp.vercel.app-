@@ -37,6 +37,46 @@
   .modal-box p, .modal-box li { font-size:13px; color:#333; line-height:1.7; }
   .modal-box ul { padding-left:18px; margin:6px 0; }
   .modal-close { display:block; width:100%; margin-top:16px; background:#1e7e46; color:#fff; border:none; padding:11px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; }
+
+  /* =====================================================================
+     NEUMORPHIC THEME (override layer) — নিওমর্ফিক থিম
+     এই ব্লকটা মুছে দিলেই আগের ডিজাইন ফিরে আসবে।
+     ===================================================================== */
+  :root{
+    --nm-bg:#e3e7f1; --nm-light:#ffffff; --nm-dark:#b9bfd0;
+    --nm-raise:8px 8px 18px var(--nm-dark), -8px -8px 18px var(--nm-light);
+    --nm-raise-sm:4px 4px 9px var(--nm-dark), -4px -4px 9px var(--nm-light);
+    --nm-inset:inset 4px 4px 8px var(--nm-dark), inset -4px -4px 8px var(--nm-light);
+  }
+  body{background:var(--nm-bg); color:#3d4466;}
+  h1{color:#3d4466;}
+  .sub{color:#7c84a6;}
+  .card{background:var(--nm-bg); border-radius:24px; box-shadow:var(--nm-raise);}
+  .card h2{color:#3d4466;}
+  label{color:#7c84a6;}
+  input, select{background:var(--nm-bg); border:0; border-radius:14px; box-shadow:var(--nm-inset); color:#3d4466;}
+  input:focus, select:focus{outline:none; box-shadow:var(--nm-inset), 0 0 0 2px #2e86c1;}
+  button{border-radius:14px; box-shadow:var(--nm-raise-sm);}
+  button:active{box-shadow:var(--nm-inset);}
+  button.ghost{background:var(--nm-bg); color:#3d4466;}
+  th, td{border-bottom-color:rgba(124,132,166,.2);}
+  code{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .hint, .usage-note{color:#7c84a6;}
+  .msg{border-radius:14px;}
+  .tab-btn{background:var(--nm-bg); color:#7c84a6; box-shadow:var(--nm-raise-sm);}
+  .tab-btn.active{background:var(--nm-bg); color:#16A34A; box-shadow:var(--nm-inset);}
+  .pkg{border:0; background:var(--nm-bg); border-radius:16px; box-shadow:var(--nm-raise-sm);}
+  .pkg.sel{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .sheet-card{background:var(--nm-bg); box-shadow:var(--nm-raise-sm); border-radius:18px;}
+  .sheet-name{color:#3d4466;}
+  .empty-state{color:#7c84a6;}
+  .modal-bg, .modal-overlay{background:rgba(61,68,102,.35);}
+  .modal, .modal-box{background:var(--nm-bg); box-shadow:var(--nm-raise); border-radius:24px;}
+  .modal-box p, .modal-box li{color:#3d4466;}
+  .usage-bar-bg{background:var(--nm-bg); box-shadow:var(--nm-inset);}
+  .qr-cell{border:0; box-shadow:var(--nm-raise-sm);}
+  .terms-line{color:#7c84a6;}
+  .link-btn{box-shadow:var(--nm-raise-sm);}
 </style>
 <link href="/manifest.json" rel="manifest"/><meta content="#16A34A" name="theme-color"/></head>
 <body>
