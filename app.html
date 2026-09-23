@@ -14204,11 +14204,18 @@ function setNotifList(list) {
   try { localStorage.setItem(_notifKey('list'), JSON.stringify(list.slice(0,50))); } catch(e){}
 }
 function _getSeenIds(kind) {
-  const raw = localStorage.getItem(_notifKey('seen_'+kind));
-  return raw===null ? null : JSON.parse(raw); // null মানে এই প্রথমবার — বেসলাইন এখনো সেট হয়নি
+  // ✅ বাগ-ফিক্স: localStorage অ্যাক্সেস ব্যর্থ হলে (প্রাইভেট/ইনকগনিটো মোড, স্টোরেজ বন্ধ থাকা
+  // WebView/APK, ব্রাউজার সেটিংসে স্টোরেজ ব্লক ইত্যাদি) আগে এখানে এক্সসেপশন থ্রো হয়ে
+  // পুরো renderParentPortal()/renderStudentPortal() ফাংশনটাই মাঝপথে থেমে যেত — ফলে
+  // এর পরের সবকিছু (ফি বিবরণ, হোমওয়ার্ক, বার্ষিক রেকর্ড, মাস-ওয়াইজ হাজিরা) খালি/লোডিং
+  // অবস্থায় আটকে থাকত। getNotifList/setNotifList-এর মতোই এখন try/catch দিয়ে সুরক্ষিত।
+  try {
+    const raw = localStorage.getItem(_notifKey('seen_'+kind));
+    return raw===null ? null : JSON.parse(raw); // null মানে এই প্রথমবার — বেসলাইন এখনো সেট হয়নি
+  } catch(e) { return null; }
 }
 function _setSeenIds(kind, ids) {
-  localStorage.setItem(_notifKey('seen_'+kind), JSON.stringify(ids));
+  try { localStorage.setItem(_notifKey('seen_'+kind), JSON.stringify(ids)); } catch(e){}
 }
 
 // নতুন একটা নোটিফিকেশন তালিকায় যোগ করে এবং সম্ভব হলে ব্রাউজার সিস্টেম নোটিফিকেশনও দেখায়
