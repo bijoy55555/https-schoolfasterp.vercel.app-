@@ -10971,10 +10971,13 @@ function renderParentPortal() {
   document.getElementById('pp-date').textContent = todayBn();
 
   // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল/বকেয়া ফি এলে) =====
-  checkAndNotifyHomework(sCls);
-  checkAndNotifyResults(sName, sRoll, sCls);
-  checkAndNotifyFeeDue(sName);
-  renderNotifBadge();
+  // ✅ বাগ-ফিক্স: এই তিনটা নোটিফিকেশন-চেক ফাংশনের যেকোনো একটায় অপ্রত্যাশিত এরর হলে
+  // (যেমন localStorage সমস্যা) যেন পুরো পোর্টাল রেন্ডার মাঝপথে থেমে না যায় — ফি বিবরণ,
+  // হোমওয়ার্ক, বার্ষিক রেকর্ড ইত্যাদি যেন সবসময় লোড হয়, নোটিফিকেশন ব্যর্থ হলেও।
+  try { checkAndNotifyHomework(sCls); } catch(e) { console.error('হোমওয়ার্ক নোটিফাই এরর:', e); }
+  try { checkAndNotifyResults(sName, sRoll, sCls); } catch(e) { console.error('ফলাফল নোটিফাই এরর:', e); }
+  try { checkAndNotifyFeeDue(sName); } catch(e) { console.error('ফি নোটিফাই এরর:', e); }
+  try { renderNotifBadge(); } catch(e) { console.error('নোটিফ ব্যাজ এরর:', e); }
   renderParentAnnualRecord(matchedStudent, sName, sRoll, sCls); // ✅ বার্ষিক রেকর্ড — শুধু এই সন্তানের
 
   // Fee status
@@ -11255,10 +11258,13 @@ function renderStudentPortal() {
   document.getElementById('sp-date').textContent = todayBn();
 
   // ===== পুশ নোটিফিকেশন (নতুন হোমওয়ার্ক/ফলাফল/বকেয়া ফি এলে) =====
-  checkAndNotifyHomework(sCls);
-  checkAndNotifyResults(sName, sRoll, sCls);
-  checkAndNotifyFeeDue(sName);
-  renderNotifBadge();
+  // ✅ বাগ-ফিক্স: এই তিনটা নোটিফিকেশন-চেক ফাংশনের যেকোনো একটায় অপ্রত্যাশিত এরর হলে
+  // (যেমন localStorage সমস্যা) যেন পুরো পোর্টাল রেন্ডার মাঝপথে থেমে না যায় — ফি বিবরণ,
+  // হোমওয়ার্ক, বার্ষিক রেকর্ড ইত্যাদি যেন সবসময় লোড হয়, নোটিফিকেশন ব্যর্থ হলেও।
+  try { checkAndNotifyHomework(sCls); } catch(e) { console.error('হোমওয়ার্ক নোটিফাই এরর:', e); }
+  try { checkAndNotifyResults(sName, sRoll, sCls); } catch(e) { console.error('ফলাফল নোটিফাই এরর:', e); }
+  try { checkAndNotifyFeeDue(sName); } catch(e) { console.error('ফি নোটিফাই এরর:', e); }
+  try { renderNotifBadge(); } catch(e) { console.error('নোটিফ ব্যাজ এরর:', e); }
 
   // ===== পরিবহন তথ্য (রুট ও সময়, রিড-অনলি) =====
   renderStudentTransport();
@@ -11428,11 +11434,18 @@ function setNotifList(list) {
   try { localStorage.setItem(_notifKey('list'), JSON.stringify(list.slice(0,50))); } catch(e){}
 }
 function _getSeenIds(kind) {
-  const raw = localStorage.getItem(_notifKey('seen_'+kind));
-  return raw===null ? null : JSON.parse(raw); // null মানে এই প্রথমবার — বেসলাইন এখনো সেট হয়নি
+  // ✅ বাগ-ফিক্স: localStorage অ্যাক্সেস ব্যর্থ হলে (প্রাইভেট/ইনকগনিটো মোড, স্টোরেজ বন্ধ থাকা
+  // WebView/APK, ব্রাউজার সেটিংসে স্টোরেজ ব্লক ইত্যাদি) আগে এখানে এক্সসেপশন থ্রো হয়ে
+  // পুরো renderParentPortal()/renderStudentPortal() ফাংশনটাই মাঝপথে থেমে যেত — ফলে
+  // এর পরের সবকিছু (ফি বিবরণ, হোমওয়ার্ক, বার্ষিক রেকর্ড, মাস-ওয়াইজ হাজিরা) খালি/লোডিং
+  // অবস্থায় আটকে থাকত। getNotifList/setNotifList-এর মতোই এখন try/catch দিয়ে সুরক্ষিত।
+  try {
+    const raw = localStorage.getItem(_notifKey('seen_'+kind));
+    return raw===null ? null : JSON.parse(raw); // null মানে এই প্রথমবার — বেসলাইন এখনো সেট হয়নি
+  } catch(e) { return null; }
 }
 function _setSeenIds(kind, ids) {
-  localStorage.setItem(_notifKey('seen_'+kind), JSON.stringify(ids));
+  try { localStorage.setItem(_notifKey('seen_'+kind), JSON.stringify(ids)); } catch(e){}
 }
 
 // নতুন একটা নোটিফিকেশন তালিকায় যোগ করে এবং সম্ভব হলে ব্রাউজার সিস্টেম নোটিফিকেশনও দেখায়
