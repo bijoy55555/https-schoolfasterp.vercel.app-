@@ -7275,7 +7275,10 @@ function renderResults(list) {
           }).join('')}
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
             <div style="font-size:14px;font-weight:700">মোট: ${toBnNum(total)}/${toBnNum(max)} &nbsp;|&nbsp; GPA: ${gpaStr} &nbsp;|&nbsp; <span style="color:${passed?'var(--success)':'var(--danger)'}">${passed?'উত্তীর্ণ':'অকৃতকার্য'}</span></div>
-            <button class="btn btn-primary no-print" onclick="window.print()">🖨️ রিপোর্ট কার্ড প্রিন্ট</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary no-print" onclick="window.print()">🖨️ রিপোর্ট কার্ড প্রিন্ট</button>
+              <button class="btn no-print" style="background:#8c1c1c;color:#fff" onclick="printPassingCertificate(${results.indexOf(r)})">🎓 উত্তীর্ণ সনদ প্রিন্ট</button>
+            </div>
           </div>
         </div>
       </div>
@@ -8484,6 +8487,84 @@ function saveStudentsData(){
   saveTenantData();
 }
 
+// ============ FANCY CERTIFICATE TEMPLATE (shared) ============
+// একটাই টেমপ্লেট — TC, Character Certificate, Passing Certificate সবাই এটা ব্যবহার করে।
+// bordered card + watermark + ছবির বক্স + justify করা মূল লেখা — ডিজাইন যেন সব জায়গায় এক থাকে।
+function buildFancyCertificateHTML(opts) {
+  const {
+    docTitle, certLabel, certNo, issueDate,
+    school, address, phone, founded,
+    title, titleEn, photoHtml, bodyHtml,
+    signLabels, showVerified
+  } = opts;
+  const watermarkText = school || 'বিদ্যালয়';
+  const watermarkSpans = Array.from({length: 18}).map(() => `<span>${watermarkText}</span>`).join('');
+  const signBoxes = signLabels.map(l => `<div class="sign-line"><span>${l}</span></div>`).join('');
+  return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">
+<title>${docTitle}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Serif+Bengali:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#e7e2d3;font-family:'Noto Sans Bengali','Noto Serif Bengali',serif;color:#1f2a20;padding:24px 12px}
+  .cert{max-width:720px;margin:0 auto;background:repeating-linear-gradient(45deg,#a9722c 0 18px,#8a5a1f 18px 36px);padding:14px;border-radius:4px}
+  .cert-inner{background:#faf7ee;border:2px dashed #c7a15a;padding:28px 26px 24px;position:relative;overflow:hidden}
+  .watermark{position:absolute;inset:0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(6,1fr);opacity:.09;pointer-events:none;transform:rotate(-30deg);font-size:12px;font-weight:700;color:#8a5a1f;text-align:center;white-space:nowrap}
+  .watermark span{align-self:center}
+  .row-top{display:flex;justify-content:space-between;gap:10px;margin-bottom:14px;position:relative;z-index:1}
+  .box{border:1px solid #b79a5e;border-radius:5px;padding:5px 14px;font-size:12.5px;background:rgba(255,255,255,.6);white-space:nowrap}
+  .head{text-align:center;position:relative;z-index:1;margin-bottom:6px}
+  .head-top{display:flex;align-items:center;justify-content:center;gap:16px}
+  .seal-left{width:54px;height:54px;border-radius:50%;border:2px solid #b8862b;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#b8862b;text-align:center;line-height:1.25;flex-shrink:0}
+  .seal-right{width:38px;height:38px;border-radius:50%;background:#1a6b3c;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .seal-right::before{content:"";width:15px;height:15px;background:linear-gradient(#fff,#fff) left/6px 100% no-repeat,linear-gradient(#fff,#fff) right/6px 100% no-repeat}
+  .school-name{font-family:'Noto Serif Bengali',serif;font-weight:700;font-size:27px;color:#1a6b3c;margin:0}
+  .school-meta{font-size:12.5px;color:#4a4a3d;margin-top:6px}
+  .cert-title{font-family:'Noto Serif Bengali',serif;font-weight:700;font-size:22px;color:#8c1c1c;margin:14px 0 4px;position:relative;z-index:1;text-align:center}
+  .cert-title-en{text-align:center;font-size:12.5px;letter-spacing:.5px;color:#8c1c1c;border-bottom:2px solid #8c1c1c;display:inline-block;padding-bottom:3px;margin:0 auto 18px;position:relative;z-index:1}
+  .cert-title-wrap{text-align:center;margin-bottom:16px}
+  .body-text{display:flex;gap:16px;position:relative;z-index:1;align-items:flex-start}
+  .body-text p{font-size:15.5px;line-height:1.65;text-align:justify;text-align-last:left;margin:0;flex:1;min-width:0}
+  .body-text u{text-decoration-color:#333;text-underline-offset:3px;font-weight:600}
+  .photo-box{width:78px;min-width:78px;height:96px;border:1px dashed #b79a5e;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#8a8a72;background:rgba(255,255,255,.4);line-height:1.3;overflow:hidden}
+  .photo-box img{width:100%;height:100%;object-fit:cover}
+  .verified{display:inline-flex;align-items:center;gap:6px;border:1px solid #1a6b3c;color:#1a6b3c;border-radius:20px;padding:5px 14px;font-size:13px;font-weight:600;margin-top:14px;position:relative;z-index:1}
+  .footer-row{display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;position:relative;z-index:1;gap:10px}
+  .school-seal{width:64px;height:64px;border-radius:50%;border:1.5px dotted #b79a5e;display:flex;align-items:center;justify-content:center;font-size:9px;color:#8a8a72;text-align:center;line-height:1.2}
+  .sign-line{text-align:center;font-size:12.5px;color:#4a4a3d}
+  .sign-line span{display:block;border-top:1px solid #4a4a3d;padding-top:4px;margin-top:26px;min-width:90px}
+  .signatures{display:flex;gap:24px;flex:1;justify-content:space-evenly}
+  @media print{body{background:#fff;padding:0}.cert{margin:0 auto}}
+  @media (max-width:480px){.school-name{font-size:21px}.body-text p{font-size:14px}.box{font-size:11.5px;padding:5px 8px}.photo-box{width:64px;min-width:64px;height:80px;font-size:10px}}
+</style></head><body>
+<div class="cert"><div class="cert-inner">
+  <div class="watermark">${watermarkSpans}</div>
+  <div class="row-top"><div class="box">${certLabel}: ${certNo}</div><div class="box">তারিখ: ${issueDate}</div></div>
+  <div class="head">
+    <div class="head-top">
+      <div class="seal-left">প্রতিষ্ঠিত<br>${founded || ''}</div>
+      <h1 class="school-name">${school}</h1>
+      <div class="seal-right"></div>
+    </div>
+    <div class="school-meta">${address} | ফোন: ${phone}</div>
+  </div>
+  <div class="cert-title-wrap">
+    <div class="cert-title">${title}</div>
+    <div class="cert-title-en">${titleEn}</div>
+  </div>
+  <div class="body-text">
+    <p>${bodyHtml}</p>
+    <div class="photo-box">${photoHtml}</div>
+  </div>
+  ${showVerified ? '<div class="verified">✓ যাচাইকৃত</div>' : ''}
+  <div class="footer-row">
+    <div class="signatures">${signBoxes}</div>
+    <div class="school-seal">স্কুল<br>সিলমোহর</div>
+  </div>
+</div></div>
+<scr${''}ipt>window.onload=()=>{window.print();}</scr${''}ipt>
+</body></html>`;
+}
+
 function openTCModal(index){
   const s = students[index];
   document.getElementById('tc-student-name').textContent = s.name;
@@ -8497,66 +8578,27 @@ function printTC(index, reason){
   const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
   const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
   const phone = document.getElementById('s-phone')?.value || '০১৭০০-০০০০০০';
+  const founded = document.getElementById('s-founded-year')?.value || '';
   const tcNo = 'TC-' + Date.now();
   const issueDate = new Date().toLocaleDateString('bn-BD');
   s.tc = { tcNo, issueDate, reason };
-  const photoHtml = s.photo ? `<img src="${s.photo}" style="width:90px;height:100px;object-fit:cover;border:2px solid #333">` : `<div style="width:90px;height:100px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999">ছবি নেই</div>`;
+  const photoHtml = s.photo ? `<img src="${s.photo}">` : `ছাত্রের<br>ছবি`;
+  const bodyHtml = `এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, <u>${s.name||''}</u>, অভিভাবকের নাম: <u>${s.guardian||'—'}</u>,
+    ঠিকানা: <u>${s.address||'—'}</u>, ধর্ম: <u>${s.religion||'—'}</u>, রক্তের গ্রুপ: <u>${s.blood||'—'}</u>,
+    জন্ম তারিখ: <u>${s.dob||'—'}</u>, রোল নং: <u>${s.roll||''}</u>, এই বিদ্যালয়ে <u>${s.cls||''}${s.section?' - '+s.section:''}</u> শ্রেণি
+    পর্যন্ত একজন নিয়মিত শিক্ষার্থী হিসেবে অধ্যয়ন করেছে। ছাড়ার কারণ: <u>${reason||'ব্যক্তিগত কারণ'}</u>।
+    বিদ্যালয়ের সকল বকেয়া পরিশোধ সাপেক্ষে এই সনদ প্রদান করা হলো। আমি তার সর্বাঙ্গীন সাফল্য কামনা করি।`;
   const w = window.open('', '_blank');
   if(!w){ showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="bn"><head>
-    <meta charset="UTF-8">
-    <title>Transfer Certificate - ${s.name}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
-      body{font-family:'Hind Siliguri',sans-serif;margin:0;padding:30px;color:#111;font-size:14px}
-      .header{text-align:center;border-bottom:3px double #7A2733;padding-bottom:14px;margin-bottom:20px}
-      .school-name{font-size:22px;font-weight:700;color:#7A2733}
-      .school-sub{font-size:13px;color:#555;margin-top:4px}
-      .tc-title{font-size:20px;font-weight:700;text-align:center;margin:16px 0;color:#7A2733;letter-spacing:1px;text-decoration:underline}
-      .tc-no{text-align:right;font-size:12px;color:#666;margin-bottom:10px}
-      .content{display:flex;gap:20px;align-items:flex-start}
-      .fields{flex:1}
-      .field-row{display:flex;margin-bottom:11px}
-      .field-label{font-weight:600;min-width:150px;color:#333}
-      .field-value{flex:1;border-bottom:1px dotted #999;padding-bottom:2px}
-      .cert-text{background:#f8f8f8;border:1px solid #ddd;padding:14px;border-radius:6px;margin:20px 0;font-size:13px;line-height:1.9;text-align:justify}
-      .sign-row{display:flex;justify-content:space-between;margin-top:50px}
-      .sign-box{text-align:center;border-top:1px solid #333;padding-top:6px;width:150px;font-size:12px}
-      @media print{body{padding:15px}}
-    </style>
-  </head><body>
-    <div class="header">
-      <div class="school-name">${school}</div>
-      <div class="school-sub">${address} | ফোন: ${phone}</div>
-    </div>
-    <div class="tc-title">স্থানান্তর সনদপত্র (Transfer Certificate)</div>
-    <div class="tc-no">TC নম্বর: ${tcNo} &nbsp;|&nbsp; তারিখ: ${issueDate}</div>
-    <div class="content">
-      <div class="fields">
-        <div class="field-row"><span class="field-label">ছাত্রের পূর্ণ নাম:</span><span class="field-value"><b>${s.name||''}</b></span></div>
-        <div class="field-row"><span class="field-label">রোল নম্বর:</span><span class="field-value">${s.roll||''}</span></div>
-        <div class="field-row"><span class="field-label">শ্রেণি:</span><span class="field-value">${s.cls||''} ${s.section?'(সেকশন '+s.section+')':''}</span></div>
-        <div class="field-row"><span class="field-label">জন্মতারিখ:</span><span class="field-value">${s.dob||'—'}</span></div>
-        <div class="field-row"><span class="field-label">ধর্ম:</span><span class="field-value">${s.religion||'—'}</span></div>
-        <div class="field-row"><span class="field-label">রক্তের গ্রুপ:</span><span class="field-value">${s.blood||'—'}</span></div>
-        <div class="field-row"><span class="field-label">অভিভাবকের নাম:</span><span class="field-value">${s.guardian||'—'}</span></div>
-        <div class="field-row"><span class="field-label">ঠিকানা:</span><span class="field-value">${s.address||'—'}</span></div>
-        <div class="field-row"><span class="field-label">ছাড়ার কারণ:</span><span class="field-value">${reason||'ব্যক্তিগত কারণ'}</span></div>
-      </div>
-      <div style="text-align:center">${photoHtml}<div style="font-size:11px;margin-top:4px">ছাত্রের ছবি</div></div>
-    </div>
-    <div class="cert-text">
-      এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, <b>${s.name||''}</b> এই বিদ্যালয়ের একজন নিয়মিত ছাত্র/ছাত্রী ছিল। 
-      সে ${s.cls||''} শ্রেণিতে অধ্যয়ন করেছে। তার আচরণ ও চরিত্র সন্তোষজনক ছিল। 
-      অভিভাবকের আবেদনের প্রেক্ষিতে তাকে এই বিদ্যালয় থেকে TC প্রদান করা হলো।
-    </div>
-    <div class="sign-row">
-      <div class="sign-box">শ্রেণিশিক্ষকের স্বাক্ষর</div>
-      <div class="sign-box">অভিভাবকের স্বাক্ষর</div>
-      <div class="sign-box">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
-    </div>
-    <scr'+'ipt>window.onload=()=>{window.print();}<\/script>
-  </body></html>`);
+  w.document.write(buildFancyCertificateHTML({
+    docTitle: `Transfer Certificate - ${s.name}`,
+    certLabel: 'TC নং', certNo: tcNo, issueDate,
+    school, address, phone, founded,
+    title: 'স্থানান্তর সনদপত্র', titleEn: 'TRANSFER CERTIFICATE',
+    photoHtml, bodyHtml,
+    signLabels: ['শ্রেণি শিক্ষক','অভিভাবক','প্রধান শিক্ষক'],
+    showVerified: true
+  }));
   w.document.close();
 }
 
@@ -16125,66 +16167,65 @@ function printCharacterCertificate(index, conduct, purpose) {
   const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
   const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
   const phone = document.getElementById('s-phone')?.value || '০১৭০০-০০০০০০';
+  const founded = document.getElementById('s-founded-year')?.value || '';
   const ccNo = 'CC-' + Date.now();
   const issueDate = new Date().toLocaleDateString('bn-BD');
   s.cc = { ccNo, issueDate, conduct, purpose };
-  const photoHtml = s.photo ? `<img src="${s.photo}" style="width:90px;height:100px;object-fit:cover;border:2px solid #333">` : `<div style="width:90px;height:100px;border:2px dashed #ccc;display:flex;align-items:center;justify-content:center;font-size:11px;color:#999">ছবি নেই</div>`;
+  const photoHtml = s.photo ? `<img src="${s.photo}">` : `ছাত্রের<br>ছবি`;
+  const bodyHtml = `এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, <u>${s.name||''}</u>, পিতা/অভিভাবক: <u>${s.guardian||'—'}</u>,
+    ঠিকানা: <u>${s.address||'—'}</u>, ধর্ম: <u>${s.religion||'—'}</u>, জন্ম তারিখ: <u>${s.dob||'—'}</u>,
+    রোল নং: <u>${s.roll||''}</u>, এই বিদ্যালয়ের <u>${s.cls||''}${s.section?' - '+s.section:''}</u> শ্রেণির একজন নিয়মিত
+    ছাত্র/ছাত্রী। বিদ্যালয়ে অধ্যয়নকালে তার আচরণ ছিল <u>${conduct}</u> এবং সে কোনো ধরনের শৃঙ্খলাজনিত
+    কার্যকলাপে জড়িত ছিল না। <u>${purpose}</u> এই সনদ প্রদান করা হলো। আমি তার সর্বাঙ্গীন সাফল্য কামনা করি।`;
   const w = window.open('', '_blank');
   if(!w){ showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।','error'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="bn"><head>
-    <meta charset="UTF-8">
-    <title>Character Certificate - ${s.name}</title>
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap');
-      body{font-family:'Hind Siliguri',sans-serif;margin:0;padding:30px;color:#111;font-size:14px}
-      .header{text-align:center;border-bottom:3px double #166B45;padding-bottom:14px;margin-bottom:20px}
-      .school-name{font-size:22px;font-weight:700;color:#166B45}
-      .school-sub{font-size:13px;color:#555;margin-top:4px}
-      .cc-title{font-size:20px;font-weight:700;text-align:center;margin:16px 0;color:#166B45;letter-spacing:1px;text-decoration:underline}
-      .cc-no{text-align:right;font-size:12px;color:#666;margin-bottom:10px}
-      .content{display:flex;gap:20px;align-items:flex-start}
-      .fields{flex:1}
-      .field-row{display:flex;margin-bottom:11px}
-      .field-label{font-weight:600;min-width:150px;color:#333}
-      .field-value{flex:1;border-bottom:1px dotted #999;padding-bottom:2px}
-      .cert-text{background:#f0f9f4;border:1px solid #c8e6d4;padding:14px;border-radius:6px;margin:20px 0;font-size:13px;line-height:1.9;text-align:justify}
-      .sign-row{display:flex;justify-content:space-between;margin-top:50px}
-      .sign-box{text-align:center;border-top:1px solid #333;padding-top:6px;width:150px;font-size:12px}
-      @media print{body{padding:15px}}
-    </style>
-  </head><body>
-    <div class="header">
-      <div class="school-name">${school}</div>
-      <div class="school-sub">${address} | ফোন: ${phone}</div>
-    </div>
-    <div class="cc-title">চারিত্রিক সনদপত্র (Character Certificate)</div>
-    <div class="cc-no">সনদ নম্বর: ${ccNo} &nbsp;|&nbsp; তারিখ: ${issueDate}</div>
-    <div class="content">
-      <div class="fields">
-        <div class="field-row"><span class="field-label">ছাত্রের পূর্ণ নাম:</span><span class="field-value"><b>${s.name||''}</b></span></div>
-        <div class="field-row"><span class="field-label">পিতা/অভিভাবক:</span><span class="field-value">${s.guardian||'—'}</span></div>
-        <div class="field-row"><span class="field-label">রোল নম্বর:</span><span class="field-value">${s.roll||''}</span></div>
-        <div class="field-row"><span class="field-label">শ্রেণি:</span><span class="field-value">${s.cls||''} ${s.section?'(সেকশন '+s.section+')':''}</span></div>
-        <div class="field-row"><span class="field-label">জন্মতারিখ:</span><span class="field-value">${s.dob||'—'}</span></div>
-        <div class="field-row"><span class="field-label">ধর্ম:</span><span class="field-value">${s.religion||'—'}</span></div>
-        <div class="field-row"><span class="field-label">ঠিকানা:</span><span class="field-value">${s.address||'—'}</span></div>
-        <div class="field-row"><span class="field-label">আচরণ:</span><span class="field-value"><b>${conduct}</b></span></div>
-        <div class="field-row"><span class="field-label">উদ্দেশ্য:</span><span class="field-value">${purpose}</span></div>
-      </div>
-      <div style="text-align:center">${photoHtml}<div style="font-size:11px;margin-top:4px">ছাত্রের ছবি</div></div>
-    </div>
-    <div class="cert-text">
-      এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, <b>${s.name||''}</b>, ${s.guardian?'পিতা/অভিভাবক '+s.guardian+',':''} 
-      এই বিদ্যালয়ের ${s.cls||''} শ্রেণির একজন নিয়মিত ছাত্র/ছাত্রী। বিদ্যালয়ে অধ্যয়নকালে তার আচরণ ও চরিত্র 
-      <b>"${conduct}"</b> ছিল। সে কোনো ধরনের শৃঙ্খলাভঙ্গজনিত কার্যকলাপে জড়িত ছিল না। 
-      ${purpose} এর জন্য তাকে এই সনদ প্রদান করা হলো। তার ভবিষ্যৎ জীবনের সর্বাঙ্গীণ সাফল্য কামনা করছি।
-    </div>
-    <div class="sign-row">
-      <div class="sign-box">শ্রেণিশিক্ষকের স্বাক্ষর</div>
-      <div class="sign-box">প্রধান শিক্ষকের স্বাক্ষর ও সিলমোহর</div>
-    </div>
-    <scr'+'ipt>window.onload=()=>{window.print();}<\/script>
-  </body></html>`);
+  w.document.write(buildFancyCertificateHTML({
+    docTitle: `Character Certificate - ${s.name}`,
+    certLabel: 'সিরিয়াল নং', certNo: ccNo, issueDate,
+    school, address, phone, founded,
+    title: 'চারিত্রিক সনদপত্র', titleEn: 'CHARACTER CERTIFICATE',
+    photoHtml, bodyHtml,
+    signLabels: ['শ্রেণি শিক্ষক','প্রধান শিক্ষক'],
+    showVerified: true
+  }));
+  w.document.close();
+}
+
+// ============ PASSING / GPA CERTIFICATE ============
+// বিদ্যমান ফলাফল (results[]) থেকে GPA/উত্তীর্ণ তথ্য নিয়ে একই ফ্যান্সি টেমপ্লেটে সনদ ছাপে।
+function printPassingCertificate(resultIndex) {
+  const r = results[resultIndex];
+  if (!r) { showToast('ফলাফল পাওয়া যায়নি', 'error'); return; }
+  const s = students.find(x => x.id === r.studentId) || students.find(x => x.roll === r.roll && x.cls === r.cls) || {};
+  const school = document.getElementById('s-school-name')?.value || 'আদর্শ উচ্চ বিদ্যালয়';
+  const address = document.getElementById('s-address')?.value || 'ঢাকা, বাংলাদেশ';
+  const phone = document.getElementById('s-phone')?.value || '০১৭০০-০০০০০০';
+  const founded = document.getElementById('s-founded-year')?.value || '';
+  const subs = r.subjects || {};
+  const subjectCount = Object.keys(subs).length || 1;
+  const avgGPA = Object.values(subs).reduce((a, m) => a + getGPA(m), 0) / subjectCount;
+  const gpaStr = avgGPA >= 4.5 ? '৫.০০' : avgGPA >= 4 ? '৪.০০' : avgGPA >= 3.5 ? '৩.৫০' : avgGPA >= 3 ? '৩.০০' : '২.০০';
+  const passed = Object.values(subs).every(m => m >= 33);
+  const certNo = 'PC-' + Date.now();
+  const issueDate = new Date().toLocaleDateString('bn-BD');
+  const year = new Date().getFullYear();
+  const nextClassText = passed ? `এবং পরবর্তী শ্রেণিতে উত্তীর্ণ হওয়ার যোগ্যতা অর্জন করেছে` : `তবে পরবর্তী শ্রেণিতে উত্তীর্ণ হওয়ার নূন্যতম যোগ্যতা অর্জন করতে পারেনি`;
+  const photoHtml = s.photo ? `<img src="${s.photo}">` : `ছাত্রের<br>ছবি`;
+  const bodyHtml = `এই মর্মে প্রত্যয়ন করা যাচ্ছে যে, <u>${r.name || s.name || ''}</u>, পিতা: <u>${s.guardian || '—'}</u>, মাতা: <u>—</u>,
+    জন্ম তারিখ: <u>${s.dob || '—'}</u>, রোল নং: <u>${r.roll || ''}</u>, এই বিদ্যালয়ের <u>${r.cls || ''}</u> শ্রেণির
+    একজন নিয়মিত ছাত্র/ছাত্রী হিসেবে <u>${year}</u> শিক্ষাবর্ষের <u>${r.exam || 'বার্ষিক'}</u> পরীক্ষায় অংশগ্রহণ করে
+    জিপিএ <u>${gpaStr}</u> প্রাপ্ত হয়ে ${passed ? 'কৃতকার্য হয়েছে' : 'উত্তীর্ণ হতে পারেনি'} ${nextClassText}। আমি তার সর্বাঙ্গীন সাফল্য কামনা করি।`;
+  const w = window.open('', '_blank');
+  if (!w) { showToast('পপআপ ব্লক হয়েছে। ব্রাউজার সেটিংসে পপআপ অনুমতি দিন।', 'error'); return; }
+  w.document.write(buildFancyCertificateHTML({
+    docTitle: `Passing Certificate - ${r.name}`,
+    certLabel: 'সনদ নং', certNo, issueDate,
+    school, address, phone, founded,
+    title: `${r.cls || ''} শ্রেণি উত্তীর্ণ সনদপত্র`, titleEn: 'PASSING CERTIFICATE',
+    photoHtml, bodyHtml,
+    signLabels: ['শ্রেণি শিক্ষক', 'প্রধান শিক্ষক'],
+    showVerified: true
+  }));
   w.document.close();
 }
 
